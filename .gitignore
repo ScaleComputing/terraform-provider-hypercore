@@ -16,6 +16,7 @@ website/node_modules
 *.backup
 ./*.tfstate
 .terraform/
+.terraform.lock.hcl
 *.log
 *.bak
 *~
@@ -24,6 +25,7 @@ website/node_modules
 *.iml
 *.test
 *.iml
+.venv
 
 website/vendor
 

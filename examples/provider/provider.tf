@@ -1,3 +1,3 @@
-provider "scaffolding" {
+provider "scale" {
   # example configuration here
 }

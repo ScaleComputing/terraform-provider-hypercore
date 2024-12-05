@@ -1,3 +1,3 @@
-data "scaffolding_example" "example" {
+resource "scale_vm" "example" {
   configurable_attribute = "some-value"
 }

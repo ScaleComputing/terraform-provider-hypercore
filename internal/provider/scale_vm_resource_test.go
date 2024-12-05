@@ -10,23 +10,23 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccExampleResource(t *testing.T) {
+func TestAccScaleVMResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccExampleResourceConfig("one"),
+				Config: testAccScaleVMResourceConfig("one"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("scaffolding_example.test", "configurable_attribute", "one"),
-					resource.TestCheckResourceAttr("scaffolding_example.test", "defaulted", "example value when not configured"),
-					resource.TestCheckResourceAttr("scaffolding_example.test", "id", "example-id"),
+					resource.TestCheckResourceAttr("scale_vm.test", "configurable_attribute", "one"),
+					resource.TestCheckResourceAttr("scale_vm.test", "defaulted", "example value when not configured"),
+					resource.TestCheckResourceAttr("scale_vm.test", "id", "scale-id"),
 				),
 			},
 			// ImportState testing
 			{
-				ResourceName:      "scaffolding_example.test",
+				ResourceName:      "scale_vm.test",
 				ImportState:       true,
 				ImportStateVerify: true,
 				// This is not normally necessary, but is here because this
@@ -37,9 +37,9 @@ func TestAccExampleResource(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: testAccExampleResourceConfig("two"),
+				Config: testAccScaleVMResourceConfig("two"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("scaffolding_example.test", "configurable_attribute", "two"),
+					resource.TestCheckResourceAttr("scale_vm.test", "configurable_attribute", "two"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -47,9 +47,9 @@ func TestAccExampleResource(t *testing.T) {
 	})
 }
 
-func testAccExampleResourceConfig(configurableAttribute string) string {
+func testAccScaleVMResourceConfig(configurableAttribute string) string {
 	return fmt.Sprintf(`
-resource "scaffolding_example" "test" {
+resource "scale_vm" "test" {
   configurable_attribute = %[1]q
 }
 `, configurableAttribute)
