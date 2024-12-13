@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"net/http"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/function"
@@ -29,7 +30,9 @@ type ScaleProvider struct {
 
 // ScaleProviderModel describes the provider data model.
 type ScaleProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
+	Host     types.String `tfsdk:"host"`
+	Username types.String `tfsdk:"username"`
+	Password types.String `tfsdk:"password"`
 }
 
 func (p *ScaleProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -40,18 +43,71 @@ func (p *ScaleProvider) Metadata(ctx context.Context, req provider.MetadataReque
 func (p *ScaleProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Scale provider attribute",
+			"host": schema.StringAttribute{
+        MarkdownDescription: "Scale Computing host URI; can also be set with SC_HOST environment variable.",
 				Optional:            true,
+			},
+			"username": schema.StringAttribute{
+				MarkdownDescription: "Scale Computing username; can also be set with SC_USERNAME environment variable.",
+				Optional:            true,
+				Sensitive:           true,
+			},
+			"password": schema.StringAttribute{
+				MarkdownDescription: "Scale Computing password; can also be set with SC_PASSWORD environment variable.",
+				Optional:            true,
+				Sensitive:           true,
 			},
 		},
 	}
 }
 
 func (p *ScaleProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	scHost := os.Getenv("SC_HOST")
+	scUsername := os.Getenv("SC_USERNAME")
+	scPassword := os.Getenv("SC_PASSWORD")
+
 	var data ScaleProviderModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if data.Host.ValueString() != "" {
+		scHost = data.Host.ValueString()
+	}
+
+	if data.Username.ValueString() != "" {
+		scUsername = data.Username.ValueString()
+	}
+
+	if data.Password.ValueString() != "" {
+		scPassword = data.Password.ValueString()
+	}
+
+	if scHost == "" {
+		resp.Diagnostics.AddError(
+			"Missing Host URI Configuration",
+			"While configuring the provider, the host URI was not found in "+
+				"the SC_HOST environment variable or provider "+
+				"configuration block host attribute.",
+		)
+	}
+
+	if scUsername == "" {
+		resp.Diagnostics.AddError(
+			"Missing Username Configuration",
+			"While configuring the provider, the Username was not found in "+
+				"the SC_USERNAME environment variable or provider "+
+				"configuration block username attribute.",
+		)
+	}
+
+	if scPassword == "" {
+		resp.Diagnostics.AddError(
+			"Missing Password Configuration",
+			"While configuring the provider, the Password was not found in "+
+				"the SC_PASSWORD environment variable or provider "+
+				"configuration block password attribute.",
+		)
+	}
 
 	if resp.Diagnostics.HasError() {
 		return
