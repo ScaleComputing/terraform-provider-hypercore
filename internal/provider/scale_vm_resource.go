@@ -6,7 +6,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -15,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-provider-scale/internal/utils"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -27,7 +27,7 @@ func NewScaleVMResource() resource.Resource {
 
 // ScaleVMResource defines the resource implementation.
 type ScaleVMResource struct {
-	client *http.Client
+	client *utils.RestClient
 }
 
 // ScaleVMResourceModel describes the resource data model.
@@ -45,6 +45,7 @@ type ScaleVMResourceModel struct {
 	NetworkMode  types.String `tfsdk:"network_mode"`
 	UserData     types.String `tfsdk:"user_data"`
 	MetaData     types.String `tfsdk:"meta_data"`
+	VMList       types.String `tfsdk:"vm_list"`
 	Id           types.String `tfsdk:"id"`
 }
 
@@ -122,6 +123,10 @@ func (r *ScaleVMResource) Schema(ctx context.Context, req resource.SchemaRequest
 				MarkdownDescription: "User meta data jinja2 template (.yml.j2)",
 				Required:            true,
 			},
+			"vm_list": schema.StringAttribute{
+				MarkdownDescription: "List of VM objects currently on Scale (JSON as string)",
+				Computed:            true,
+			},
 			"id": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "ScaleVM identifier",
@@ -139,7 +144,7 @@ func (r *ScaleVMResource) Configure(ctx context.Context, req resource.ConfigureR
 		return
 	}
 
-	client, ok := req.ProviderData.(*http.Client)
+	restClient, ok := req.ProviderData.(*utils.RestClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -150,7 +155,7 @@ func (r *ScaleVMResource) Configure(ctx context.Context, req resource.ConfigureR
 		return
 	}
 
-	r.client = client
+	r.client = restClient
 }
 
 func (r *ScaleVMResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -159,14 +164,25 @@ func (r *ScaleVMResource) Create(ctx context.Context, req resource.CreateRequest
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
+	if r.client == nil {
+		resp.Diagnostics.AddError(
+			"Unconfigured HTTP Client",
+			"Expected configured HTTP client. Please report this issue to the provider developers.",
+		)
+
+		return
+	}
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	// TODO: 0. login with SCALE credentials to be able to access the rest of the endpoints
+	vmList := r.client.ListRecords("/rest/v1/VirDomain", nil, -1.0)
+	data.VMList = types.StringValue(fmt.Sprintf("%+v", vmList))
+
 	// save into the Terraform state.
 	data.Id = types.StringValue("scale-id")
-
-	// tflog.Debug(ctx, fmt.Sprintf("ASD vm_group: %s ASDFAS", data.Group.ValueString()))
 
 	// TODO: 1. clone a template VM (source VM)
 

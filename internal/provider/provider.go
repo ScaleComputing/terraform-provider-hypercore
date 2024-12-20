@@ -5,7 +5,7 @@ package provider
 
 import (
 	"context"
-	"net/http"
+	"fmt"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -14,6 +14,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-provider-scale/internal/utils"
 )
 
 // Ensure ScaleProvider satisfies various provider interfaces.
@@ -30,9 +32,11 @@ type ScaleProvider struct {
 
 // ScaleProviderModel describes the provider data model.
 type ScaleProviderModel struct {
-	Host     types.String `tfsdk:"host"`
-	Username types.String `tfsdk:"username"`
-	Password types.String `tfsdk:"password"`
+	Host       types.String  `tfsdk:"host"`
+	Username   types.String  `tfsdk:"username"`
+	Password   types.String  `tfsdk:"password"`
+	AuthMethod types.String  `tfsdk:"auth_method"`
+	Timeout    types.Float64 `tfsdk:"timeout"`
 }
 
 func (p *ScaleProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -44,7 +48,7 @@ func (p *ScaleProvider) Schema(ctx context.Context, req provider.SchemaRequest, 
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
-        MarkdownDescription: "Scale Computing host URI; can also be set with SC_HOST environment variable.",
+				MarkdownDescription: "Scale Computing host URI; can also be set with SC_HOST environment variable.",
 				Optional:            true,
 			},
 			"username": schema.StringAttribute{
@@ -57,6 +61,14 @@ func (p *ScaleProvider) Schema(ctx context.Context, req provider.SchemaRequest, 
 				Optional:            true,
 				Sensitive:           true,
 			},
+			"auth_method": schema.StringAttribute{
+				MarkdownDescription: "Scale Computing authentication method; can also be set with SC_AUTH_METHOD environment variable. It can be set to 'oidc' or 'local' (default).",
+				Optional:            true,
+			},
+			"timeout": schema.Float64Attribute{
+				MarkdownDescription: "Scale Computing request timeout; can also be set with SC_TIMEOUT environment variable. Default is set to 60.0 seconds.",
+				Optional:            true,
+			},
 		},
 	}
 }
@@ -65,6 +77,10 @@ func (p *ScaleProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	scHost := os.Getenv("SC_HOST")
 	scUsername := os.Getenv("SC_USERNAME")
 	scPassword := os.Getenv("SC_PASSWORD")
+	scAuthMethod := os.Getenv("SC_AUTH_METHOD")
+
+	var scTimeoutF float64
+	scTimeout := os.Getenv("SC_TIMEOUT")
 
 	var data ScaleProviderModel
 
@@ -80,6 +96,14 @@ func (p *ScaleProvider) Configure(ctx context.Context, req provider.ConfigureReq
 
 	if data.Password.ValueString() != "" {
 		scPassword = data.Password.ValueString()
+	}
+
+	if data.AuthMethod.ValueString() != "" {
+		scAuthMethod = data.AuthMethod.ValueString()
+	}
+
+	if !data.Timeout.IsNull() && !data.Timeout.IsUnknown() {
+		scTimeout = fmt.Sprint(data.Timeout.ValueFloat64())
 	}
 
 	if scHost == "" {
@@ -109,17 +133,33 @@ func (p *ScaleProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		)
 	}
 
+	if scAuthMethod == "" {
+		scAuthMethod = "local"
+	}
+
+	if scTimeout == "" {
+		scTimeoutF = 60.0
+		data.Timeout = types.Float64PointerValue(&scTimeoutF)
+	}
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Configuration values are now available.
-	// if data.Endpoint.IsNull() { /* ... */ }
-
 	// Scale client configuration for data sources and resources
-	client := http.DefaultClient
-	resp.DataSourceData = client
-	resp.ResourceData = client
+	restClient, _ := utils.NewRestClient(
+		scHost,
+		scUsername,
+		scPassword,
+		scAuthMethod,
+		scTimeoutF,
+	)
+	restClient.Login()
+	tflog.Debug(ctx, fmt.Sprintf("Logged in with session ID: %s\n", restClient.AuthHeader["Cookie"]))
+
+	// client := restClient
+	resp.DataSourceData = restClient
+	resp.ResourceData = restClient
 }
 
 func (p *ScaleProvider) Resources(ctx context.Context) []func() resource.Resource {
