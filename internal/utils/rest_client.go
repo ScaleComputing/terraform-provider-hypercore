@@ -155,9 +155,7 @@ func (rc *RestClient) Login() {
 	}
 }
 
-func (rc *RestClient) ListRecords(endpoint string, query map[any]any, timeout float64) []map[string]any {
-	// TODO: take into account the query: type might change, depending on the needs
-
+func (rc *RestClient) ListRecords(endpoint string, query map[string]any, timeout float64) []map[string]any {
 	useTimeout := timeout
 	if timeout == -1 {
 		useTimeout = rc.Timeout
@@ -182,5 +180,50 @@ func (rc *RestClient) ListRecords(endpoint string, query map[any]any, timeout fl
 		panic(fmt.Errorf("Unexpected response: %d - %v", resp.StatusCode, rc.ToString(resp)))
 	}
 
-	return rc.ToJsonObjectList(resp)
+	records := rc.ToJsonObjectList(resp)
+	return filterResults(records, query)
+}
+
+func (rc *RestClient) GetRecord(endpoint string, query map[string]any, mustExist bool, timeout float64) *map[string]any {
+	useTimeout := timeout
+	if timeout == -1 {
+		useTimeout = rc.Timeout
+	}
+
+	records := rc.ListRecords(endpoint, query, useTimeout)
+	if len(records) > 1 {
+		panic(fmt.Sprintf("%d records from endpoint %s match the %v query.", len(records), endpoint, query))
+	}
+	if mustExist && len(records) == 0 {
+		panic(fmt.Sprintf("No records from endpoint %s match the %v query.", endpoint, query))
+	}
+
+	if len(records) > 0 {
+		return &records[0]
+	}
+	return nil
+}
+
+func (rc *RestClient) CreateRecord(endpoint string, payload map[string]any, timeout float64) any {
+	useTimeout := timeout
+	if timeout == -1 {
+		useTimeout = rc.Timeout
+	}
+	client := rc.HttpClient
+	client.Timeout = time.Duration(useTimeout * float64(time.Second))
+
+	req := rc.Request(
+		"POST",
+		endpoint,
+		payload,
+		rc.AuthHeader,
+	)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(fmt.Errorf("Error making a request: %s", err.Error()))
+	}
+	defer resp.Body.Close()
+
+	return rc.ToJson(resp)
 }

@@ -41,6 +41,7 @@ generate:  ## generate documentation
 
 fmt:  ## format the code
 	gofmt -s -w -e .
+	cd local; terraform fmt
 
 test:  ## run unit tests
 	go test -v -cover -timeout=120s -parallel=10 ./...

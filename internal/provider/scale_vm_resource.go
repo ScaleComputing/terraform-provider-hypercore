@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -177,18 +178,41 @@ func (r *ScaleVMResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	// TODO: 0. login with SCALE credentials to be able to access the rest of the endpoints
-	vmList := r.client.ListRecords("/rest/v1/VirDomain", nil, -1.0)
-	data.VMList = types.StringValue(fmt.Sprintf("%+v", vmList))
+	// [x] TODO: 0. login with SCALE credentials to be able to access the rest of the endpoints
+	// vmList := r.client.ListRecords("/rest/v1/VirDomain", nil, -1.0)
+	// data.VMList = types.StringValue(fmt.Sprintf("%+v", vmList))
 
 	// save into the Terraform state.
 	data.Id = types.StringValue("scale-id")
 
-	// TODO: 1. clone a template VM (source VM)
+	// [x] TODO: 1. clone a template VM (source VM)
+	vmClone, _ := utils.NewVMClone(
+		data.Name.ValueString(),
+		data.SourceVMName.ValueString(),
+		data.UserData.ValueString(),
+		data.MetaData.ValueString(),
+	)
+	changed, msg := vmClone.Create(*r.client, ctx)
+	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
 
-	// TODO: 2. set the disk size of the new VM
-	// TODO: 3. set the NICs of the new VM
-	// TODO: 4. set new VM params and start it (set it's initial power state)
+	// Get the newly created VM's data
+	vmList, err := json.Marshal(utils.Get(
+		map[string]any{
+			"name": data.Name.ValueString(),
+		},
+		*r.client,
+	))
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"JSON output",
+			"Couldn't unmarshal a given string",
+		)
+	}
+	data.VMList = types.StringValue(fmt.Sprintf("%s", vmList))
+
+	// [ ] TODO: 2. set the disk size of the new VM
+	// [ ] TODO: 3. set the NICs of the new VM
+	// [ ] TODO: 4. set new VM params and start it (set it's initial power state)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
