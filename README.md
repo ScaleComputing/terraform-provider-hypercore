@@ -140,3 +140,7 @@ cat terraform.tfstate | less
 # destroy all resources
 dotenv -f .env run terraform destroy
 ```
+
+## Other development notes
+
+See [DEVELOPMENT.md](DEVELOPMENT.md).
