@@ -208,7 +208,7 @@ func (r *ScaleVMResource) Create(ctx context.Context, req resource.CreateRequest
 			"Couldn't unmarshal a given string",
 		)
 	}
-	data.VMList = types.StringValue(fmt.Sprintf("%s", vmList))
+	data.VMList = types.StringValue(string(vmList))
 
 	// [ ] TODO: 2. set the disk size of the new VM
 	// [ ] TODO: 3. set the NICs of the new VM

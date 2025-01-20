@@ -9,20 +9,20 @@ import (
 	"fmt"
 )
 
-type CloneVMPayload struct {
-	VMName             string
-	SourceVMName       string
-	preserveMacAddress bool
-	sourceNics         map[string]any
-	sourceSnapshotUUID string
-}
+// type CloneVMPayload struct {
+// 	VMName             string
+// 	SourceVMName       string
+// 	preserveMacAddress bool
+// 	sourceNics         map[string]any
+// 	sourceSnapshotUUID string
+// }
 
 type VMClone struct {
 	VMName             string
 	sourceVMName       string
-	tags               []string
 	cloudInit          map[string]any
 	preserveMacAddress bool
+	// tags               []string
 }
 
 func NewVMClone(_VMName string, _sourceVMName string, userData string, metaData string) (*VMClone, error) {
