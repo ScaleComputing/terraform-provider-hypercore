@@ -1,26 +1,13 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
-terraform {
-  required_providers {
-    scale = {
-      source = "local/xlab/scale"
-    }
-  }
-}
-
-provider "scale" {}
-
 locals {
   vm_meta_data_tmpl = "./assets/meta-data.ubuntu-22.04.yml.tftpl"
   vm_user_data_tmpl = "./assets/user-data.ubuntu-22.04.yml.tftpl"
-  vm_name           = "myvm"
+  vm_name           = "my-ubuntu-vm"
 }
 
 resource "scale_vm_clone" "myvm" {
   group          = "vmgroup"
   name           = local.vm_name
-  source_vm_name = "ubuntu-22.04-server-cloudimg-amd64.img"
+  source_vm_name = "my-template-vm.img"
   description    = "some description"
 
   vcpu      = 4
@@ -43,5 +30,5 @@ resource "scale_vm_clone" "myvm" {
 }
 
 output "vm_list" {
-  value = jsondecode(scale_vm_clone.myvm.vm_list)
+  value = scale_vm_clone.myvm.vm_list
 }

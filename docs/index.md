@@ -14,7 +14,18 @@ description: |-
 
 ```terraform
 provider "scale" {
-  # example configuration here
+  host        = "https://scale-host-url"
+  username    = "scale-username"
+  password    = "scale-password"
+  auth_method = "local"
+  timeout     = 60.0
+
+  # These credentials are all optional and can also be set as environment variables
+  # SC_HOST=https://scale-host-url
+  # SC_USERNAME=scale-username
+  # SC_PASSWORD=scale-password
+  # SC_AUTH_METHOD=local
+  # SC_TIMEOUT=60.0
 }
 ```
 
@@ -23,4 +34,8 @@ provider "scale" {
 
 ### Optional
 
-- `endpoint` (String) Scale provider attribute
+- `auth_method` (String) Scale Computing authentication method; can also be set with SC_AUTH_METHOD environment variable. It can be set to 'oidc' or 'local' (default).
+- `host` (String) Scale Computing host URI; can also be set with SC_HOST environment variable.
+- `password` (String, Sensitive) Scale Computing password; can also be set with SC_PASSWORD environment variable.
+- `timeout` (Number) Scale Computing request timeout; can also be set with SC_TIMEOUT environment variable. Default is set to 60.0 seconds.
+- `username` (String, Sensitive) Scale Computing username; can also be set with SC_USERNAME environment variable.
