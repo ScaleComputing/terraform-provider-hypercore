@@ -19,20 +19,20 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &ScaleVMResource{}
-var _ resource.ResourceWithImportState = &ScaleVMResource{}
+var _ resource.Resource = &ScaleVMCloneResource{}
+var _ resource.ResourceWithImportState = &ScaleVMCloneResource{}
 
-func NewScaleVMResource() resource.Resource {
-	return &ScaleVMResource{}
+func NewScaleVMCloneResource() resource.Resource {
+	return &ScaleVMCloneResource{}
 }
 
-// ScaleVMResource defines the resource implementation.
-type ScaleVMResource struct {
+// ScaleVMCloneResource defines the resource implementation.
+type ScaleVMCloneResource struct {
 	client *utils.RestClient
 }
 
-// ScaleVMResourceModel describes the resource data model.
-type ScaleVMResourceModel struct {
+// ScaleVMCloneResourceModel describes the resource data model.
+type ScaleVMCloneResourceModel struct {
 	Group        types.String `tfsdk:"group"`
 	Name         types.String `tfsdk:"name"`
 	SourceVMName types.String `tfsdk:"source_vm_name"`
@@ -42,19 +42,17 @@ type ScaleVMResourceModel struct {
 	DiskSize     types.Int32  `tfsdk:"disk_size"`
 	Nics         types.List   `tfsdk:"nics"`
 	PowerState   types.String `tfsdk:"power_state"`
-	NetworkIface types.String `tfsdk:"network_iface"`
-	NetworkMode  types.String `tfsdk:"network_mode"`
 	UserData     types.String `tfsdk:"user_data"`
 	MetaData     types.String `tfsdk:"meta_data"`
 	VMList       types.String `tfsdk:"vm_list"`
 	Id           types.String `tfsdk:"id"`
 }
 
-func (r *ScaleVMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_vm"
+func (r *ScaleVMCloneResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_vm_clone"
 }
 
-func (r *ScaleVMResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *ScaleVMCloneResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "ScaleVM resource to create a VM from a template VM",
@@ -108,14 +106,6 @@ func (r *ScaleVMResource) Schema(ctx context.Context, req resource.SchemaRequest
 				MarkdownDescription: "Initial power state on create",
 				Optional:            true,
 			},
-			"network_iface": schema.StringAttribute{
-				MarkdownDescription: "Network interface of this VM",
-				Required:            true,
-			},
-			"network_mode": schema.StringAttribute{
-				MarkdownDescription: "Network mode for this VM",
-				Required:            true,
-			},
 			"user_data": schema.StringAttribute{
 				MarkdownDescription: "User data jinja2 template (.yml.j2)",
 				Required:            true,
@@ -139,7 +129,7 @@ func (r *ScaleVMResource) Schema(ctx context.Context, req resource.SchemaRequest
 	}
 }
 
-func (r *ScaleVMResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *ScaleVMCloneResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -159,8 +149,8 @@ func (r *ScaleVMResource) Configure(ctx context.Context, req resource.ConfigureR
 	r.client = restClient
 }
 
-func (r *ScaleVMResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data ScaleVMResourceModel
+func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data ScaleVMCloneResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -222,8 +212,8 @@ func (r *ScaleVMResource) Create(ctx context.Context, req resource.CreateRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data ScaleVMResourceModel
+func (r *ScaleVMCloneResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data ScaleVMCloneResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -244,8 +234,8 @@ func (r *ScaleVMResource) Read(ctx context.Context, req resource.ReadRequest, re
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data ScaleVMResourceModel
+func (r *ScaleVMCloneResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data ScaleVMCloneResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -266,8 +256,8 @@ func (r *ScaleVMResource) Update(ctx context.Context, req resource.UpdateRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data ScaleVMResourceModel
+func (r *ScaleVMCloneResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data ScaleVMCloneResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -285,6 +275,6 @@ func (r *ScaleVMResource) Delete(ctx context.Context, req resource.DeleteRequest
 	// }
 }
 
-func (r *ScaleVMResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *ScaleVMCloneResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

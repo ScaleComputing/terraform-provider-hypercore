@@ -15,11 +15,9 @@ locals {
   vm_meta_data_tmpl = "./assets/meta-data.ubuntu-22.04.yml.tftpl"
   vm_user_data_tmpl = "./assets/user-data.ubuntu-22.04.yml.tftpl"
   vm_name           = "myvm"
-  vm_network_iface  = "ens3"
-  vm_network_mode   = "dhcp"
 }
 
-resource "scale_vm" "myvm" {
+resource "scale_vm_clone" "myvm" {
   group          = "vmgroup"
   name           = local.vm_name
   source_vm_name = "ubuntu-22.04-server-cloudimg-amd64.img"
@@ -33,13 +31,9 @@ resource "scale_vm" "myvm" {
     { type = "INTEL_E1000", vlan = 10 }
   ]
 
-  network_iface = local.vm_network_iface
-  network_mode  = local.vm_network_mode
-
   power_state = "started"
   meta_data = templatefile(local.vm_meta_data_tmpl, {
-    name          = local.vm_name,
-    network_iface = local.vm_network_iface,
+    name = local.vm_name,
   })
   user_data = templatefile(local.vm_user_data_tmpl, {
     name                = local.vm_name,
@@ -49,5 +43,5 @@ resource "scale_vm" "myvm" {
 }
 
 output "vm_list" {
-  value = jsondecode(scale_vm.myvm.vm_list)
+  value = jsondecode(scale_vm_clone.myvm.vm_list)
 }
