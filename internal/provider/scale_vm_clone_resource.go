@@ -60,7 +60,7 @@ func (r *ScaleVMCloneResource) Schema(ctx context.Context, req resource.SchemaRe
 		Attributes: map[string]schema.Attribute{
 			"group": schema.StringAttribute{
 				MarkdownDescription: "Group/tag to create this VM in",
-				Required:            true,
+				Optional:            true,
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of this VM",
@@ -72,19 +72,19 @@ func (r *ScaleVMCloneResource) Schema(ctx context.Context, req resource.SchemaRe
 			},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Description of this VM",
-				Required:            true,
+				Optional:            true,
 			},
 			"vcpu": schema.Int32Attribute{
-				MarkdownDescription: "Number of CPUs on this VM",
-				Required:            true,
+				MarkdownDescription: "Number of CPUs on this VM. If the cloned VM was already created and it's VCPU was modified, the cloned VM will be rebooted (either gracefully or forcefully)",
+				Optional:            true,
 			},
 			"memory": schema.Int32Attribute{
-				MarkdownDescription: "Memory (RAM) size in MiB",
-				Required:            true,
+				MarkdownDescription: "Memory (RAM) size in MiB: If the cloned VM was already created and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)",
+				Optional:            true,
 			},
 			"disk_size": schema.Int32Attribute{
 				MarkdownDescription: "Disk size in GB",
-				Required:            true,
+				Optional:            true,
 			},
 			"nics": schema.ListNestedAttribute{
 				MarkdownDescription: "NICs for this VM",
@@ -103,15 +103,15 @@ func (r *ScaleVMCloneResource) Schema(ctx context.Context, req resource.SchemaRe
 				Required: true,
 			},
 			"power_state": schema.StringAttribute{
-				MarkdownDescription: "Initial power state on create",
+				MarkdownDescription: "Initial power state on create: If not provided, it will default to `stop`. Available power states are: start, started, stop, shutdown, reboot, reset. Power state can be modified on the cloned VM even after the cloning process.",
 				Optional:            true,
 			},
 			"user_data": schema.StringAttribute{
-				MarkdownDescription: "User data jinja2 template (.yml.j2)",
+				MarkdownDescription: "User data terraform template (.yml.tftpl)",
 				Required:            true,
 			},
 			"meta_data": schema.StringAttribute{
-				MarkdownDescription: "User meta data jinja2 template (.yml.j2)",
+				MarkdownDescription: "User meta data terraform template (.yml.tftpl)",
 				Required:            true,
 			},
 			"vm_list": schema.StringAttribute{
@@ -168,22 +168,52 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	// [x] TODO: 0. login with SCALE credentials to be able to access the rest of the endpoints
-	// vmList := r.client.ListRecords("/rest/v1/VirDomain", nil, -1.0)
-	// data.VMList = types.StringValue(fmt.Sprintf("%+v", vmList))
-
 	// save into the Terraform state.
 	data.Id = types.StringValue("scale-id")
 
-	// [x] TODO: 1. clone a template VM (source VM)
+	var tags *[]string
+	var description *string
+	var powerState string
+
+	if data.Group.ValueString() == "" {
+		tags = nil
+	} else {
+		tags = &[]string{data.Group.ValueString()}
+	}
+
+	if data.Description.ValueString() == "" {
+		description = nil
+	} else {
+		description = data.Description.ValueStringPointer()
+	}
+
+	if data.PowerState.ValueString() == "" {
+		powerState = "stop"
+	} else {
+		powerState = data.PowerState.ValueString()
+	}
+
 	vmClone, _ := utils.NewVMClone(
 		data.Name.ValueString(),
 		data.SourceVMName.ValueString(),
 		data.UserData.ValueString(),
 		data.MetaData.ValueString(),
+		description,
+		tags,
+		data.VCPU.ValueInt32Pointer(),
+		data.Memory.ValueInt32Pointer(),
+		&powerState,
 	)
 	changed, msg := vmClone.Create(*r.client, ctx)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
+
+	// Parametrization
+	// set: description, group, vcpu, memory, power_state
+	changed, vmWasRebooted, vmDiff := vmClone.SetVMParams(*r.client, ctx)
+	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
+
+	// [ ] TODO: 1. set the disk size of the new VM
+	// [ ] TODO: 2. set the NICs of the new VM
 
 	// Get the newly created VM's data
 	vmList, err := json.Marshal(utils.Get(
@@ -199,10 +229,6 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 		)
 	}
 	data.VMList = types.StringValue(string(vmList))
-
-	// [ ] TODO: 2. set the disk size of the new VM
-	// [ ] TODO: 3. set the NICs of the new VM
-	// [ ] TODO: 4. set new VM params and start it (set it's initial power state)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log

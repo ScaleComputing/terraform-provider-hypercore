@@ -19,16 +19,17 @@ func TestAccScaleVMCloneResource(t *testing.T) {
 			{
 				Config: testAccScaleVMCloneResourceConfig("tf-vm", "tf-src"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "description", ""), // TODO "tf-vm-description"
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "memory", "0"),     // TODO 1 GB
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "description", "tf-vm-description"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "memory", "4096"),
 					// resource.TestCheckResourceAttr("scale_vm_clone.test", "nics", []),
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "group", ""), // TODO "testtf"
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "group", "testtf"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "meta_data", ""),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "user_data", ""),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "source_vm_name", "tf-src"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "name", "tf-vm"),
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "vcpu", "0"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "vcpu", "4"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "disk_size", "0"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "power_state", "started"),
 				),
 			},
 			// ImportState testing
@@ -52,6 +53,7 @@ func TestAccScaleVMCloneResource(t *testing.T) {
 					"source_vm_name",
 					"user_data",
 					"meta_data",
+					"power_state",
 				},
 			},
 			// Update and Read testing
@@ -59,10 +61,11 @@ func TestAccScaleVMCloneResource(t *testing.T) {
 				Config: testAccScaleVMCloneResourceConfig("tf-vm", "tf-src"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "name", "tf-vm"),
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "description", ""),
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "group", ""),
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "vcpu", "0"),
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "memory", "0"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "description", "tf-vm-description"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "group", "testtf"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "vcpu", "4"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "memory", "4096"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "power_state", "started"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -75,14 +78,15 @@ func testAccScaleVMCloneResourceConfig(vm_name string, source_vm_name string) st
 resource "scale_vm_clone" "test" {
   name = %[1]q
   source_vm_name = %[2]q
-  group = ""
-  vcpu = 0
-  memory = 0
+  group = "testtf"
+  vcpu = 4
+  memory = 4096
   user_data = ""
   meta_data = ""
-  description = ""
+  description = "tf-vm-description"
   nics = []
   disk_size = 0
+  power_state = "started"
 }
 `, vm_name, source_vm_name)
 }
