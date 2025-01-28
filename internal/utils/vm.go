@@ -47,7 +47,12 @@ var (
 		"memory":      true,
 		"vcpu":        true,
 		"powerState":  false,
+		"diskSize":    true,
 	}
+)
+
+const (
+	SHUTDOWN_TIMEOUT_SECONDS = 300
 )
 
 type VMClone struct {
@@ -171,7 +176,7 @@ func (vc *VMClone) SetVMParams(restClient RestClient, ctx context.Context) (bool
 		if vc.NeedsReboot(changedParams) && (vmMap["state"] != "STOP" && vmMap["state"] != "SHUTOFF" && vmMap["state"] != "SHUTDOWN") {
 			vmUUID, ok := vmMap["uuid"].(string)
 			if ok {
-				vc.DoShutdownSteps(vmUUID, 300, restClient, ctx)
+				vc.DoShutdownSteps(vmUUID, SHUTDOWN_TIMEOUT_SECONDS, restClient, ctx)
 			} else {
 				panic(fmt.Sprintf("Unexpected value found for UUID: %v", vmMap["uuid"]))
 			}
@@ -490,11 +495,4 @@ func GetByOldOrNewName(name string, newName string, restClient RestClient, mustE
 	}
 
 	return vm
-}
-
-type ManageVMDisks struct{}
-
-func GetVMByName(restClient RestClient) *map[string]any {
-	// TODO: maybe won't be needed
-	return &map[string]any{}
 }
