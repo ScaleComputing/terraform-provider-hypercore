@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 type TaskTag struct {
@@ -36,27 +38,33 @@ func (tt *TaskTag) WaitTask(restClient RestClient, ctx context.Context) {
 	}
 
 	for { // while true
-		taskStatus := restClient.GetRecord(
-			fmt.Sprintf("/rest/v1/TaskTag/%s", tt.TaskTag),
-			map[string]any{},
-			false,
-			-1,
-		)
+		select {
+		case <-ctx.Done(): // take into account SIGINT (ctrl+c)
+			tflog.Error(ctx, "Operation was interrupted by Terraform. Whatever request was made to host prior to cancelation, will now finish.")
+			return
+		default:
+			taskStatus := restClient.GetRecord(
+				fmt.Sprintf("/rest/v1/TaskTag/%s", tt.TaskTag),
+				map[string]any{},
+				false,
+				-1,
+			)
 
-		if taskStatus == nil { // No such taskStatus found
-			break
-		}
-
-		if state, ok := (*taskStatus)["state"]; ok {
-			if state == "ERROR" || state == "UNINITIALIZED" { // Task has finished unsuccessfully or was never initialized. Both are errors.
-				panic(fmt.Sprintf("Error executing task: %s, %s", state, taskStatus))
-			}
-
-			if !(state == "RUNNING" || state == "QUEUED") { // TaskTag has finished
+			if taskStatus == nil { // No such taskStatus found
 				break
 			}
+
+			if state, ok := (*taskStatus)["state"]; ok {
+				if state == "ERROR" || state == "UNINITIALIZED" { // Task has finished unsuccessfully or was never initialized. Both are errors.
+					panic(fmt.Sprintf("Error executing task: %s, %s", state, taskStatus))
+				}
+
+				if !(state == "RUNNING" || state == "QUEUED") { // TaskTag has finished
+					break
+				}
+			}
+			time.Sleep(1 * time.Second) // sleep 1 second
 		}
-		time.Sleep(1 * time.Second) // sleep 1 second
 	}
 }
 
