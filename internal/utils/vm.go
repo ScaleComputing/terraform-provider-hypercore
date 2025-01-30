@@ -58,7 +58,7 @@ type VMClone struct {
 	description        *string
 	tags               *[]string
 	vcpu               *int32
-	memory             *int32
+	memory             *int64
 	powerState         *string
 
 	_wasNiceShutdownTried  bool
@@ -77,7 +77,7 @@ func NewVMClone(
 	_description *string,
 	_tags *[]string,
 	_vcpu *int32,
-	_memory *int32,
+	_memory *int64,
 	_powerState *string,
 ) (*VMClone, error) {
 	userDataB64 := base64.StdEncoding.EncodeToString([]byte(userData))
@@ -385,7 +385,7 @@ func (vc *VMClone) BuildUpdatePayload(changedParams map[string]bool) map[string]
 		updatePayload["tags"] = tagsListToCommaString(*vc.tags)
 	}
 	if changed, ok := changedParams["memory"]; ok && changed {
-		vcMemoryBytes := *vc.memory * 1024 // MB to B
+		vcMemoryBytes := *vc.memory * 1024 * 1024 // MB to B
 		updatePayload["mem"] = vcMemoryBytes
 	}
 	if changed, ok := changedParams["vcpu"]; ok && changed {
@@ -405,7 +405,7 @@ func (vc *VMClone) GetChangedParams(vmFromClient map[string]any) (bool, map[stri
 		changedParams["tags"] = !reflect.DeepEqual(*vc.tags, vmFromClient["tags"])
 	}
 	if vc.memory != nil {
-		vcMemoryBytes := *vc.memory * 1024 // MB to B
+		vcMemoryBytes := *vc.memory * 1024 * 1024 // MB to B
 		changedParams["memory"] = vcMemoryBytes != vmFromClient["mem"]
 	}
 	if vc.vcpu != nil {
