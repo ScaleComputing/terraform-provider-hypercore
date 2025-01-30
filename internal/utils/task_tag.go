@@ -51,7 +51,7 @@ func (tt *TaskTag) WaitTask(restClient RestClient, ctx context.Context) {
 			)
 
 			if taskStatus == nil { // No such taskStatus found
-				break
+				return
 			}
 
 			if state, ok := (*taskStatus)["state"]; ok {
@@ -60,7 +60,7 @@ func (tt *TaskTag) WaitTask(restClient RestClient, ctx context.Context) {
 				}
 
 				if !(state == "RUNNING" || state == "QUEUED") { // TaskTag has finished
-					break
+					return
 				}
 			}
 			time.Sleep(1 * time.Second) // sleep 1 second

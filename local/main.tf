@@ -18,10 +18,10 @@ locals {
 }
 
 resource "scale_vm_clone" "myvm" {
-  group          = "vmgroup"
+  group          = "ananas"
   name           = local.vm_name
   source_vm_name = "ubuntu-22.04-server-cloudimg-amd64.img"
-  description    = "some description"
+  description    = "Ana's cloned VM"
 
   vcpu      = 4
   memory    = 4096 # MiB

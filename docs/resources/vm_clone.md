@@ -54,20 +54,20 @@ output "vm_list" {
 
 ### Required
 
-- `description` (String) Description of this VM
-- `disk_size` (Number) Disk size in GB
-- `group` (String) Group/tag to create this VM in
-- `memory` (Number) Memory (RAM) size in MiB
-- `meta_data` (String) User meta data jinja2 template (.yml.j2)
+- `meta_data` (String) User meta data terraform template (.yml.tftpl)
 - `name` (String) Name of this VM
 - `nics` (Attributes List) NICs for this VM (see [below for nested schema](#nestedatt--nics))
 - `source_vm_name` (String) Name of the template VM from which this VM will be created
-- `user_data` (String) User data jinja2 template (.yml.j2)
-- `vcpu` (Number) Number of CPUs on this VM
+- `user_data` (String) User data terraform template (.yml.tftpl)
 
 ### Optional
 
-- `power_state` (String) Initial power state on create
+- `description` (String) Description of this VM
+- `disk_size` (Number) Disk size in GB
+- `group` (String) Group/tag to create this VM in
+- `memory` (Number) Memory (RAM) size in MiB: If the cloned VM was already created and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)
+- `power_state` (String) Initial power state on create: If not provided, it will default to `stop`. Available power states are: start, started, stop, shutdown, reboot, reset. Power state can be modified on the cloned VM even after the cloning process.
+- `vcpu` (Number) Number of CPUs on this VM. If the cloned VM was already created and it's VCPU was modified, the cloned VM will be rebooted (either gracefully or forcefully)
 
 ### Read-Only
 
