@@ -385,7 +385,8 @@ func (vc *VMClone) BuildUpdatePayload(changedParams map[string]bool) map[string]
 		updatePayload["tags"] = tagsListToCommaString(*vc.tags)
 	}
 	if changed, ok := changedParams["memory"]; ok && changed {
-		updatePayload["mem"] = *vc.memory
+		vcMemoryBytes := *vc.memory * 1024 // MB to B
+		updatePayload["mem"] = vcMemoryBytes
 	}
 	if changed, ok := changedParams["vcpu"]; ok && changed {
 		updatePayload["numVCPU"] = *vc.vcpu
@@ -404,7 +405,8 @@ func (vc *VMClone) GetChangedParams(vmFromClient map[string]any) (bool, map[stri
 		changedParams["tags"] = !reflect.DeepEqual(*vc.tags, vmFromClient["tags"])
 	}
 	if vc.memory != nil {
-		changedParams["memory"] = *vc.memory != vmFromClient["mem"]
+		vcMemoryBytes := *vc.memory * 1024 // MB to B
+		changedParams["memory"] = vcMemoryBytes != vmFromClient["mem"]
 	}
 	if vc.vcpu != nil {
 		changedParams["vcpu"] = *vc.memory != vmFromClient["numVCPU"]
