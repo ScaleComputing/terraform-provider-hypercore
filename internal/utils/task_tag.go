@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -31,7 +32,7 @@ func (tt *TaskTag) ToMap() map[string]any {
 	}
 }
 
-func (tt *TaskTag) WaitTask(restClient RestClient) {
+func (tt *TaskTag) WaitTask(restClient RestClient, ctx context.Context) {
 	if tt == nil || tt.TaskTag == "" {
 		return
 	}

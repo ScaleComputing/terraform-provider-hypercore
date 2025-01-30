@@ -141,7 +141,7 @@ func (vc *VMClone) Create(restClient RestClient, ctx context.Context) (bool, str
 
 	// Clone payload
 	task := vc.Clone(restClient, sourceVM)
-	task.WaitTask(restClient)
+	task.WaitTask(restClient, ctx)
 	taskStatus := task.GetStatus(restClient)
 
 	if taskStatus != nil {
@@ -165,7 +165,7 @@ func (vc *VMClone) SetVMParams(restClient RestClient, ctx context.Context) (bool
 			-1,
 			ctx,
 		)
-		taskTag.WaitTask(restClient)
+		taskTag.WaitTask(restClient, ctx)
 
 		vmMap := (*vm)
 		if vc.NeedsReboot(changedParams) && (vmMap["state"] != "STOP" && vmMap["state"] != "SHUTOFF" && vmMap["state"] != "SHUTDOWN") {
@@ -283,7 +283,7 @@ func (vc *VMClone) UpdatePowerState(
 		tflog.Warn(ctx, "Ignoring failed VM RESET")
 		return
 	}
-	taskTag.WaitTask(restClient)
+	taskTag.WaitTask(restClient, ctx)
 }
 
 func (vc *VMClone) PowerUp(vm map[string]any, restClient RestClient, ctx context.Context) {
