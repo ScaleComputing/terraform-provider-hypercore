@@ -17,16 +17,16 @@ func TestAccScaleVMCloneResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccScaleVMCloneResourceConfig("tf-vm", "tf-src"),
+				Config: testAccScaleVMCloneResourceConfig("testtf-vm", "testtf-src"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "description", "tf-vm-description"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "description", "testtf-vm-description"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "memory", "4096"),
 					// resource.TestCheckResourceAttr("scale_vm_clone.test", "nics", []),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "group", "testtf"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "meta_data", ""),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "user_data", ""),
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "source_vm_name", "tf-src"),
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "name", "tf-vm"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "source_vm_name", "testtf-src"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "name", "testtf-vm"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "vcpu", "4"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "disk_size", "0"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "power_state", "started"),
@@ -58,10 +58,10 @@ func TestAccScaleVMCloneResource(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: testAccScaleVMCloneResourceConfig("tf-vm", "tf-src"),
+				Config: testAccScaleVMCloneResourceConfig("testtf-vm", "testtf-src"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "name", "tf-vm"),
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "description", "tf-vm-description"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "name", "testtf-vm"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "description", "testtf-vm-description"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "group", "testtf"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "vcpu", "4"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "memory", "4096"),
@@ -83,7 +83,7 @@ resource "scale_vm_clone" "test" {
   memory = 4096
   user_data = ""
   meta_data = ""
-  description = "tf-vm-description"
+  description = "testtf-vm-description"
   nics = []
   disk_size = 0
   power_state = "started"

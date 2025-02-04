@@ -14,7 +14,7 @@ provider "scale" {}
 locals {
   vm_meta_data_tmpl = "./assets/meta-data.ubuntu-22.04.yml.tftpl"
   vm_user_data_tmpl = "./assets/user-data.ubuntu-22.04.yml.tftpl"
-  vm_name           = "myvm"
+  vm_name           = "testtf-myvm"
 }
 
 resource "scale_vm_clone" "myvm" {

@@ -38,7 +38,7 @@ type ScaleVMCloneResourceModel struct {
 	SourceVMName types.String `tfsdk:"source_vm_name"`
 	Description  types.String `tfsdk:"description"`
 	VCPU         types.Int32  `tfsdk:"vcpu"`
-	Memory       types.Int32  `tfsdk:"memory"`
+	Memory       types.Int64  `tfsdk:"memory"`
 	DiskSize     types.Int32  `tfsdk:"disk_size"`
 	Nics         types.List   `tfsdk:"nics"`
 	PowerState   types.String `tfsdk:"power_state"`
@@ -78,7 +78,7 @@ func (r *ScaleVMCloneResource) Schema(ctx context.Context, req resource.SchemaRe
 				MarkdownDescription: "Number of CPUs on this VM. If the cloned VM was already created and it's VCPU was modified, the cloned VM will be rebooted (either gracefully or forcefully)",
 				Optional:            true,
 			},
-			"memory": schema.Int32Attribute{
+			"memory": schema.Int64Attribute{
 				MarkdownDescription: "Memory (RAM) size in MiB: If the cloned VM was already created and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)",
 				Optional:            true,
 			},
@@ -201,7 +201,7 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 		description,
 		tags,
 		data.VCPU.ValueInt32Pointer(),
-		data.Memory.ValueInt32Pointer(),
+		data.Memory.ValueInt64Pointer(),
 		&powerState,
 	)
 	changed, msg := vmClone.Create(*r.client, ctx)
