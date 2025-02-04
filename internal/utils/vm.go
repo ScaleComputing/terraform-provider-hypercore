@@ -138,7 +138,7 @@ func (vc *VMClone) Create(restClient RestClient, ctx context.Context) (bool, str
 	vm := Get(map[string]any{"name": vc.VMName}, restClient)
 
 	if len(vm) > 0 {
-		vc.UUID = anyToString(vm[0]["uuid"])
+		vc.UUID = AnyToString(vm[0]["uuid"])
 		return false, fmt.Sprintf("Virtual machine %s already exists.", vc.VMName)
 	}
 

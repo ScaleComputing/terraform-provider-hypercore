@@ -17,6 +17,10 @@ locals {
   vm_name           = "testtf-myvm"
 }
 
+data "scale_vm" "templatevm" {
+  # name = "ubuntu-22.04-server-cloudimg-amd64.img"
+}
+
 resource "scale_vm_clone" "myvm" {
   group          = "ananas"
   name           = local.vm_name

@@ -169,7 +169,9 @@ func (p *ScaleProvider) Resources(ctx context.Context) []func() resource.Resourc
 }
 
 func (p *ScaleProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+	return []func() datasource.DataSource{
+		NewScaleVMDataSource,
+	}
 }
 
 func (p *ScaleProvider) Functions(ctx context.Context) []func() function.Function {

@@ -81,7 +81,7 @@ func tagsListToCommaString(tags []string) string {
 	return tagsHyp
 }
 
-func anyToString(str any) string {
+func AnyToString(str any) string {
 	stringifiedAny, ok := str.(string)
 	if !ok {
 		panic(fmt.Sprintf("Unexpected variable where a string was expected: %v", str))
@@ -89,7 +89,7 @@ func anyToString(str any) string {
 	return stringifiedAny
 }
 
-func anyToInteger64(integer any) int64 {
+func AnyToInteger64(integer any) int64 {
 	switch v := integer.(type) {
 	case int:
 		return int64(v)
