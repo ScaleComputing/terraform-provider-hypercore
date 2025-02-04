@@ -44,8 +44,8 @@ resource "scale_vm_clone" "myvm" {
   })
 }
 
-output "vm_list" {
-  value = scale_vm_clone.myvm.vm_list
+output "vm_uuid" {
+  value = scale_vm_clone.myvm.id
 }
 ```
 
@@ -63,7 +63,7 @@ output "vm_list" {
 ### Optional
 
 - `description` (String) Description of this VM
-- `disk_size` (Number) Disk size in GB
+- `disk_size` (Number) Disk size in GB: If the cloned VM doesn't have a disk already, a new one will be created, otherwise the current disk will be updated with the preferred size. Note that if the cloned VM already has N disks, the first match (by slot or type) will be replaced
 - `group` (String) Group/tag to create this VM in
 - `memory` (Number) Memory (RAM) size in MiB: If the cloned VM was already created and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)
 - `power_state` (String) Initial power state on create: If not provided, it will default to `stop`. Available power states are: start, started, stop, shutdown, reboot, reset. Power state can be modified on the cloned VM even after the cloning process.
@@ -72,7 +72,6 @@ output "vm_list" {
 ### Read-Only
 
 - `id` (String) ScaleVM identifier
-- `vm_list` (String) List of VM objects currently on Scale (JSON as string)
 
 <a id="nestedatt--nics"></a>
 ### Nested Schema for `nics`

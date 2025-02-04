@@ -42,6 +42,6 @@ resource "scale_vm_clone" "myvm" {
   })
 }
 
-output "vm_list" {
-  value = jsondecode(scale_vm_clone.myvm.vm_list)
+output "vm_uuid" {
+  value = scale_vm_clone.myvm.id
 }
