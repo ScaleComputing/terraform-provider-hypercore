@@ -5,7 +5,6 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -39,12 +38,11 @@ type ScaleVMCloneResourceModel struct {
 	Description  types.String `tfsdk:"description"`
 	VCPU         types.Int32  `tfsdk:"vcpu"`
 	Memory       types.Int64  `tfsdk:"memory"`
-	DiskSize     types.Int32  `tfsdk:"disk_size"`
+	DiskSize     types.Int64  `tfsdk:"disk_size"`
 	Nics         types.List   `tfsdk:"nics"`
 	PowerState   types.String `tfsdk:"power_state"`
 	UserData     types.String `tfsdk:"user_data"`
 	MetaData     types.String `tfsdk:"meta_data"`
-	VMList       types.String `tfsdk:"vm_list"`
 	Id           types.String `tfsdk:"id"`
 }
 
@@ -82,8 +80,8 @@ func (r *ScaleVMCloneResource) Schema(ctx context.Context, req resource.SchemaRe
 				MarkdownDescription: "Memory (RAM) size in MiB: If the cloned VM was already created and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)",
 				Optional:            true,
 			},
-			"disk_size": schema.Int32Attribute{
-				MarkdownDescription: "Disk size in GB",
+			"disk_size": schema.Int64Attribute{
+				MarkdownDescription: "Disk size in GB: If the cloned VM doesn't have a disk already, a new one will be created, otherwise the current disk will be updated with the preferred size. Note that if the cloned VM already has N disks, the first match (by slot or type) will be replaced",
 				Optional:            true,
 			},
 			"nics": schema.ListNestedAttribute{
@@ -113,10 +111,6 @@ func (r *ScaleVMCloneResource) Schema(ctx context.Context, req resource.SchemaRe
 			"meta_data": schema.StringAttribute{
 				MarkdownDescription: "User meta data terraform template (.yml.tftpl)",
 				Required:            true,
-			},
-			"vm_list": schema.StringAttribute{
-				MarkdownDescription: "List of VM objects currently on Scale (JSON as string)",
-				Computed:            true,
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -168,9 +162,6 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	// save into the Terraform state.
-	data.Id = types.StringValue("scale-id")
-
 	var tags *[]string
 	var description *string
 	var powerState string
@@ -207,28 +198,21 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 	changed, msg := vmClone.Create(*r.client, ctx)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
 
-	// Parametrization
-	// set: description, group, vcpu, memory, power_state
-	changed, vmWasRebooted, vmDiff := vmClone.SetVMParams(*r.client, ctx)
+	// Disk size modifications
+	// set the disk size of the new VM
+	vmCloneDisk, _ := utils.NewVMDiskForClone(data.DiskSize.ValueInt64Pointer())
+	changed, vmWasRebooted, vmDiff := vmCloneDisk.SetSize(vmClone, *r.client, ctx)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
 
-	// [ ] TODO: 1. set the disk size of the new VM
 	// [ ] TODO: 2. set the NICs of the new VM
 
-	// Get the newly created VM's data
-	vmList, err := json.Marshal(utils.Get(
-		map[string]any{
-			"name": data.Name.ValueString(),
-		},
-		*r.client,
-	))
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"JSON output",
-			"Couldn't unmarshal a given string",
-		)
-	}
-	data.VMList = types.StringValue(string(vmList))
+	// General parametrization
+	// set: description, group, vcpu, memory, power_state
+	changed, vmWasRebooted, vmDiff = vmClone.SetVMParams(*r.client, ctx)
+	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
+
+	// save into the Terraform state.
+	data.Id = types.StringValue(vmClone.UUID)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log

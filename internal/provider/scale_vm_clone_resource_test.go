@@ -28,7 +28,7 @@ func TestAccScaleVMCloneResource(t *testing.T) {
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "source_vm_name", "testtf-src"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "name", "testtf-vm"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "vcpu", "4"),
-					resource.TestCheckResourceAttr("scale_vm_clone.test", "disk_size", "0"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "disk_size", "4"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "power_state", "started"),
 				),
 			},
@@ -42,7 +42,7 @@ func TestAccScaleVMCloneResource(t *testing.T) {
 				// Once the Read method is able to refresh information from
 				// the upstream service, this can be removed.
 				ImportStateVerifyIgnore: []string{
-					"vm_list",
+					"id",
 					// TODO do not ignore below attributes
 					"name",
 					"description",
@@ -64,6 +64,7 @@ func TestAccScaleVMCloneResource(t *testing.T) {
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "description", "testtf-vm-description"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "group", "testtf"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "vcpu", "4"),
+					resource.TestCheckResourceAttr("scale_vm_clone.test", "disk_size", "4"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "memory", "4096"),
 					resource.TestCheckResourceAttr("scale_vm_clone.test", "power_state", "started"),
 				),
@@ -85,7 +86,7 @@ resource "scale_vm_clone" "test" {
   meta_data = ""
   description = "testtf-vm-description"
   nics = []
-  disk_size = 0
+  disk_size = 4
   power_state = "started"
 }
 `, vm_name, source_vm_name)

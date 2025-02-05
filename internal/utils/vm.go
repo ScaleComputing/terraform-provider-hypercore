@@ -47,10 +47,16 @@ var (
 		"memory":      true,
 		"vcpu":        true,
 		"powerState":  false,
+		"diskSize":    true,
 	}
 )
 
+const (
+	SHUTDOWN_TIMEOUT_SECONDS = 300
+)
+
 type VMClone struct {
+	UUID               string
 	VMName             string
 	sourceVMName       string
 	cloudInit          map[string]any
@@ -84,6 +90,7 @@ func NewVMClone(
 	metaDataB64 := base64.StdEncoding.EncodeToString([]byte(metaData))
 
 	vmClone := &VMClone{
+		UUID:               "",
 		VMName:             _VMName,
 		sourceVMName:       _sourceVMName,
 		preserveMacAddress: false,
@@ -128,7 +135,10 @@ func (vc *VMClone) Clone(restClient RestClient, sourceVM map[string]any) *TaskTa
 }
 
 func (vc *VMClone) Create(restClient RestClient, ctx context.Context) (bool, string) {
-	if len(Get(map[string]any{"name": vc.VMName}, restClient)) > 0 {
+	vm := Get(map[string]any{"name": vc.VMName}, restClient)
+
+	if len(vm) > 0 {
+		vc.UUID = anyToString(vm[0]["uuid"])
 		return false, fmt.Sprintf("Virtual machine %s already exists.", vc.VMName)
 	}
 
@@ -146,6 +156,7 @@ func (vc *VMClone) Create(restClient RestClient, ctx context.Context) (bool, str
 
 	if taskStatus != nil {
 		if state, ok := (*taskStatus)["state"]; ok && state == "COMPLETE" {
+			vc.UUID = task.CreatedUUID
 			return true, fmt.Sprintf("Virtual machine - %s - cloning complete to - %s.", vc.sourceVMName, vc.VMName)
 		}
 	}
@@ -171,7 +182,7 @@ func (vc *VMClone) SetVMParams(restClient RestClient, ctx context.Context) (bool
 		if vc.NeedsReboot(changedParams) && (vmMap["state"] != "STOP" && vmMap["state"] != "SHUTOFF" && vmMap["state"] != "SHUTDOWN") {
 			vmUUID, ok := vmMap["uuid"].(string)
 			if ok {
-				vc.DoShutdownSteps(vmUUID, 300, restClient, ctx)
+				vc.DoShutdownSteps(vmUUID, SHUTDOWN_TIMEOUT_SECONDS, restClient, ctx)
 			} else {
 				panic(fmt.Sprintf("Unexpected value found for UUID: %v", vmMap["uuid"]))
 			}
@@ -490,11 +501,4 @@ func GetByOldOrNewName(name string, newName string, restClient RestClient, mustE
 	}
 
 	return vm
-}
-
-type ManageVMDisks struct{}
-
-func GetVMByName(restClient RestClient) *map[string]any {
-	// TODO: maybe won't be needed
-	return &map[string]any{}
 }

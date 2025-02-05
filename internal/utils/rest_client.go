@@ -333,3 +333,29 @@ func (rc *RestClient) UpdateRecord(endpoint string, payload map[string]any, time
 
 	return jsonObjectToTaskTag(respJson)
 }
+
+func (rc *RestClient) DeleteRecord(endpoint string, timeout float64, ctx context.Context) *TaskTag {
+	useTimeout := timeout
+	if timeout == -1 {
+		useTimeout = rc.Timeout
+	}
+	client := rc.HttpClient
+	client.Timeout = time.Duration(useTimeout * float64(time.Second))
+
+	req := rc.Request(
+		"DELETE",
+		endpoint,
+		map[string]any{},
+		rc.AuthHeader,
+	)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(fmt.Errorf("Error making a request: %s", err.Error()))
+	}
+	defer resp.Body.Close()
+
+	respJson := rc.ToJson(resp)
+
+	return jsonObjectToTaskTag(respJson)
+}
