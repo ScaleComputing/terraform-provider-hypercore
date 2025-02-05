@@ -162,9 +162,6 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	// save into the Terraform state.
-	data.Id = types.StringValue("scale-id")
-
 	var tags *[]string
 	var description *string
 	var powerState string
@@ -213,6 +210,9 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 	// set: description, group, vcpu, memory, power_state
 	changed, vmWasRebooted, vmDiff = vmClone.SetVMParams(*r.client, ctx)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
+
+	// save into the Terraform state.
+	data.Id = types.StringValue(vmClone.UUID)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log

@@ -56,6 +56,7 @@ const (
 )
 
 type VMClone struct {
+	UUID               string
 	VMName             string
 	sourceVMName       string
 	cloudInit          map[string]any
@@ -89,6 +90,7 @@ func NewVMClone(
 	metaDataB64 := base64.StdEncoding.EncodeToString([]byte(metaData))
 
 	vmClone := &VMClone{
+		UUID:               "",
 		VMName:             _VMName,
 		sourceVMName:       _sourceVMName,
 		preserveMacAddress: false,
@@ -133,7 +135,10 @@ func (vc *VMClone) Clone(restClient RestClient, sourceVM map[string]any) *TaskTa
 }
 
 func (vc *VMClone) Create(restClient RestClient, ctx context.Context) (bool, string) {
-	if len(Get(map[string]any{"name": vc.VMName}, restClient)) > 0 {
+	vm := Get(map[string]any{"name": vc.VMName}, restClient)
+
+	if len(vm) > 0 {
+		vc.UUID = anyToString(vm[0]["uuid"])
 		return false, fmt.Sprintf("Virtual machine %s already exists.", vc.VMName)
 	}
 
@@ -151,6 +156,7 @@ func (vc *VMClone) Create(restClient RestClient, ctx context.Context) (bool, str
 
 	if taskStatus != nil {
 		if state, ok := (*taskStatus)["state"]; ok && state == "COMPLETE" {
+			vc.UUID = task.CreatedUUID
 			return true, fmt.Sprintf("Virtual machine - %s - cloning complete to - %s.", vc.sourceVMName, vc.VMName)
 		}
 	}
