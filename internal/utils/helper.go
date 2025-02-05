@@ -56,7 +56,15 @@ func jsonObjectToTaskTag(jsonObj any) *TaskTag {
 
 	if _, ok := jsonObj.(map[string]any); ok {
 		recordMap, _ := jsonObj.(map[string]any)
-		taskTag, _ = NewTaskTag(recordMap["createdUUID"].(string), recordMap["taskTag"].(string))
+		taskTagUUID, ok2 := recordMap["taskTag"].(string)
+		if !ok2 {
+			return taskTag // nil
+		}
+		createdUUID, ok3 := recordMap["createdUUID"].(string)
+		if !ok3 {
+			createdUUID = ""
+		}
+		taskTag, _ = NewTaskTag(createdUUID, taskTagUUID)
 	}
 
 	return taskTag
