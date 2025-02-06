@@ -18,14 +18,13 @@ locals {
 }
 
 data "scale_vm" "templatevm" {
-  # name = "ubuntu-22.04-server-cloudimg-amd64.img"
+  name = "ubuntu-22.04-server-cloudimg-amd64.img"
 }
 
 resource "scale_vm_clone" "myvm" {
-  group          = "ananas"
-  name           = local.vm_name
-  source_vm_name = "ubuntu-22.04-server-cloudimg-amd64.img"
-  description    = "Ana's cloned VM"
+  group       = "ananas"
+  name        = local.vm_name
+  description = "Ana's cloned VM"
 
   vcpu      = 4
   memory    = 4096 # MiB
@@ -36,16 +35,22 @@ resource "scale_vm_clone" "myvm" {
   ]
 
   power_state = "started"
-  meta_data = templatefile(local.vm_meta_data_tmpl, {
-    name = local.vm_name,
-  })
-  user_data = templatefile(local.vm_user_data_tmpl, {
-    name                = local.vm_name,
-    ssh_authorized_keys = "",
-    ssh_import_id       = "",
-  })
+  clone = {
+    source_vm_uuid = data.scale_vm.templatevm.vms.0.uuid
+    meta_data = templatefile(local.vm_meta_data_tmpl, {
+      name = local.vm_name,
+    })
+    user_data = templatefile(local.vm_user_data_tmpl, {
+      name                = local.vm_name,
+      ssh_authorized_keys = "",
+      ssh_import_id       = "",
+    })
+  }
 }
 
 output "vm_uuid" {
   value = scale_vm_clone.myvm.id
+}
+output "templatevm_uuid" {
+  value = data.scale_vm.templatevm.vms.0.uuid
 }
