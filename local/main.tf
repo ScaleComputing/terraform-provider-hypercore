@@ -34,7 +34,7 @@ resource "scale_vm_clone" "myvm" {
     { type = "INTEL_E1000", vlan = 10 }
   ]
 
-  power_state = "started"
+  power_state = "stop"
   clone = {
     source_vm_uuid = data.scale_vm.templatevm.vms.0.uuid
     meta_data = templatefile(local.vm_meta_data_tmpl, {

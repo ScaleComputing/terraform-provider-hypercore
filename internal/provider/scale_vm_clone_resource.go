@@ -225,7 +225,6 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 
 func (r *ScaleVMCloneResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data ScaleVMCloneResourceModel
-
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
@@ -240,6 +239,26 @@ func (r *ScaleVMCloneResource) Read(ctx context.Context, req resource.ReadReques
 	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
 	//     return
 	// }
+
+	// ======================================================================
+	restClient := *r.client
+	vm_uuid := data.Id.ValueString()
+	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Read oldState vm_uuid=%s", vm_uuid))
+	hc3_vm := utils.GetOne(vm_uuid, restClient)
+	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Read vmhc3_vm=%s", hc3_vm))
+	hc3_vm_name := utils.AnyToString(hc3_vm["name"])
+	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Read vm_uuid=%s hc3_vm=(name=%s)", vm_uuid, hc3_vm_name))
+
+	data.Name = types.StringValue(utils.AnyToString(hc3_vm["name"]))
+	data.Description = types.StringValue(utils.AnyToString(hc3_vm["description"]))
+	// data.Group TODO - replace "group" string with "tags" list of strings
+	data.PowerState = types.StringValue(utils.AnyToString(hc3_vm["state"]))
+	// desiredDisposition TODO
+	// uiState TODO
+	data.VCPU = types.Int32Value(int32(utils.AnyToInteger64(hc3_vm["numVCPU"])))
+	data.Memory = types.Int64Value(utils.AnyToInteger64(hc3_vm["mem"]) / 1024 / 1024)
+	// data.nics TODO
+	// data.disks TODO
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
