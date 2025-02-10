@@ -65,7 +65,8 @@ func (rc *RestClient) ToJson(response *http.Response) any {
 
 	var respJson any
 	if err := json.Unmarshal(respBytes, &respJson); err != nil {
-		panic(fmt.Errorf("Failed to decode response body: %s", err.Error()))
+		response_str := string(respBytes)
+		panic(fmt.Errorf("failed to decode response body: %s, body=%v", err.Error(), response_str))
 	}
 	return respJson
 }
