@@ -22,4 +22,4 @@ Add needed variables/secrets to github project:
   SC_PASSWORD=todo
   ```
 
-TEMP: create VM named `tf-src`.
+TEMP: create VM named `testtf-src`.
