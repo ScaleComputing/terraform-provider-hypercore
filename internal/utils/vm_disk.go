@@ -46,7 +46,7 @@ func (vd *VMDisk) SetSize(
 
 	changed := false
 	vm := GetByName(vc.VMName, restClient, true)
-	vmUUID := anyToString((*vm)["uuid"])
+	vmUUID := AnyToString((*vm)["uuid"])
 	vmDisks := anyToListOfMap((*vm)["blockDevs"])
 
 	if vd.Size != nil {
@@ -57,8 +57,8 @@ func (vd *VMDisk) SetSize(
 		tflog.Debug(ctx, fmt.Sprintf("Existing disk: %v", existingDisk))
 
 		if existingDisk != nil && vd.Size != nil {
-			existingDiskSize := anyToInteger64((*existingDisk)["capacity"])
-			desiredDiskSize := anyToInteger64(desiredDisk["capacity"])
+			existingDiskSize := AnyToInteger64((*existingDisk)["capacity"])
+			desiredDiskSize := AnyToInteger64(desiredDisk["capacity"])
 			if existingDiskSize > desiredDiskSize {
 				panic(fmt.Sprintf("Disk size can only be enlarged, never downsized: %v > %v", existingDiskSize, desiredDiskSize))
 			}
@@ -103,7 +103,7 @@ func (vd *VMDisk) UpdateBlockDevice(
 ) {
 	vc.DoShutdownSteps(vmUUID, SHUTDOWN_TIMEOUT_SECONDS, restClient, ctx)
 
-	existingDiskUUID := anyToString(existingDisk["uuid"])
+	existingDiskUUID := AnyToString(existingDisk["uuid"])
 	taskTag := restClient.UpdateRecord(
 		fmt.Sprintf("/rest/v1/VirDomainBlockDevice/%s", existingDiskUUID),
 		desiredDisk,
@@ -146,10 +146,10 @@ func (vd *VMDisk) EnsureAbsend(
 			return true, false, map[string]any{} // no disk - absent is already ensured
 		}
 
-		diskUUID := anyToString((*existingDisk)["uuid"])
+		diskUUID := AnyToString((*existingDisk)["uuid"])
 
 		// Remove the disk to ensure it's absence
-		vmUUID := anyToString((*vm)["uuid"])
+		vmUUID := AnyToString((*vm)["uuid"])
 		vc.DoShutdownSteps(vmUUID, SHUTDOWN_TIMEOUT_SECONDS, restClient, ctx)
 
 		taskTag := restClient.DeleteRecord(

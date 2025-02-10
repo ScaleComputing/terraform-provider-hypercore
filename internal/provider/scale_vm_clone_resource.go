@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -32,18 +33,22 @@ type ScaleVMCloneResource struct {
 
 // ScaleVMCloneResourceModel describes the resource data model.
 type ScaleVMCloneResourceModel struct {
-	Group        types.String `tfsdk:"group"`
-	Name         types.String `tfsdk:"name"`
-	SourceVMName types.String `tfsdk:"source_vm_name"`
-	Description  types.String `tfsdk:"description"`
-	VCPU         types.Int32  `tfsdk:"vcpu"`
-	Memory       types.Int64  `tfsdk:"memory"`
-	DiskSize     types.Int64  `tfsdk:"disk_size"`
-	Nics         types.List   `tfsdk:"nics"`
-	PowerState   types.String `tfsdk:"power_state"`
+	Group       types.String `tfsdk:"group"`
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
+	VCPU        types.Int32  `tfsdk:"vcpu"`
+	Memory      types.Int64  `tfsdk:"memory"`
+	DiskSize    types.Int64  `tfsdk:"disk_size"`
+	Nics        types.List   `tfsdk:"nics"`
+	PowerState  types.String `tfsdk:"power_state"`
+	Clone       CloneModel   `tfsdk:"clone"`
+	Id          types.String `tfsdk:"id"`
+}
+
+type CloneModel struct {
+	SourceVMUUID types.String `tfsdk:"source_vm_uuid"`
 	UserData     types.String `tfsdk:"user_data"`
 	MetaData     types.String `tfsdk:"meta_data"`
-	Id           types.String `tfsdk:"id"`
 }
 
 func (r *ScaleVMCloneResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -62,10 +67,6 @@ func (r *ScaleVMCloneResource) Schema(ctx context.Context, req resource.SchemaRe
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of this VM",
-				Required:            true,
-			},
-			"source_vm_name": schema.StringAttribute{
-				MarkdownDescription: "Name of the template VM from which this VM will be created",
 				Required:            true,
 			},
 			"description": schema.StringAttribute{
@@ -104,13 +105,13 @@ func (r *ScaleVMCloneResource) Schema(ctx context.Context, req resource.SchemaRe
 				MarkdownDescription: "Initial power state on create: If not provided, it will default to `stop`. Available power states are: start, started, stop, shutdown, reboot, reset. Power state can be modified on the cloned VM even after the cloning process.",
 				Optional:            true,
 			},
-			"user_data": schema.StringAttribute{
-				MarkdownDescription: "User data terraform template (.yml.tftpl)",
-				Required:            true,
-			},
-			"meta_data": schema.StringAttribute{
-				MarkdownDescription: "User meta data terraform template (.yml.tftpl)",
-				Required:            true,
+			"clone": schema.ObjectAttribute{
+				Optional: true,
+				AttributeTypes: map[string]attr.Type{
+					"source_vm_uuid": types.StringType,
+					"user_data":      types.StringType,
+					"meta_data":      types.StringType,
+				},
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -186,9 +187,9 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 
 	vmClone, _ := utils.NewVMClone(
 		data.Name.ValueString(),
-		data.SourceVMName.ValueString(),
-		data.UserData.ValueString(),
-		data.MetaData.ValueString(),
+		data.Clone.SourceVMUUID.ValueString(),
+		data.Clone.UserData.ValueString(),
+		data.Clone.MetaData.ValueString(),
 		description,
 		tags,
 		data.VCPU.ValueInt32Pointer(),

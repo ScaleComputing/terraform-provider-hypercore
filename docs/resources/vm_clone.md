@@ -34,14 +34,17 @@ resource "scale_vm_clone" "myvm" {
   ]
 
   power_state = "started"
-  meta_data = templatefile(local.vm_meta_data_tmpl, {
-    name = local.vm_name,
-  })
-  user_data = templatefile(local.vm_user_data_tmpl, {
-    name                = local.vm_name,
-    ssh_authorized_keys = "",
-    ssh_import_id       = "",
-  })
+  clone = {
+    source_vm_uuid = "example-uuid"
+    meta_data = templatefile(local.vm_meta_data_tmpl, {
+      name = local.vm_name,
+    })
+    user_data = templatefile(local.vm_user_data_tmpl, {
+      name                = local.vm_name,
+      ssh_authorized_keys = "",
+      ssh_import_id       = "",
+    })
+  }
 }
 
 output "vm_uuid" {
@@ -54,14 +57,12 @@ output "vm_uuid" {
 
 ### Required
 
-- `meta_data` (String) User meta data terraform template (.yml.tftpl)
 - `name` (String) Name of this VM
 - `nics` (Attributes List) NICs for this VM (see [below for nested schema](#nestedatt--nics))
-- `source_vm_name` (String) Name of the template VM from which this VM will be created
-- `user_data` (String) User data terraform template (.yml.tftpl)
 
 ### Optional
 
+- `clone` (Object) (see [below for nested schema](#nestedatt--clone))
 - `description` (String) Description of this VM
 - `disk_size` (Number) Disk size in GB: If the cloned VM doesn't have a disk already, a new one will be created, otherwise the current disk will be updated with the preferred size. Note that if the cloned VM already has N disks, the first match (by slot or type) will be replaced
 - `group` (String) Group/tag to create this VM in
@@ -83,3 +84,13 @@ Required:
 Optional:
 
 - `vlan` (Number) Specific VLAN to use
+
+
+<a id="nestedatt--clone"></a>
+### Nested Schema for `clone`
+
+Optional:
+
+- `meta_data` (String)
+- `source_vm_uuid` (String)
+- `user_data` (String)

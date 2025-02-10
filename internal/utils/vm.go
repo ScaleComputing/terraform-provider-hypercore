@@ -58,7 +58,7 @@ const (
 type VMClone struct {
 	UUID               string
 	VMName             string
-	sourceVMName       string
+	sourceVMUUID       string
 	cloudInit          map[string]any
 	preserveMacAddress bool
 	description        *string
@@ -77,7 +77,7 @@ type VMClone struct {
 
 func NewVMClone(
 	_VMName string,
-	_sourceVMName string,
+	_sourceVMUUID string,
 	userData string,
 	metaData string,
 	_description *string,
@@ -92,7 +92,7 @@ func NewVMClone(
 	vmClone := &VMClone{
 		UUID:               "",
 		VMName:             _VMName,
-		sourceVMName:       _sourceVMName,
+		sourceVMUUID:       _sourceVMUUID,
 		preserveMacAddress: false,
 		cloudInit: map[string]any{
 			"userData": userDataB64,
@@ -138,16 +138,15 @@ func (vc *VMClone) Create(restClient RestClient, ctx context.Context) (bool, str
 	vm := Get(map[string]any{"name": vc.VMName}, restClient)
 
 	if len(vm) > 0 {
-		vc.UUID = anyToString(vm[0]["uuid"])
+		vc.UUID = AnyToString(vm[0]["uuid"])
 		return false, fmt.Sprintf("Virtual machine %s already exists.", vc.VMName)
 	}
 
-	sourceVM := GetOrFail(
-		map[string]any{
-			"name": vc.sourceVMName,
-		},
+	sourceVM := GetOne(
+		vc.sourceVMUUID,
 		restClient,
-	)[0]
+	)
+	sourceVMName, _ := sourceVM["name"].(string)
 
 	// Clone payload
 	task := vc.Clone(restClient, sourceVM)
@@ -157,11 +156,11 @@ func (vc *VMClone) Create(restClient RestClient, ctx context.Context) (bool, str
 	if taskStatus != nil {
 		if state, ok := (*taskStatus)["state"]; ok && state == "COMPLETE" {
 			vc.UUID = task.CreatedUUID
-			return true, fmt.Sprintf("Virtual machine - %s - cloning complete to - %s.", vc.sourceVMName, vc.VMName)
+			return true, fmt.Sprintf("Virtual machine - %s %s - cloning complete to - %s.", sourceVMName, vc.sourceVMUUID, vc.VMName)
 		}
 	}
 
-	panic(fmt.Sprintf("There was a problem during cloning of %s, cloning failed.", vc.sourceVMName))
+	panic(fmt.Sprintf("There was a problem during cloning of %s %s, cloning failed.", sourceVMName, vc.sourceVMUUID))
 }
 
 func (vc *VMClone) SetVMParams(restClient RestClient, ctx context.Context) (bool, bool, map[string]any) {
@@ -438,6 +437,21 @@ func (vc *VMClone) GetChangedParams(vmFromClient map[string]any) (bool, map[stri
 		}
 	}
 	return false, changedParams
+}
+
+func GetOne(uuid string, restClient RestClient) map[string]any {
+	url := "/rest/v1/VirDomain/" + uuid
+	records := restClient.ListRecords(
+		url,
+		map[string]any{},
+		-1.0,
+	)
+
+	if len(records) == 0 {
+		panic(fmt.Errorf("VM not found: uuid=%v", uuid))
+	}
+
+	return records[0]
 }
 
 func GetOrFail(query map[string]any, restClient RestClient) []map[string]any {
