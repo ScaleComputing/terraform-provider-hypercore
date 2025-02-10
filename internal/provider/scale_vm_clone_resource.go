@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -252,7 +253,18 @@ func (r *ScaleVMCloneResource) Read(ctx context.Context, req resource.ReadReques
 	data.Name = types.StringValue(utils.AnyToString(hc3_vm["name"]))
 	data.Description = types.StringValue(utils.AnyToString(hc3_vm["description"]))
 	// data.Group TODO - replace "group" string with "tags" list of strings
-	data.PowerState = types.StringValue(utils.AnyToString(hc3_vm["state"]))
+
+	hc3_power_state := utils.AnyToString(hc3_vm["state"])
+	// line below look like correct thing to do. But "terraform plan -refresh-only"
+	// complains about change 'power_state = "stop" -> "stopped"
+	tf_power_state := types.StringValue(utils.FromHypercoreToTerraformPowerState[hc3_power_state])
+	// TEMP make "terraform plan -refresh-only" report "nothing changed"
+	hc3_stopped_states := []string{"SHUTOFF", "CRASHED"}
+	if slices.Contains(hc3_stopped_states, hc3_power_state) {
+		tf_power_state = types.StringValue("stop")
+	}
+	data.PowerState = tf_power_state
+
 	// desiredDisposition TODO
 	// uiState TODO
 	data.VCPU = types.Int32Value(int32(utils.AnyToInteger64(hc3_vm["numVCPU"])))
