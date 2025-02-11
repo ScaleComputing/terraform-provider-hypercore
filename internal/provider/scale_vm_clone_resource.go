@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -225,7 +226,6 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 
 func (r *ScaleVMCloneResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data ScaleVMCloneResourceModel
-
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
@@ -241,11 +241,44 @@ func (r *ScaleVMCloneResource) Read(ctx context.Context, req resource.ReadReques
 	//     return
 	// }
 
+	// ======================================================================
+	restClient := *r.client
+	vm_uuid := data.Id.ValueString()
+	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Read oldState vm_uuid=%s", vm_uuid))
+	hc3_vm := utils.GetOne(vm_uuid, restClient)
+	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Read vmhc3_vm=%s", hc3_vm))
+	hc3_vm_name := utils.AnyToString(hc3_vm["name"])
+	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Read vm_uuid=%s hc3_vm=(name=%s)", vm_uuid, hc3_vm_name))
+
+	data.Name = types.StringValue(utils.AnyToString(hc3_vm["name"]))
+	data.Description = types.StringValue(utils.AnyToString(hc3_vm["description"]))
+	// data.Group TODO - replace "group" string with "tags" list of strings
+
+	hc3_power_state := utils.AnyToString(hc3_vm["state"])
+	// line below look like correct thing to do. But "terraform plan -refresh-only"
+	// complains about change 'power_state = "stop" -> "stopped"
+	tf_power_state := types.StringValue(utils.FromHypercoreToTerraformPowerState[hc3_power_state])
+	// TEMP make "terraform plan -refresh-only" report "nothing changed"
+	hc3_stopped_states := []string{"SHUTOFF", "CRASHED"}
+	if slices.Contains(hc3_stopped_states, hc3_power_state) {
+		tf_power_state = types.StringValue("stop")
+	}
+	data.PowerState = tf_power_state
+
+	// desiredDisposition TODO
+	// uiState TODO
+	data.VCPU = types.Int32Value(int32(utils.AnyToInteger64(hc3_vm["numVCPU"])))
+	data.Memory = types.Int64Value(utils.AnyToInteger64(hc3_vm["mem"]) / 1024 / 1024)
+	// data.nics TODO
+	// data.disks TODO
+
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *ScaleVMCloneResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data_state ScaleVMCloneResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
 	var data ScaleVMCloneResourceModel
 
 	// Read Terraform plan data into the model
@@ -262,6 +295,40 @@ func (r *ScaleVMCloneResource) Update(ctx context.Context, req resource.UpdateRe
 	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update example, got error: %s", err))
 	//     return
 	// }
+
+	// data.PowerState
+	// ======================================================================
+	restClient := *r.client
+	vm_uuid := data.Id.ValueString()
+	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Update vm_uuid=%s REQ   vcpu=%d description=%s", vm_uuid, data.VCPU.ValueInt32(), data.Description.String()))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Update vm_uuid=%s STATE vcpu=%d description=%s", vm_uuid, data_state.VCPU.ValueInt32(), data_state.Description.String()))
+
+	updatePayload := map[string]any{}
+	if data_state.Name != data.Name {
+		updatePayload["name"] = data.Name.String()
+	}
+	if data_state.Description != data.Description {
+		updatePayload["description"] = data.Description.String()
+	}
+	// if changed, ok := changedParams["tags"]; ok && changed {
+	// 	updatePayload["tags"] = tagsListToCommaString(*vc.tags)
+	// }
+	// updatePayload["tags"] = "ananas,aaa,bbb"
+	if data_state.Memory != data.Memory {
+		vcMemoryBytes := data.Memory.ValueInt64() * 1024 * 1024 // MB to B
+		updatePayload["mem"] = vcMemoryBytes
+	}
+	if data_state.VCPU != data.VCPU {
+		updatePayload["numVCPU"] = data.VCPU.ValueInt32()
+	}
+
+	taskTag := restClient.UpdateRecord( /**/
+		fmt.Sprintf("/rest/v1/VirDomain/%s", vm_uuid),
+		updatePayload,
+		-1,
+		ctx,
+	)
+	taskTag.WaitTask(restClient, ctx)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
