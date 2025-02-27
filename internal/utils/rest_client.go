@@ -97,7 +97,7 @@ func (rc *RestClient) ToString(response *http.Response) string {
 }
 
 func (rc *RestClient) Request(method string, endpoint string, body map[string]any, headers map[string]string) *http.Request {
-	var jsonBody []byte
+	var jsonBody []byte = nil
 	var err error
 
 	if body != nil {
@@ -302,7 +302,7 @@ func (rc *RestClient) CreateRecordWithList(endpoint string, payload []map[string
 	return jsonObjectToTaskTag(respJson), resp.StatusCode, err
 }
 
-func (rc *RestClient) UpdateRecord(endpoint string, payload map[string]any, timeout float64, ctx context.Context) *TaskTag {
+func (rc *RestClient) UpdateRecord(endpoint string, payload map[string]any, timeout float64, ctx context.Context) (*TaskTag, error) {
 	useTimeout := timeout
 	if timeout == -1 {
 		useTimeout = rc.Timeout
@@ -332,7 +332,12 @@ func (rc *RestClient) UpdateRecord(endpoint string, payload map[string]any, time
 		panic(fmt.Errorf("Error making a request: Maybe the arguments passed were incorrectly formatted: %v - response: %v", payload, string(respByte)))
 	}
 
-	return jsonObjectToTaskTag(respJson)
+	if _, ok := AnyToMap(respJson)["taskTag"]; !ok {
+		jsonErrorString, _ := json.Marshal(respJson)
+		return nil, fmt.Errorf("%s", string(jsonErrorString))
+	}
+
+	return jsonObjectToTaskTag(respJson), nil
 }
 
 func (rc *RestClient) DeleteRecord(endpoint string, timeout float64, ctx context.Context) *TaskTag {
@@ -346,7 +351,7 @@ func (rc *RestClient) DeleteRecord(endpoint string, timeout float64, ctx context
 	req := rc.Request(
 		"DELETE",
 		endpoint,
-		map[string]any{},
+		nil,
 		rc.AuthHeader,
 	)
 

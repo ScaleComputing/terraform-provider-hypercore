@@ -5,14 +5,26 @@ locals {
 }
 
 resource "scale_vm_clone" "myvm" {
-  group          = "vmgroup"
-  name           = local.vm_name
-  source_vm_name = "my-template-vm.img"
-  description    = "some description"
+  group       = "vmgroup"
+  name        = local.vm_name
+  description = "some description"
 
-  vcpu      = 4
-  memory    = 4096 # MiB
-  disk_size = 20   # GB
+  vcpu   = 4
+  memory = 4096 # MiB
+
+  disks = [
+    {
+      size = 2.5, # GB
+      type = "VIRTIO_DISK",
+      slot = 2,
+    },
+    {
+      size = 2.5, # GB
+      type = "VIRTIO_DISK",
+      slot = 3,
+    }
+  ]
+
   nics = [
     { type = "virtio" },
     { type = "INTEL_E1000", vlan = 10 }

@@ -34,6 +34,7 @@ func (tt *TaskTag) ToMap() map[string]any {
 
 func (tt *TaskTag) WaitTask(restClient RestClient, ctx context.Context) {
 	if tt == nil || tt.TaskTag == "" {
+		tflog.Debug(ctx, "TTRT No task tag for this task\n")
 		return
 	}
 

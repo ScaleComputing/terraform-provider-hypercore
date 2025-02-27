@@ -112,7 +112,38 @@ func AnyToInteger64(integer any) int64 {
 	panic(fmt.Sprintf("Unexpected variable where an int64 was expected: %v (type %T)", integer, integer))
 }
 
-func anyToListOfMap(list any) []map[string]any {
+func AnyToFloat64(floateger any) float64 {
+	switch v := floateger.(type) {
+	case int:
+		return float64(v)
+	case int64:
+		return float64(v)
+	case float64:
+		return v
+	case string:
+		parsed, err := strconv.ParseFloat(v, 64)
+		if err == nil {
+			return parsed
+		}
+	case json.Number: // handle json.Number type
+		parsed, err := v.Float64()
+		if err == nil {
+			return parsed
+		}
+	}
+
+	panic(fmt.Sprintf("Unexpected variable where an float64 was expected: %v (type %T)", floateger, floateger))
+}
+
+func AnyToMap(_map any) map[string]any {
+	anyMap, ok := _map.(map[string]any)
+	if !ok {
+		panic(fmt.Sprintf("Unexpected variable where a map[string]any was expected: %v", anyMap))
+	}
+	return anyMap
+}
+
+func AnyToListOfMap(list any) []map[string]any {
 	anyList, ok := list.([]any)
 	if !ok {
 		panic(fmt.Sprintf("Unexpected variable where a []any was expected: %v", list))

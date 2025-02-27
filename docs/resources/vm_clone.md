@@ -20,14 +20,26 @@ locals {
 }
 
 resource "scale_vm_clone" "myvm" {
-  group          = "vmgroup"
-  name           = local.vm_name
-  source_vm_name = "my-template-vm.img"
-  description    = "some description"
+  group       = "vmgroup"
+  name        = local.vm_name
+  description = "some description"
 
-  vcpu      = 4
-  memory    = 4096 # MiB
-  disk_size = 20   # GB
+  vcpu   = 4
+  memory = 4096 # MiB
+
+  disks = [
+    {
+      size = 2.5, # GB
+      type = "VIRTIO_DISK",
+      slot = 2,
+    },
+    {
+      size = 2.5, # GB
+      type = "VIRTIO_DISK",
+      slot = 3,
+    }
+  ]
+
   nics = [
     { type = "virtio" },
     { type = "INTEL_E1000", vlan = 10 }
@@ -64,11 +76,11 @@ output "vm_uuid" {
 
 - `clone` (Object) (see [below for nested schema](#nestedatt--clone))
 - `description` (String) Description of this VM
-- `disk_size` (Number) Disk size in GB: If the cloned VM doesn't have a disk already, a new one will be created, otherwise the current disk will be updated with the preferred size. Note that if the cloned VM already has N disks, the first match (by slot or type) will be replaced
+- `disks` (Attributes List) A list of disks' configs for the cloned VM. If a disk with the same `type` and `slot` <br>already exists, that disk will be replaced with the new one if the `size` is larger (existing <br>disks can only be expanded and not shrunk). In the opposite case, a new disk will created <br>and added to the cloned VM. (see [below for nested schema](#nestedatt--disks))
 - `group` (String) Group/tag to create this VM in
-- `memory` (Number) Memory (RAM) size in MiB: If the cloned VM was already created and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)
-- `power_state` (String) Initial power state on create: If not provided, it will default to `stop`. Available power states are: start, started, stop, shutdown, reboot, reset. Power state can be modified on the cloned VM even after the cloning process.
-- `vcpu` (Number) Number of CPUs on this VM. If the cloned VM was already created and it's VCPU was modified, the cloned VM will be rebooted (either gracefully or forcefully)
+- `memory` (Number) Memory (RAM) size in `MiB`: If the cloned VM was already created <br>and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)
+- `power_state` (String) Initial power state on create: If not provided, it will default to `stop`. <br>Available power states are: start, started, stop, shutdown, reboot, reset. <br>Power state can be modified on the cloned VM even after the cloning process.
+- `vcpu` (Number) Number of CPUs on this VM. If the cloned VM was already created and it's <br>`VCPU` was modified, the cloned VM will be rebooted (either gracefully or forcefully)
 
 ### Read-Only
 
@@ -91,6 +103,27 @@ Optional:
 
 Optional:
 
+- `disk_0_label` (String)
+- `disk_0_slot` (Number)
+- `disk_0_type` (String)
+- `disk_1_label` (String)
+- `disk_1_slot` (Number)
+- `disk_1_type` (String)
 - `meta_data` (String)
 - `source_vm_uuid` (String)
 - `user_data` (String)
+
+
+<a id="nestedatt--disks"></a>
+### Nested Schema for `disks`
+
+Required:
+
+- `label` (String) Fictitious disk label. NB - there is no disk label attribute on the HypeCore.
+- `size` (Number) Disk size in `GB`.
+- `slot` (Number) Disk slot number.
+- `type` (String) Disk type. Can be: `IDE_DISK`, `SCSI_DISK`, `VIRTIO_DISK`, `IDE_FLOPPY`, `NVRAM`, `VTPM`
+
+Read-Only:
+
+- `uuid` (String) Disk's `UUID`, which is known after the disk has already been created.

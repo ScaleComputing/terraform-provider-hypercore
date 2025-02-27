@@ -6,83 +6,75 @@ package utils
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-var ALLOWED_DISK_TYPES = map[string]bool{
-	"IDE_DISK":    true,
-	"SCSI_DISK":   true,
-	"VIRTIO_DISK": true,
-	"IDE_FLOPPY":  true,
-	"NVRAM":       true,
-	"VTPM":        true,
-	"IDE_CDROM":   false,
+func CreateNic(
+	restClient RestClient,
+	vmUUID string,
+	nic_type string,
+	vlan int64,
+	ctx context.Context,
+) (string, map[string]any) {
+	payload := map[string]any{
+		"virDomainUUID": vmUUID,
+		"type":          nic_type,
+		"vlan":          vlan,
+	}
+	taskTag, _, _ := restClient.CreateRecord(
+		"/rest/v1/VirDomainNetDevice",
+		payload,
+		-1,
+	)
+	taskTag.WaitTask(restClient, ctx)
+	nicUUID := taskTag.CreatedUUID
+	nic := GetNic(restClient, nicUUID)
+	return nicUUID, *nic
 }
 
-type VMDisk struct {
-	Label string
-	UUID  string // known after creation
-	Slot  int64
-	Type  string
-	Size  *float64
+func GetNic(
+	restClient RestClient,
+	nicUUID string,
+) *map[string]any {
+	nic := restClient.GetRecord(
+		strings.Join([]string{"/rest/v1/VirDomainNetDevice", nicUUID}, "/"),
+		nil,
+		false,
+		-1,
+	)
+	return nic
 }
 
-func NewVMDisk(
-	_label string,
-	_slot int64,
-	_type string,
-	_size *float64,
-) (*VMDisk, error) {
-	if !ALLOWED_DISK_TYPES[_type] {
-		return nil, fmt.Errorf("Disk type '%s' not allowed. Allowed types are: IDE_DISK, SCSI_DISK, VIRTIO_DISK, IDE_FLOPPY, NVRAM, VTPM\n", _type)
+func UpdateNic(
+	restClient RestClient,
+	nicUUID string,
+	payload map[string]any,
+	ctx context.Context,
+) diag.Diagnostic {
+	taskTag, err := restClient.UpdateRecord(
+		strings.Join([]string{"/rest/v1/VirDomainNetDevice", nicUUID}, "/"),
+		payload,
+		-1,
+		ctx,
+	)
+
+	if err != nil {
+		return diag.NewWarningDiagnostic(
+			"HC3 is receiving too many requests at the same time.",
+			fmt.Sprintf("Please retry apply after Terraform finishes it's current operation. HC3 response message: %v", err.Error()),
+		)
 	}
 
-	var byteSize *float64
-	if _size != nil {
-		byteSize = new(float64)
-		*byteSize = *_size * 1000 * 1000 * 1000 // GB to B
-	} else {
-		byteSize = nil
-	}
+	taskTag.WaitTask(restClient, ctx)
+	tflog.Debug(ctx, fmt.Sprintf("TTRT Task Tag: %v\n", taskTag))
 
-	vmDisk := &VMDisk{
-		Label: _label,
-		Slot:  _slot,
-		Type:  _type,
-		Size:  byteSize,
-	}
-
-	return vmDisk, nil
+	return nil
 }
 
-func UpdateVMDisk(
-	_uuid string,
-	_label string,
-	_slot int64,
-	_type string,
-	_size *float64,
-) (*VMDisk, error) {
-
-	var byteSize *float64
-	if _size != nil {
-		byteSize = new(float64)
-		*byteSize = *_size * 1000 * 1000 * 1000 // GB to B
-	} else {
-		byteSize = nil
-	}
-
-	vmDisk := &VMDisk{
-		UUID:  _uuid,
-		Label: _label,
-		Slot:  _slot,
-		Type:  _type,
-		Size:  byteSize,
-	}
-
-	return vmDisk, nil
-}
-
+/*
 func (vd *VMDisk) CreateOrUpdate(
 	vc *VMClone,
 	restClient RestClient,
@@ -142,7 +134,7 @@ func (vd *VMDisk) UpdateBlockDevice(
 	vc.DoShutdownSteps(vmUUID, SHUTDOWN_TIMEOUT_SECONDS, restClient, ctx)
 
 	existingDiskUUID := AnyToString(existingDisk["uuid"])
-	taskTag, _ := restClient.UpdateRecord(
+	taskTag := restClient.UpdateRecord(
 		fmt.Sprintf("/rest/v1/VirDomainBlockDevice/%s", existingDiskUUID),
 		desiredDisk,
 		-1,
@@ -231,3 +223,4 @@ func (vd *VMDisk) GetSpecificDisk(vmDisks []map[string]any, ctx context.Context)
 	}
 	return nil
 }
+*/

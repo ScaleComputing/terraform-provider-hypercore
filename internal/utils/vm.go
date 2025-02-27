@@ -169,7 +169,7 @@ func (vc *VMClone) SetVMParams(restClient RestClient, ctx context.Context) (bool
 
 	if changed {
 		updatePayload := vc.BuildUpdatePayload(changedParams)
-		taskTag := restClient.UpdateRecord(
+		taskTag, _ := restClient.UpdateRecord(
 			fmt.Sprintf("/rest/v1/VirDomain/%s", (*vm)["uuid"]),
 			updatePayload,
 			-1,
