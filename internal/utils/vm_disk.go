@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -94,7 +95,7 @@ func (vd *VMDisk) CreateOrUpdate(
 	vmDisks := AnyToListOfMap((*vm)["blockDevs"])
 
 	if vd.Size != nil {
-		existingDisk := vd.GetSpecificDisk(vmDisks, ctx) // from HC3
+		existingDisk := vd.Get(vmDisks, ctx) // from HC3
 		desiredDisk := vd.BuildDiskPayload(vmUUID)
 
 		tflog.Debug(ctx, fmt.Sprintf("Desired disk: %v\n", desiredDisk))
@@ -139,7 +140,8 @@ func (vd *VMDisk) UpdateBlockDevice(
 	existingDisk map[string]any,
 	ctx context.Context,
 ) string {
-	vc.DoShutdownSteps(vmUUID, SHUTDOWN_TIMEOUT_SECONDS, restClient, ctx)
+	// TODO: this will be a new resource in the future, for now we act like the VMs are always shut down
+	// vc.DoShutdownSteps(vmUUID, SHUTDOWN_TIMEOUT_SECONDS, restClient, ctx)
 
 	existingDiskUUID := AnyToString(existingDisk["uuid"])
 	taskTag, _ := restClient.UpdateRecord(
@@ -168,7 +170,7 @@ func (vd *VMDisk) CreateBlockDevice(
 	return taskTag.CreatedUUID
 }
 
-// This function will be useful when dealing with IDE_CDROM type disks: so for the future
+// TODO: this function might be useful when dealing with IDE_CDROM type disks: so for the future
 // nolint:unused
 func (vd *VMDisk) EnsureAbsend(
 	vc *VMClone,
@@ -180,7 +182,7 @@ func (vd *VMDisk) EnsureAbsend(
 	vmDisks := AnyToListOfMap((*vm)["blockDevs"])
 
 	if vd.Size != nil {
-		existingDisk := vd.GetSpecificDisk(vmDisks, ctx)
+		existingDisk := vd.Get(vmDisks, ctx)
 		if existingDisk == nil {
 			return true, false, map[string]any{} // no disk - absent is already ensured
 		}
@@ -214,7 +216,7 @@ func (vd *VMDisk) BuildDiskPayload(vmUUID string) map[string]any {
 	}
 }
 
-func (vd *VMDisk) GetSpecificDisk(vmDisks []map[string]any, ctx context.Context) *map[string]any {
+func (vd *VMDisk) Get(vmDisks []map[string]any, ctx context.Context) *map[string]any {
 	for _, vmDisk := range vmDisks {
 		vmDiskUUID := AnyToString(vmDisk["uuid"])
 		vmDiskSlot := AnyToInteger64(vmDisk["slot"])
@@ -228,6 +230,106 @@ func (vd *VMDisk) GetSpecificDisk(vmDisks []map[string]any, ctx context.Context)
 			tflog.Debug(ctx, fmt.Sprintf("Got disk by slot and type: %v", vmDisk))
 			return &vmDisk
 		}
+	}
+	return nil
+}
+
+func GetDiskByTypeAndSlot(hc3Disks []map[string]any, diskSlot int64, diskType string, ctx context.Context) (string, float64) {
+	for _, hc3Disk := range hc3Disks {
+		hc3DiskUUID := AnyToString(hc3Disk["uuid"])
+		hc3DiskSlot := AnyToInteger64(hc3Disk["slot"])
+		hc3DiskType := AnyToString(hc3Disk["type"])
+		hc3DiskSize := AnyToFloat64(hc3Disk["capacity"]) / 1000 / 1000 / 1000 // B -> GB
+
+		if hc3DiskSlot == diskSlot && hc3DiskType == diskType {
+			tflog.Debug(ctx, fmt.Sprintf("Got disk by slot and type: %v", hc3Disk))
+			return hc3DiskUUID, hc3DiskSize
+		}
+	}
+	return "", -2
+}
+
+func GetDiskByUUID(restClient RestClient, diskUUID string) *map[string]any {
+	disk := restClient.GetRecord(
+		fmt.Sprintf("/rest/v1/VirDomainBlockDevice/%s", diskUUID),
+		nil,
+		false,
+		-1,
+	)
+	return disk
+}
+
+func BuildDiskPayload(vmUUID string, diskType string, diskSlot int64, diskSizeGB float64) map[string]any {
+	return map[string]any{
+		"virDomainUUID": vmUUID,
+		"type":          diskType,
+		"slot":          diskSlot,
+		"capacity":      diskSizeGB * 1000 * 1000 * 1000, // GB to B
+	}
+}
+
+func UpdateDisk(
+	restClient RestClient,
+	diskUUID string,
+	payload map[string]any,
+	ctx context.Context,
+) diag.Diagnostic {
+	taskTag, err := restClient.UpdateRecord(
+		fmt.Sprintf("/rest/v1/VirDomainBlockDevice/%s", diskUUID),
+		payload,
+		-1,
+		ctx,
+	)
+
+	if err != nil {
+		return diag.NewWarningDiagnostic(
+			"HC3 is receiving too many requests at the same time.",
+			fmt.Sprintf("Please retry apply after Terraform finishes it's current operation. HC3 response message: %v", err.Error()),
+		)
+	}
+
+	taskTag.WaitTask(restClient, ctx)
+
+	return nil
+}
+
+func CreateDisk(
+	restClient RestClient,
+	payload map[string]any,
+	ctx context.Context,
+) (string, map[string]any) {
+	taskTag, _, _ := restClient.CreateRecord(
+		"/rest/v1/VirDomainBlockDevice/",
+		payload,
+		-1,
+	)
+
+	taskTag.WaitTask(restClient, ctx)
+
+	diskUUID := taskTag.CreatedUUID
+	disk := GetDiskByUUID(restClient, diskUUID)
+	return diskUUID, *disk
+}
+
+func ValidateDiskType(diskType string) diag.Diagnostic {
+	if !ALLOWED_DISK_TYPES[diskType] {
+		return diag.NewErrorDiagnostic(
+			"Invalid disk type",
+			fmt.Sprintf("Disk type '%s' not allowed. Allowed types are: IDE_DISK, SCSI_DISK, VIRTIO_DISK, IDE_FLOPPY, NVRAM, VTPM", diskType),
+		)
+	}
+	return nil
+}
+
+func ValidateDiskSize(diskUUID string, oldSize float64, newSize float64) diag.Diagnostic {
+	if newSize < oldSize {
+		return diag.NewErrorDiagnostic(
+			"Invalid disk size",
+			fmt.Sprintf(
+				" can only be expanded. Use a larger size. %v GB > %v GB: diskUUID=%s",
+				newSize, oldSize, diskUUID,
+			),
+		)
 	}
 	return nil
 }

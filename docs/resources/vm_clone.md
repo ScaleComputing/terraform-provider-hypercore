@@ -70,13 +70,11 @@ output "vm_uuid" {
 ### Required
 
 - `name` (String) Name of this VM
-- `nics` (Attributes List) NICs for this VM (see [below for nested schema](#nestedatt--nics))
 
 ### Optional
 
 - `clone` (Object) (see [below for nested schema](#nestedatt--clone))
 - `description` (String) Description of this VM
-- `disks` (Attributes List) A list of disks' configs for the cloned VM. If a disk with the same `type` and `slot` <br>already exists, that disk will be replaced with the new one if the `size` is larger (existing <br>disks can only be expanded and not shrunk). In the opposite case, a new disk will created <br>and added to the cloned VM. (see [below for nested schema](#nestedatt--disks))
 - `group` (String) Group/tag to create this VM in
 - `memory` (Number) Memory (RAM) size in `MiB`: If the cloned VM was already created <br>and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)
 - `power_state` (String) Initial power state on create: If not provided, it will default to `stop`. <br>Available power states are: start, started, stop, shutdown, reboot, reset. <br>Power state can be modified on the cloned VM even after the cloning process.
@@ -86,44 +84,11 @@ output "vm_uuid" {
 
 - `id` (String) ScaleVM identifier
 
-<a id="nestedatt--nics"></a>
-### Nested Schema for `nics`
-
-Required:
-
-- `type` (String) NIC type
-
-Optional:
-
-- `vlan` (Number) Specific VLAN to use
-
-
 <a id="nestedatt--clone"></a>
 ### Nested Schema for `clone`
 
 Optional:
 
-- `disk_0_label` (String)
-- `disk_0_slot` (Number)
-- `disk_0_type` (String)
-- `disk_1_label` (String)
-- `disk_1_slot` (Number)
-- `disk_1_type` (String)
 - `meta_data` (String)
 - `source_vm_uuid` (String)
 - `user_data` (String)
-
-
-<a id="nestedatt--disks"></a>
-### Nested Schema for `disks`
-
-Required:
-
-- `label` (String) Fictitious disk label. NB - there is no disk label attribute on the HypeCore.
-- `size` (Number) Disk size in `GB`.
-- `slot` (Number) Disk slot number.
-- `type` (String) Disk type. Can be: `IDE_DISK`, `SCSI_DISK`, `VIRTIO_DISK`, `IDE_FLOPPY`, `NVRAM`, `VTPM`
-
-Read-Only:
-
-- `uuid` (String) Disk's `UUID`, which is known after the disk has already been created.

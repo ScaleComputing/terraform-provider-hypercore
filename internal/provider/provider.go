@@ -166,6 +166,7 @@ func (p *ScaleProvider) Resources(ctx context.Context) []func() resource.Resourc
 	return []func() resource.Resource{
 		NewScaleVMCloneResource,
 		NewScaleNicResource,
+		NewScaleDiskResource,
 	}
 }
 
