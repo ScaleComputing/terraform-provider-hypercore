@@ -259,7 +259,7 @@ func (r *ScaleNicResource) ImportState(ctx context.Context, req resource.ImportS
 	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleNicResource: vmUUID=%s, type=%s, vlan=%d", vmUUID, nicType, vlan))
 
 	restClient := *r.client
-	hc3VM := utils.GetOne(vmUUID, restClient)
+	hc3VM := utils.GetOneVM(vmUUID, restClient)
 	hc3Nics := utils.AnyToListOfMap(hc3VM["netDevs"])
 	tflog.Info(ctx, fmt.Sprintf("TTRT hc3Nics=%v\n", hc3Nics))
 

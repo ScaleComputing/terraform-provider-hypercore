@@ -266,6 +266,11 @@ func (rc *RestClient) CreateRecord(endpoint string, payload map[string]any, time
 		panic(fmt.Errorf("Error making a request: Maybe the arguments passed to were incorrectly formatted: %v - response: %v", payload, string(respByte)))
 	}
 
+	if _, ok := AnyToMap(respJson)["taskTag"]; !ok {
+		jsonErrorString, _ := json.Marshal(respJson)
+		return nil, resp.StatusCode, fmt.Errorf("%s", string(jsonErrorString))
+	}
+
 	return jsonObjectToTaskTag(respJson), resp.StatusCode, err
 }
 
@@ -297,6 +302,11 @@ func (rc *RestClient) CreateRecordWithList(endpoint string, payload []map[string
 			panic(fmt.Errorf("Unexpected response body: %v", respJson))
 		}
 		panic(fmt.Errorf("Error making a request: Maybe the arguments passed were incorrectly formatted: %v - response: %v", payload, string(respByte)))
+	}
+
+	if _, ok := AnyToMap(respJson)["taskTag"]; !ok {
+		jsonErrorString, _ := json.Marshal(respJson)
+		return nil, resp.StatusCode, fmt.Errorf("%s", string(jsonErrorString))
 	}
 
 	return jsonObjectToTaskTag(respJson), resp.StatusCode, err

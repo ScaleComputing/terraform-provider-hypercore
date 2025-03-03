@@ -135,14 +135,14 @@ func (vc *VMClone) Clone(restClient RestClient, sourceVM map[string]any) *TaskTa
 }
 
 func (vc *VMClone) Create(restClient RestClient, ctx context.Context) (bool, string) {
-	vm := Get(map[string]any{"name": vc.VMName}, restClient)
+	vm := GetVM(map[string]any{"name": vc.VMName}, restClient)
 
 	if len(vm) > 0 {
 		vc.UUID = AnyToString(vm[0]["uuid"])
 		return false, fmt.Sprintf("Virtual machine %s already exists.", vc.VMName)
 	}
 
-	sourceVM := GetOne(
+	sourceVM := GetOneVM(
 		vc.sourceVMUUID,
 		restClient,
 	)
@@ -164,7 +164,7 @@ func (vc *VMClone) Create(restClient RestClient, ctx context.Context) (bool, str
 }
 
 func (vc *VMClone) SetVMParams(restClient RestClient, ctx context.Context) (bool, bool, map[string]any) {
-	vm := GetByName(vc.VMName, restClient, true)
+	vm := GetVMByName(vc.VMName, restClient, true)
 	changed, changedParams := vc.GetChangedParams(*vm)
 
 	if changed {
@@ -439,7 +439,7 @@ func (vc *VMClone) GetChangedParams(vmFromClient map[string]any) (bool, map[stri
 	return false, changedParams
 }
 
-func GetOne(uuid string, restClient RestClient) map[string]any {
+func GetOneVM(uuid string, restClient RestClient) map[string]any {
 	url := "/rest/v1/VirDomain/" + uuid
 	records := restClient.ListRecords(
 		url,
@@ -454,7 +454,22 @@ func GetOne(uuid string, restClient RestClient) map[string]any {
 	return records[0]
 }
 
-func GetOrFail(query map[string]any, restClient RestClient) []map[string]any {
+func GetOneVMWithError(uuid string, restClient RestClient) (*map[string]any, error) {
+	record := restClient.GetRecord(
+		fmt.Sprintf("/rest/v1/VirDomain/%s", uuid),
+		nil,
+		false,
+		-1.0,
+	)
+
+	if record == nil {
+		return nil, fmt.Errorf("VM not found - vmUUID=%s.\n", uuid)
+	}
+
+	return record, nil
+}
+
+func GetVMOrFail(query map[string]any, restClient RestClient) []map[string]any {
 	records := restClient.ListRecords(
 		"/rest/v1/VirDomain",
 		query,
@@ -468,7 +483,7 @@ func GetOrFail(query map[string]any, restClient RestClient) []map[string]any {
 	return records
 }
 
-func Get(query map[string]any, restClient RestClient) []map[string]any {
+func GetVM(query map[string]any, restClient RestClient) []map[string]any {
 	records := restClient.ListRecords(
 		"/rest/v1/VirDomain",
 		query,
@@ -482,7 +497,7 @@ func Get(query map[string]any, restClient RestClient) []map[string]any {
 	return records
 }
 
-func GetByName(name string, restClient RestClient, mustExist bool) *map[string]any {
+func GetVMByName(name string, restClient RestClient, mustExist bool) *map[string]any {
 	record := restClient.GetRecord(
 		"/rest/v1/VirDomain",
 		map[string]any{
@@ -495,9 +510,9 @@ func GetByName(name string, restClient RestClient, mustExist bool) *map[string]a
 	return record
 }
 
-func GetByOldOrNewName(name string, newName string, restClient RestClient, mustExist bool) *map[string]any {
-	oldVM := GetByName(name, restClient, mustExist)
-	newVM := GetByName(newName, restClient, mustExist)
+func GetVMByOldOrNewName(name string, newName string, restClient RestClient, mustExist bool) *map[string]any {
+	oldVM := GetVMByName(name, restClient, mustExist)
+	newVM := GetVMByName(newName, restClient, mustExist)
 
 	if oldVM != nil && newVM != nil {
 		panic(fmt.Sprintf("More than one VM matches requirement name==%s or newName==%s", name, newName))

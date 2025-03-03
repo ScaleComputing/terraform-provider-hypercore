@@ -90,7 +90,7 @@ func (vd *VMDisk) CreateOrUpdate(
 	ctx context.Context,
 ) (bool, bool, string, error) {
 	changed := false
-	vm := GetByName(vc.VMName, restClient, true)
+	vm := GetVMByName(vc.VMName, restClient, true)
 	vmUUID := AnyToString((*vm)["uuid"])
 	vmDisks := AnyToListOfMap((*vm)["blockDevs"])
 
@@ -178,7 +178,7 @@ func (vd *VMDisk) EnsureAbsend(
 	restClient RestClient,
 	ctx context.Context,
 ) (bool, bool, map[string]any) {
-	vm := GetByName(vc.VMName, restClient, true)
+	vm := GetVMByName(vc.VMName, restClient, true)
 	vmDisks := AnyToListOfMap((*vm)["blockDevs"])
 
 	if vd.Size != nil {

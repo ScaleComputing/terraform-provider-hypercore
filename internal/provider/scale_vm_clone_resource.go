@@ -231,7 +231,7 @@ func (r *ScaleVMCloneResource) Read(ctx context.Context, req resource.ReadReques
 	restClient := *r.client
 	vm_uuid := data.Id.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Read oldState vm_uuid=%s\n", vm_uuid))
-	hc3_vm := utils.GetOne(vm_uuid, restClient)
+	hc3_vm := utils.GetOneVM(vm_uuid, restClient)
 	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Read vmhc3_vm=%s\n", hc3_vm))
 	hc3_vm_name := utils.AnyToString(hc3_vm["name"])
 	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Read vm_uuid=%s hc3_vm=(name=%s)\n", vm_uuid, hc3_vm_name))

@@ -167,6 +167,7 @@ func (p *ScaleProvider) Resources(ctx context.Context) []func() resource.Resourc
 		NewScaleVMCloneResource,
 		NewScaleNicResource,
 		NewScaleDiskResource,
+		NewScaleVMPowerStateResource,
 	}
 }
 

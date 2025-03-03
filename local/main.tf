@@ -12,35 +12,34 @@ terraform {
 provider "scale" {}
 
 locals {
-  vm_name = "testtf-disk-ana"
-  # vm_uuid = data.scale_vm.nicvm.vms.0.uuid
+  vm_name                = "testtf-powerstate-ana"
+  vm_name_without_import = "testtf-powerstate-without-import-ana"
 }
 
-data "scale_vm" "diskvm" {
-  # name = "testtf-nic-justin"
+data "scale_vm" "powerstatevm" {
   name = local.vm_name
 }
 
-resource "scale_disk" "disk_cloned" {
-  vm_uuid = data.scale_vm.diskvm.vms.0.uuid
-  # slot    = 10
-  type    = "VIRTIO_DISK"
-  size    = 47.2
+data "scale_vm" "powerstatevm_no_import" {
+  name = local.vm_name_without_import
 }
 
-resource "scale_disk" "disk_aa" {
-  vm_uuid = data.scale_vm.diskvm.vms.0.uuid
-  # slot    = 11
-  type    = "VIRTIO_DISK"
-  size    = 3.0
+resource "scale_vm_power_state" "power_state_aa" {
+  vm_uuid = data.scale_vm.powerstatevm_no_import.vms.0.uuid
+  state   = "RUNNING"
 }
 
-output "diskvm_uuid" {
-  value = data.scale_vm.diskvm.vms.0.uuid
+resource "scale_vm_power_state" "power_state_cloned" {
+  vm_uuid = data.scale_vm.powerstatevm.vms.0.uuid
+  state   = "RUNNING" // other available states: RUNNING, PAUSED - see POST VirDomain/action
+}
+
+output "powerstatevm_uuid" {
+  value = data.scale_vm.powerstatevm.vms.0.uuid
 }
 
 import {
-  to = scale_disk.disk_cloned
+  to = scale_vm_power_state.power_state_cloned
   # id = "/dev/sdh:vol-049df67901:i-12345678"
-  id = format("%s:%s:%d", data.scale_vm.diskvm.vms.0.uuid, "VIRTIO_DISK", 1)
+  id = data.scale_vm.powerstatevm.vms.0.uuid
 }

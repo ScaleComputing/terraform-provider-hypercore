@@ -308,7 +308,7 @@ func (r *ScaleDiskResource) ImportState(ctx context.Context, req resource.Import
 	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleDiskResource: vmUUID=%s, type=%s, slot=%d", vmUUID, diskType, slot))
 
 	restClient := *r.client
-	hc3VM := utils.GetOne(vmUUID, restClient)
+	hc3VM := utils.GetOneVM(vmUUID, restClient)
 	hc3Disks := utils.AnyToListOfMap(hc3VM["blockDevs"])
 	tflog.Info(ctx, fmt.Sprintf("TTRT hc3Disks=%v\n", hc3Disks))
 
