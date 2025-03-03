@@ -48,7 +48,9 @@ func (r *ScaleDiskResource) Metadata(ctx context.Context, req resource.MetadataR
 func (r *ScaleDiskResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Scale disk resource to manage VM disks",
+		MarkdownDescription: "" +
+			"Scale disk resource to manage VM disks. <br><br>" +
+			"To use this resource, it's recommended to set the environment variable `TF_CLI_ARGS_apply=\"-parallelism=1\"` or pass the `-parallelism` parameter to the `terraform apply`.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,

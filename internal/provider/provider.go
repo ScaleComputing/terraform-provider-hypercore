@@ -48,25 +48,25 @@ func (p *ScaleProvider) Schema(ctx context.Context, req provider.SchemaRequest, 
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
-				MarkdownDescription: "Scale Computing host URI; can also be set with SC_HOST environment variable.",
+				MarkdownDescription: "Scale Computing host URI; can also be set with `SC_HOST` environment variable.",
 				Optional:            true,
 			},
 			"username": schema.StringAttribute{
-				MarkdownDescription: "Scale Computing username; can also be set with SC_USERNAME environment variable.",
+				MarkdownDescription: "Scale Computing username; can also be set with `SC_USERNAME` environment variable.",
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"password": schema.StringAttribute{
-				MarkdownDescription: "Scale Computing password; can also be set with SC_PASSWORD environment variable.",
+				MarkdownDescription: "Scale Computing password; can also be set with `SC_PASSWORD` environment variable.",
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"auth_method": schema.StringAttribute{
-				MarkdownDescription: "Scale Computing authentication method; can also be set with SC_AUTH_METHOD environment variable. It can be set to 'oidc' or 'local' (default).",
+				MarkdownDescription: "Scale Computing authentication method; can also be set with `SC_AUTH_METHOD` environment variable. It can be set to `oidc` or `local` (default).",
 				Optional:            true,
 			},
 			"timeout": schema.Float64Attribute{
-				MarkdownDescription: "Scale Computing request timeout; can also be set with SC_TIMEOUT environment variable. Default is set to 60.0 seconds.",
+				MarkdownDescription: "Scale Computing request timeout; can also be set with `SC_TIMEOUT` environment variable. Default is set to `60.0` seconds.",
 				Optional:            true,
 			},
 		},
@@ -164,7 +164,7 @@ func (p *ScaleProvider) Configure(ctx context.Context, req provider.ConfigureReq
 
 func (p *ScaleProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewScaleVMCloneResource,
+		NewScaleVMResource,
 		NewScaleNicResource,
 		NewScaleDiskResource,
 		NewScaleVMPowerStateResource,

@@ -6,7 +6,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -20,26 +19,25 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &ScaleVMCloneResource{}
-var _ resource.ResourceWithImportState = &ScaleVMCloneResource{}
+var _ resource.Resource = &ScaleVMResource{}
+var _ resource.ResourceWithImportState = &ScaleVMResource{}
 
-func NewScaleVMCloneResource() resource.Resource {
-	return &ScaleVMCloneResource{}
+func NewScaleVMResource() resource.Resource {
+	return &ScaleVMResource{}
 }
 
-// ScaleVMCloneResource defines the resource implementation.
-type ScaleVMCloneResource struct {
+// ScaleVMResource defines the resource implementation.
+type ScaleVMResource struct {
 	client *utils.RestClient
 }
 
-// ScaleVMCloneResourceModel describes the resource data model.
-type ScaleVMCloneResourceModel struct {
+// ScaleVMResourceModel describes the resource data model.
+type ScaleVMResourceModel struct {
 	Group       types.String `tfsdk:"group"`
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	VCPU        types.Int32  `tfsdk:"vcpu"`
 	Memory      types.Int64  `tfsdk:"memory"`
-	PowerState  types.String `tfsdk:"power_state"`
 	Clone       CloneModel   `tfsdk:"clone"`
 	Id          types.String `tfsdk:"id"`
 }
@@ -50,11 +48,11 @@ type CloneModel struct {
 	MetaData     types.String `tfsdk:"meta_data"`
 }
 
-func (r *ScaleVMCloneResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_vm_clone"
+func (r *ScaleVMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_vm"
 }
 
-func (r *ScaleVMCloneResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *ScaleVMResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "ScaleVM resource to create a VM from a template VM",
@@ -84,14 +82,10 @@ func (r *ScaleVMCloneResource) Schema(ctx context.Context, req resource.SchemaRe
 					"and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)",
 				Optional: true,
 			},
-			"power_state": schema.StringAttribute{
-				MarkdownDescription: "" +
-					"Initial power state on create: If not provided, it will default to `stop`. <br>" +
-					"Available power states are: start, started, stop, shutdown, reboot, reset. <br>" +
-					"Power state can be modified on the cloned VM even after the cloning process.",
-				Optional: true,
-			},
 			"clone": schema.ObjectAttribute{
+				MarkdownDescription: "" +
+					"Clone options if the VM is being created as a clone. The `source_vm_uuid` is the UUID of the VM used for cloning, <br>" +
+					"`user_data` and `meta_data` are used for the cloud init data.",
 				Optional: true,
 				AttributeTypes: map[string]attr.Type{
 					"source_vm_uuid": types.StringType,
@@ -110,8 +104,8 @@ func (r *ScaleVMCloneResource) Schema(ctx context.Context, req resource.SchemaRe
 	}
 }
 
-func (r *ScaleVMCloneResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMCloneResource CONFIGURE")
+func (r *ScaleVMResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	tflog.Info(ctx, "TTRT ScaleVMResource CONFIGURE")
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -131,10 +125,10 @@ func (r *ScaleVMCloneResource) Configure(ctx context.Context, req resource.Confi
 	r.client = restClient
 }
 
-func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMCloneResource CREATE")
-	var data ScaleVMCloneResourceModel
-	// var readData ScaleVMCloneResourceModel
+func (r *ScaleVMResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Info(ctx, "TTRT ScaleVMResource CREATE")
+	var data ScaleVMResourceModel
+	// var readData ScaleVMResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -157,7 +151,6 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 
 	var tags *[]string
 	var description *string
-	var powerState string
 
 	if data.Group.ValueString() == "" {
 		tags = nil
@@ -171,15 +164,9 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 		description = data.Description.ValueStringPointer()
 	}
 
-	if data.PowerState.ValueString() == "" {
-		powerState = "stop"
-	} else {
-		powerState = data.PowerState.ValueString()
-	}
-
 	tflog.Info(ctx, fmt.Sprintf("TTRT Create: name=%s, source_uuid=%s", data.Name.ValueString(), data.Clone.SourceVMUUID.ValueString()))
 
-	vmClone, _ := utils.NewVMClone(
+	vmClone, _ := utils.NewVM(
 		data.Name.ValueString(),
 		data.Clone.SourceVMUUID.ValueString(),
 		data.Clone.UserData.ValueString(),
@@ -188,7 +175,7 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 		tags,
 		data.VCPU.ValueInt32Pointer(),
 		data.Memory.ValueInt64Pointer(),
-		&powerState,
+		nil,
 	)
 	changed, msg := vmClone.Create(*r.client, ctx)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
@@ -209,9 +196,9 @@ func (r *ScaleVMCloneResource) Create(ctx context.Context, req resource.CreateRe
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMCloneResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMCloneResource READ")
-	var data ScaleVMCloneResourceModel
+func (r *ScaleVMResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Info(ctx, "TTRT ScaleVMResource READ")
+	var data ScaleVMResourceModel
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
@@ -230,26 +217,27 @@ func (r *ScaleVMCloneResource) Read(ctx context.Context, req resource.ReadReques
 	// VM read ======================================================================
 	restClient := *r.client
 	vm_uuid := data.Id.ValueString()
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Read oldState vm_uuid=%s\n", vm_uuid))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMResource Read oldState vm_uuid=%s\n", vm_uuid))
 	hc3_vm := utils.GetOneVM(vm_uuid, restClient)
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Read vmhc3_vm=%s\n", hc3_vm))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMResource Read vmhc3_vm=%s\n", hc3_vm))
 	hc3_vm_name := utils.AnyToString(hc3_vm["name"])
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Read vm_uuid=%s hc3_vm=(name=%s)\n", vm_uuid, hc3_vm_name))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMResource Read vm_uuid=%s hc3_vm=(name=%s)\n", vm_uuid, hc3_vm_name))
 
 	data.Name = types.StringValue(utils.AnyToString(hc3_vm["name"]))
 	data.Description = types.StringValue(utils.AnyToString(hc3_vm["description"]))
 	// data.Group TODO - replace "group" string with "tags" list of strings
 
-	hc3_power_state := utils.AnyToString(hc3_vm["state"])
-	// line below look like correct thing to do. But "terraform plan -refresh-only"
-	// complains about change 'power_state = "stop" -> "stopped"
-	tf_power_state := types.StringValue(utils.FromHypercoreToTerraformPowerState[hc3_power_state])
-	// TEMP make "terraform plan -refresh-only" report "nothing changed"
-	hc3_stopped_states := []string{"SHUTOFF", "CRASHED"}
-	if slices.Contains(hc3_stopped_states, hc3_power_state) {
-		tf_power_state = types.StringValue("stop")
-	}
-	data.PowerState = tf_power_state
+	// NOTE: power state not needed here anymore because of the scale_vm_power_state resource
+	// hc3_power_state := utils.AnyToString(hc3_vm["state"])
+	// // line below look like correct thing to do. But "terraform plan -refresh-only"
+	// // complains about change 'power_state = "stop" -> "stopped"
+	// tf_power_state := types.StringValue(utils.FromHypercoreToTerraformPowerState[hc3_power_state])
+	// // TEMP make "terraform plan -refresh-only" report "nothing changed"
+	// hc3_stopped_states := []string{"SHUTOFF", "CRASHED"}
+	// if slices.Contains(hc3_stopped_states, hc3_power_state) {
+	// 	tf_power_state = types.StringValue("stop")
+	// }
+	// data.PowerState = tf_power_state
 
 	// desiredDisposition TODO
 	// uiState TODO
@@ -262,11 +250,11 @@ func (r *ScaleVMCloneResource) Read(ctx context.Context, req resource.ReadReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMCloneResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMCloneResource UPDATE")
-	var data_state ScaleVMCloneResourceModel
+func (r *ScaleVMResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	tflog.Info(ctx, "TTRT ScaleVMResource UPDATE")
+	var data_state ScaleVMResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
-	var data ScaleVMCloneResourceModel
+	var data ScaleVMResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -283,12 +271,11 @@ func (r *ScaleVMCloneResource) Update(ctx context.Context, req resource.UpdateRe
 	//     return
 	// }
 
-	// data.PowerState
 	// ======================================================================
 	restClient := *r.client
 	vm_uuid := data.Id.ValueString()
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Update vm_uuid=%s REQ   vcpu=%d description=%s", vm_uuid, data.VCPU.ValueInt32(), data.Description.String()))
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMCloneResource Update vm_uuid=%s STATE vcpu=%d description=%s", vm_uuid, data_state.VCPU.ValueInt32(), data_state.Description.String()))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMResource Update vm_uuid=%s REQ   vcpu=%d description=%s", vm_uuid, data.VCPU.ValueInt32(), data.Description.String()))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMResource Update vm_uuid=%s STATE vcpu=%d description=%s", vm_uuid, data_state.VCPU.ValueInt32(), data_state.Description.String()))
 
 	updatePayload := map[string]any{}
 	if data_state.Name != data.Name {
@@ -321,9 +308,9 @@ func (r *ScaleVMCloneResource) Update(ctx context.Context, req resource.UpdateRe
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMCloneResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMCloneResource DELETE")
-	var data ScaleVMCloneResourceModel
+func (r *ScaleVMResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	tflog.Info(ctx, "TTRT ScaleVMResource DELETE")
+	var data ScaleVMResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -350,7 +337,7 @@ func (r *ScaleVMCloneResource) Delete(ctx context.Context, req resource.DeleteRe
 	taskTag.WaitTask(restClient, ctx)
 }
 
-func (r *ScaleVMCloneResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMCloneResource IMPORT_STATE")
+func (r *ScaleVMResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	tflog.Info(ctx, "TTRT ScaleVMResource IMPORT_STATE")
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

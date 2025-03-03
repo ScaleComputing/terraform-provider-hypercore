@@ -85,7 +85,7 @@ func UpdateVMDisk(
 }
 
 func (vd *VMDisk) CreateOrUpdate(
-	vc *VMClone,
+	vc *VM,
 	restClient RestClient,
 	ctx context.Context,
 ) (bool, bool, string, error) {
@@ -133,7 +133,7 @@ func (vd *VMDisk) CreateOrUpdate(
 }
 
 func (vd *VMDisk) UpdateBlockDevice(
-	vc *VMClone,
+	vc *VM,
 	vmUUID string,
 	restClient RestClient,
 	desiredDisk map[string]any,
@@ -173,7 +173,7 @@ func (vd *VMDisk) CreateBlockDevice(
 // TODO: this function might be useful when dealing with IDE_CDROM type disks: so for the future
 // nolint:unused
 func (vd *VMDisk) EnsureAbsend(
-	vc *VMClone,
+	vc *VM,
 	changedParams map[string]bool,
 	restClient RestClient,
 	ctx context.Context,

@@ -55,7 +55,7 @@ const (
 	SHUTDOWN_TIMEOUT_SECONDS = 300
 )
 
-type VMClone struct {
+type VM struct {
 	UUID               string
 	VMName             string
 	sourceVMUUID       string
@@ -75,7 +75,7 @@ type VMClone struct {
 	_wasResetTried         bool
 }
 
-func NewVMClone(
+func NewVM(
 	_VMName string,
 	_sourceVMUUID string,
 	userData string,
@@ -85,11 +85,11 @@ func NewVMClone(
 	_vcpu *int32,
 	_memory *int64,
 	_powerState *string,
-) (*VMClone, error) {
+) (*VM, error) {
 	userDataB64 := base64.StdEncoding.EncodeToString([]byte(userData))
 	metaDataB64 := base64.StdEncoding.EncodeToString([]byte(metaData))
 
-	vmClone := &VMClone{
+	vmClone := &VM{
 		UUID:               "",
 		VMName:             _VMName,
 		sourceVMUUID:       _sourceVMUUID,
@@ -116,7 +116,7 @@ func NewVMClone(
 	return vmClone, nil
 }
 
-func (vc *VMClone) Clone(restClient RestClient, sourceVM map[string]any) *TaskTag {
+func (vc *VM) Clone(restClient RestClient, sourceVM map[string]any) *TaskTag {
 	// Clone payload
 	clonePayload := map[string]any{
 		"template": map[string]any{
@@ -134,7 +134,7 @@ func (vc *VMClone) Clone(restClient RestClient, sourceVM map[string]any) *TaskTa
 	return taskTag
 }
 
-func (vc *VMClone) Create(restClient RestClient, ctx context.Context) (bool, string) {
+func (vc *VM) Create(restClient RestClient, ctx context.Context) (bool, string) {
 	vm := GetVM(map[string]any{"name": vc.VMName}, restClient)
 
 	if len(vm) > 0 {
@@ -163,7 +163,7 @@ func (vc *VMClone) Create(restClient RestClient, ctx context.Context) (bool, str
 	panic(fmt.Sprintf("There was a problem during cloning of %s %s, cloning failed.", sourceVMName, vc.sourceVMUUID))
 }
 
-func (vc *VMClone) SetVMParams(restClient RestClient, ctx context.Context) (bool, bool, map[string]any) {
+func (vc *VM) SetVMParams(restClient RestClient, ctx context.Context) (bool, bool, map[string]any) {
 	vm := GetVMByName(vc.VMName, restClient, true)
 	changed, changedParams := vc.GetChangedParams(*vm)
 
@@ -188,19 +188,21 @@ func (vc *VMClone) SetVMParams(restClient RestClient, ctx context.Context) (bool
 		}
 	}
 
-	if *vc.powerState != "shutdown" && *vc.powerState != "stop" {
-		vc.PowerUp(*vm, restClient, ctx)
-	}
+	if vc.powerState != nil {
+		if *vc.powerState != "shutdown" && *vc.powerState != "stop" {
+			vc.PowerUp(*vm, restClient, ctx)
+		}
 
-	if powerState, ok := changedParams["powerState"]; ok && powerState {
-		ignoreRepeatedRequest := true
-		vc.UpdatePowerState(
-			*vm,
-			restClient,
-			*vc.powerState,
-			ignoreRepeatedRequest,
-			ctx,
-		)
+		if powerState, ok := changedParams["powerState"]; ok && powerState {
+			ignoreRepeatedRequest := true
+			vc.UpdatePowerState(
+				*vm,
+				restClient,
+				*vc.powerState,
+				ignoreRepeatedRequest,
+				ctx,
+			)
+		}
 	}
 
 	afterVM := restClient.GetRecord(
@@ -218,7 +220,7 @@ func (vc *VMClone) SetVMParams(restClient RestClient, ctx context.Context) (bool
 	return changed, vc.WasRebooted(), diff
 }
 
-func (vc *VMClone) UpdatePowerState(
+func (vc *VM) UpdatePowerState(
 	vm map[string]any,
 	restClient RestClient,
 	requestedPowerAction string,
@@ -296,7 +298,7 @@ func (vc *VMClone) UpdatePowerState(
 	taskTag.WaitTask(restClient, ctx)
 }
 
-func (vc *VMClone) PowerUp(vm map[string]any, restClient RestClient, ctx context.Context) {
+func (vc *VM) PowerUp(vm map[string]any, restClient RestClient, ctx context.Context) {
 	if vc.WasShutdown() && vm["state"] == "RUNNING" {
 		vc.UpdatePowerState(vm, restClient, "start", false, ctx)
 		return
@@ -307,15 +309,15 @@ func (vc *VMClone) PowerUp(vm map[string]any, restClient RestClient, ctx context
 	}
 }
 
-func (vc *VMClone) WasShutdown() bool {
+func (vc *VM) WasShutdown() bool {
 	return vc._didNiceShutdownWork || vc._wasForceShutdownTried
 }
 
-func (vc *VMClone) WasRebooted() bool {
+func (vc *VM) WasRebooted() bool {
 	return vc.WasShutdown() && vc._wasStartTried
 }
 
-func (vc *VMClone) DoShutdownSteps(vmUUID string, shutdownTimeout int, restClient RestClient, ctx context.Context) {
+func (vc *VM) DoShutdownSteps(vmUUID string, shutdownTimeout int, restClient RestClient, ctx context.Context) {
 	if !vc.WaitShutdown(vmUUID, shutdownTimeout, restClient, ctx) {
 		if !vc.ShutdownForced(vmUUID, restClient, ctx) {
 			panic(fmt.Sprintf("VM - %s - needs to be powered off and is not responding to a shutdown request.", vc.VMName))
@@ -323,7 +325,7 @@ func (vc *VMClone) DoShutdownSteps(vmUUID string, shutdownTimeout int, restClien
 	}
 }
 
-func (vc *VMClone) WaitShutdown(vmUUID string, shutdownTimeout int, restClient RestClient, ctx context.Context) bool {
+func (vc *VM) WaitShutdown(vmUUID string, shutdownTimeout int, restClient RestClient, ctx context.Context) bool {
 	vmFreshData := restClient.GetRecord(
 		fmt.Sprintf("/rest/v1/VirDomain/%s", vmUUID),
 		map[string]any{},
@@ -360,7 +362,7 @@ func (vc *VMClone) WaitShutdown(vmUUID string, shutdownTimeout int, restClient R
 	return false
 }
 
-func (vc *VMClone) ShutdownForced(vmUUID string, restClient RestClient, ctx context.Context) bool {
+func (vc *VM) ShutdownForced(vmUUID string, restClient RestClient, ctx context.Context) bool {
 	vmFreshData := restClient.GetRecord(
 		fmt.Sprintf("/rest/v1/VirDomain/%s", vmUUID),
 		map[string]any{},
@@ -376,7 +378,7 @@ func (vc *VMClone) ShutdownForced(vmUUID string, restClient RestClient, ctx cont
 	return true
 }
 
-func (vc *VMClone) NeedsReboot(changedParams map[string]bool) bool {
+func (vc *VM) NeedsReboot(changedParams map[string]bool) bool {
 	for param, changed := range changedParams {
 		if needsReboot, ok := RebootLookup[param]; ok && (needsReboot && changed) {
 			return true
@@ -385,7 +387,7 @@ func (vc *VMClone) NeedsReboot(changedParams map[string]bool) bool {
 	return false
 }
 
-func (vc *VMClone) BuildUpdatePayload(changedParams map[string]bool) map[string]any {
+func (vc *VM) BuildUpdatePayload(changedParams map[string]bool) map[string]any {
 	updatePayload := map[string]any{}
 
 	if changed, ok := changedParams["description"]; ok && changed {
@@ -405,7 +407,7 @@ func (vc *VMClone) BuildUpdatePayload(changedParams map[string]bool) map[string]
 	return updatePayload
 }
 
-func (vc *VMClone) GetChangedParams(vmFromClient map[string]any) (bool, map[string]bool) {
+func (vc *VM) GetChangedParams(vmFromClient map[string]any) (bool, map[string]bool) {
 	changedParams := map[string]bool{}
 
 	if vc.description != nil {

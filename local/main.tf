@@ -12,34 +12,36 @@ terraform {
 provider "scale" {}
 
 locals {
-  vm_name                = "testtf-powerstate-ana"
-  vm_name_without_import = "testtf-powerstate-without-import-ana"
+  vm_meta_data_tmpl = "./assets/meta-data.ubuntu-22.04.yml.tftpl"
+  vm_user_data_tmpl = "./assets/user-data.ubuntu-22.04.yml.tftpl"
+  vm_name           = "testtf-myvm-ana-scale-vm-rename"
 }
 
-data "scale_vm" "powerstatevm" {
-  name = local.vm_name
+data "scale_vm" "clone_source_vm" {
+  name = "ubuntu-22.04-server-cloudimg-amd64.img"
 }
 
-data "scale_vm" "powerstatevm_no_import" {
-  name = local.vm_name_without_import
+resource "scale_vm" "myvm" {
+  group       = "ananas"
+  name        = local.vm_name
+  description = "some description"
+
+  vcpu   = 4
+  memory = 4096 # MiB
+
+  clone = {
+    source_vm_uuid = data.scale_vm.clone_source_vm.vms.0.uuid
+    meta_data = templatefile(local.vm_meta_data_tmpl, {
+      name = local.vm_name,
+    })
+    user_data = templatefile(local.vm_user_data_tmpl, {
+      name                = local.vm_name,
+      ssh_authorized_keys = "",
+      ssh_import_id       = "",
+    })
+  }
 }
 
-resource "scale_vm_power_state" "power_state_aa" {
-  vm_uuid = data.scale_vm.powerstatevm_no_import.vms.0.uuid
-  state   = "RUNNING"
-}
-
-resource "scale_vm_power_state" "power_state_cloned" {
-  vm_uuid = data.scale_vm.powerstatevm.vms.0.uuid
-  state   = "RUNNING" // other available states: RUNNING, PAUSED - see POST VirDomain/action
-}
-
-output "powerstatevm_uuid" {
-  value = data.scale_vm.powerstatevm.vms.0.uuid
-}
-
-import {
-  to = scale_vm_power_state.power_state_cloned
-  # id = "/dev/sdh:vol-049df67901:i-12345678"
-  id = data.scale_vm.powerstatevm.vms.0.uuid
+output "vm_uuid" {
+  value = scale_vm.myvm.id
 }
