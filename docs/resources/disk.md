@@ -56,6 +56,7 @@ import {
 ### Optional
 
 - `size` (Number) Disk size in `GB`. Must be larger than the current size of the disk if specified.
+- `source_virtual_disk_id` (String) UUID of the virtual disk to use to clone and attach to the VM.
 - `type` (String) Disk type. Can be: `IDE_DISK`, `SCSI_DISK`, `VIRTIO_DISK`, `IDE_FLOPPY`, `NVRAM`, `VTPM`
 
 ### Read-Only

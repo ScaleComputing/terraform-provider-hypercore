@@ -126,6 +126,35 @@ func (rc *RestClient) Request(method string, endpoint string, body map[string]an
 	return req
 }
 
+func (rc *RestClient) RequestBinary(
+	method string,
+	endpoint string,
+	binaryData []byte,
+	contentLength int64,
+	headers map[string]string,
+) *http.Request {
+	var err error
+
+	req, err := http.NewRequest(
+		method,
+		rc.Host+endpoint,
+		bytes.NewBuffer(binaryData),
+	)
+	if err != nil {
+		panic(fmt.Errorf("Invalid request: %s", err.Error()))
+	}
+
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-type", "application/octet-stream")
+	req.Header.Set("Content-length", fmt.Sprintf("%d", contentLength))
+
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+
+	return req
+}
+
 func (rc *RestClient) RequestWithList(method string, endpoint string, body []map[string]any, headers map[string]string) *http.Request {
 	var jsonBody []byte
 	var err error
@@ -340,6 +369,83 @@ func (rc *RestClient) UpdateRecord(endpoint string, payload map[string]any, time
 			panic(fmt.Errorf("Unexpected response body: %v", respJson))
 		}
 		panic(fmt.Errorf("Error making a request: Maybe the arguments passed were incorrectly formatted: %v - response: %v", payload, string(respByte)))
+	}
+
+	if _, ok := AnyToMap(respJson)["taskTag"]; !ok {
+		jsonErrorString, _ := json.Marshal(respJson)
+		return nil, fmt.Errorf("%s", string(jsonErrorString))
+	}
+
+	return jsonObjectToTaskTag(respJson), nil
+}
+
+func (rc *RestClient) PutRecord(endpoint string, payload map[string]any, timeout float64, ctx context.Context) (*TaskTag, error) {
+	useTimeout := timeout
+	if timeout == -1 {
+		useTimeout = rc.Timeout
+	}
+	client := rc.HttpClient
+	client.Timeout = time.Duration(useTimeout * float64(time.Second))
+
+	req := rc.Request(
+		"PUT",
+		endpoint,
+		payload,
+		rc.AuthHeader,
+	)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(fmt.Errorf("Error making a request: %s", err.Error()))
+	}
+	defer resp.Body.Close()
+
+	respJson := rc.ToJson(resp)
+	if resp.StatusCode == 400 {
+		respByte, ok := respJson.([]byte)
+		if !ok { // this check is needed because of conversion from any to []byte
+			panic(fmt.Errorf("Unexpected response body: %v", respJson))
+		}
+		panic(fmt.Errorf("Error making a request: Maybe the arguments passed were incorrectly formatted: %v - response: %v", payload, string(respByte)))
+	}
+
+	if _, ok := AnyToMap(respJson)["taskTag"]; !ok {
+		jsonErrorString, _ := json.Marshal(respJson)
+		return nil, fmt.Errorf("%s", string(jsonErrorString))
+	}
+
+	return jsonObjectToTaskTag(respJson), nil
+}
+
+func (rc *RestClient) PutBinaryRecord(endpoint string, binaryData []byte, contentLength int64, timeout float64, ctx context.Context) (*TaskTag, error) {
+	useTimeout := timeout
+	if timeout == -1 {
+		useTimeout = rc.Timeout
+	}
+	client := rc.HttpClient
+	client.Timeout = time.Duration(useTimeout * float64(time.Second))
+
+	req := rc.RequestBinary(
+		"PUT",
+		endpoint,
+		binaryData,
+		contentLength,
+		rc.AuthHeader,
+	)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(fmt.Errorf("Error making a request: %s", err.Error()))
+	}
+	defer resp.Body.Close()
+
+	respJson := rc.ToJson(resp)
+	if resp.StatusCode == 400 {
+		respByte, ok := respJson.([]byte)
+		if !ok { // this check is needed because of conversion from any to []byte
+			panic(fmt.Errorf("Unexpected response body: %v", respJson))
+		}
+		panic(fmt.Errorf("Error making a request: Maybe the arguments passed were incorrectly formatted: %v - response: %v", binaryData, string(respByte)))
 	}
 
 	if _, ok := AnyToMap(respJson)["taskTag"]; !ok {

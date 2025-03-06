@@ -4,9 +4,13 @@
 package utils
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
+	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -159,4 +163,53 @@ func AnyToListOfMap(list any) []map[string]any {
 	}
 
 	return result
+}
+
+func ReadLocalFileBinary(filePath string) ([]byte, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("Error opening file '%s': %s", filePath, err)
+	}
+	defer file.Close()
+
+	reader := bufio.NewReader(file)
+	buffer := make([]byte, 4096) // 4KiB buffer
+
+	var binaryData []byte
+	for {
+		n, err := reader.Read(buffer)
+		if n > 0 {
+			binaryData = append(binaryData, buffer[:n]...)
+		}
+		if err != nil {
+			break // EOF
+		}
+	}
+
+	return binaryData, nil
+}
+
+func FetchFileBinaryFromURL(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var binaryData []byte
+	buffer := make([]byte, 4096) // 4 KiB buffer
+	for {
+		n, err := resp.Body.Read(buffer)
+		if n > 0 {
+			binaryData = append(binaryData, buffer[:n]...)
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return binaryData, nil
 }

@@ -33,12 +33,12 @@ type ScaleDiskResource struct {
 
 // ScaleDiskResourceModel describes the resource data model.
 type ScaleDiskResourceModel struct {
-	Id     types.String  `tfsdk:"id"`
-	VmUUID types.String  `tfsdk:"vm_uuid"`
-	Slot   types.Int64   `tfsdk:"slot"`
-	Type   types.String  `tfsdk:"type"`
-	Size   types.Float64 `tfsdk:"size"`
-	// MacAddress types.String `tfsdk:"type"`
+	Id                  types.String  `tfsdk:"id"`
+	VmUUID              types.String  `tfsdk:"vm_uuid"`
+	Slot                types.Int64   `tfsdk:"slot"`
+	Type                types.String  `tfsdk:"type"`
+	Size                types.Float64 `tfsdk:"size"`
+	SourceVirtualDiskID types.String  `tfsdk:"source_virtual_disk_id"`
 }
 
 func (r *ScaleDiskResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -73,6 +73,10 @@ func (r *ScaleDiskResource) Schema(ctx context.Context, req resource.SchemaReque
 			},
 			"size": schema.Float64Attribute{
 				MarkdownDescription: "Disk size in `GB`. Must be larger than the current size of the disk if specified.",
+				Optional:            true,
+			},
+			"source_virtual_disk_id": schema.StringAttribute{
+				MarkdownDescription: "UUID of the virtual disk to use to clone and attach to the VM.",
 				Optional:            true,
 			},
 		},
@@ -135,8 +139,28 @@ func (r *ScaleDiskResource) Create(ctx context.Context, req resource.CreateReque
 		"type":          data.Type.ValueString(),
 		"capacity":      data.Size.ValueFloat64() * 1000 * 1000 * 1000, // GB to B
 	}
-	diskUUID, disk := utils.CreateDisk(*r.client, createPayload, ctx)
-	tflog.Info(ctx, fmt.Sprintf("TTRT Created: vm_uuid=%s, disk_uuid=%s, disk=%v", data.VmUUID.ValueString(), diskUUID, disk))
+	var diskUUID string
+	var disk map[string]any
+
+	sourceVirtualDiskID := data.SourceVirtualDiskID.ValueString()
+	if sourceVirtualDiskID != "" {
+		diskUUID, disk = utils.AttachVirtualDisk(
+			*r.client,
+			map[string]any{
+				"options": map[string]any{
+					"regenerateDiskID": true,
+					"readOnly":         false,
+				},
+				"template": createPayload,
+			},
+			sourceVirtualDiskID,
+			ctx,
+		)
+		tflog.Info(ctx, fmt.Sprintf("TTRT Created: vm_uuid=%s, disk_uuid=%s, disk=%v, source_virtual_disk_uuid=%s", data.VmUUID.ValueString(), diskUUID, disk, sourceVirtualDiskID))
+	} else {
+		diskUUID, disk = utils.CreateDisk(*r.client, createPayload, ctx)
+		tflog.Info(ctx, fmt.Sprintf("TTRT Created: vm_uuid=%s, disk_uuid=%s, disk=%v", data.VmUUID.ValueString(), diskUUID, disk))
+	}
 
 	// TODO: Check if HC3 matches TF
 	// save into the Terraform state.
