@@ -139,23 +139,52 @@ func (r *ScaleDiskResource) Create(ctx context.Context, req resource.CreateReque
 		"type":          data.Type.ValueString(),
 		"capacity":      data.Size.ValueFloat64() * 1000 * 1000 * 1000, // GB to B
 	}
+
 	var diskUUID string
 	var disk map[string]any
 
 	sourceVirtualDiskID := data.SourceVirtualDiskID.ValueString()
 	if sourceVirtualDiskID != "" {
+		sourceVirtualDiskHC3 := utils.GetVirtualDiskByUUID(*r.client, sourceVirtualDiskID)
+		if sourceVirtualDiskHC3 == nil {
+			resp.Diagnostics.AddError("Virtual disk not found", fmt.Sprintf("Virtual disk with UUID '%s' not found. Double check your Terraform configuration.", sourceVirtualDiskID))
+			return
+		}
+
+		// First attach with original size
+		originalVDSizeBytes := utils.AnyToInteger64((*sourceVirtualDiskHC3)["capacityBytes"])
+		attachPayload := map[string]any{
+			"options": map[string]any{
+				"regenerateDiskID": true,
+				"readOnly":         false,
+			},
+			"template": map[string]any{
+				"virDomainUUID": data.VmUUID.ValueString(),
+				"type":          data.Type.ValueString(),
+				"capacity":      originalVDSizeBytes,
+			},
+		}
 		diskUUID, disk = utils.AttachVirtualDisk(
 			*r.client,
-			map[string]any{
-				"options": map[string]any{
-					"regenerateDiskID": true,
-					"readOnly":         false,
-				},
-				"template": createPayload,
-			},
+			attachPayload,
 			sourceVirtualDiskID,
 			ctx,
 		)
+		tflog.Debug(ctx, fmt.Sprintf(
+			"TTRT Attach: Attached with original size - vm_uuid=%s, disk_uuid=%s, original_size=%v (GB), source_virtual_disk_uuid=%s",
+			data.VmUUID.ValueString(), diskUUID, float64(originalVDSizeBytes/1000/1000/1000), sourceVirtualDiskID),
+		)
+
+		// Then resize to desired size
+		diag := utils.UpdateDisk(*r.client, diskUUID, createPayload, ctx)
+		if diag != nil {
+			resp.Diagnostics.AddWarning(diag.Summary(), diag.Detail())
+		}
+		tflog.Debug(ctx, fmt.Sprintf(
+			"TTRT Attach: Resized to desired size - vm_uuid=%s, disk_uuid=%s, desired_size=%v (GB), source_virtual_disk_uuid=%s",
+			data.VmUUID.ValueString(), diskUUID, data.Size.ValueFloat64(), sourceVirtualDiskID),
+		)
+
 		tflog.Info(ctx, fmt.Sprintf("TTRT Created: vm_uuid=%s, disk_uuid=%s, disk=%v, source_virtual_disk_uuid=%s", data.VmUUID.ValueString(), diskUUID, disk, sourceVirtualDiskID))
 	} else {
 		diskUUID, disk = utils.CreateDisk(*r.client, createPayload, ctx)

@@ -36,3 +36,10 @@ website/vendor
 
 # Keep windows files with windows line endings
 *.winfile eol=crlf
+
+# Files too large for git but good for testing locally
+*.img
+*.qcow2
+*.vmdk
+*.vhd
+*.iso
