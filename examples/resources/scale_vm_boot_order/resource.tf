@@ -1,23 +1,10 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
-terraform {
-  required_providers {
-    scale = {
-      source = "local/xlab/scale"
-    }
-  }
-}
-
-provider "scale" {}
-
 locals {
-  vm_name  = "testtf-disk-ana"
-  empty_vm = "testtf-myvm-ana"
+  populated_vm = "example-disk-vm"
+  empty_vm     = "example-empty-vm"
 }
 
 data "scale_vm" "diskvm" {
-  name = local.vm_name
+  name = local.populated_vm
 }
 
 data "scale_vm" "empty" {
@@ -25,10 +12,10 @@ data "scale_vm" "empty" {
 }
 
 resource "scale_virtual_disk" "vd_import_os" {
-  name = "testtf-ana-ubuntu.img"
+  name = "example-ubuntu.img"
 }
 
-resource "scale_nic" "some_nic" {
+resource "scale_nic" "example_nic" {
   vm_uuid = data.scale_vm.empty.vms.0.uuid
   vlan    = 11
   type    = "VIRTIO"
@@ -37,7 +24,7 @@ resource "scale_nic" "some_nic" {
 resource "scale_disk" "os" {
   vm_uuid                = data.scale_vm.empty.vms.0.uuid
   type                   = "VIRTIO_DISK"
-  size                   = 42.2
+  size                   = 42.0
   source_virtual_disk_id = scale_virtual_disk.vd_import_os.id
 
   depends_on = [scale_nic.some_nic]
@@ -59,9 +46,9 @@ resource "scale_disk" "another_disk" {
 # On a VM with no disks at all. Disks were created and attached here
 resource "scale_vm_boot_order" "testtf_created_boot_order" {
   vm_uuid = data.scale_vm.empty.vms.0.uuid
-  boot_devices = [
+  boot_devices = [ # must be provided in the wanted boot order
     scale_disk.os.id,
-    scale_nic.some_nic.id,
+    scale_nic.example_nic.id,
     scale_disk.another_disk.id,
   ]
 

@@ -165,6 +165,33 @@ func AnyToListOfMap(list any) []map[string]any {
 	return result
 }
 
+func AnyToList(list any) []any {
+	anyList, ok := list.([]any)
+	if !ok {
+		panic(fmt.Sprintf("Unexpected variable where a []any was expected: %v", list))
+	}
+
+	return anyList
+}
+
+func AnyToListOfStrings(list any) []string {
+	if strList, ok := list.([]string); ok {
+		return strList
+	}
+
+	anyList, ok := list.([]any)
+	if !ok {
+		panic(fmt.Sprintf("Unexpected variable where a []any was expected: %v", list))
+	}
+
+	strList := make([]string, len(anyList))
+	for i, val := range anyList {
+		strList[i] = AnyToString(val)
+	}
+
+	return strList
+}
+
 func ReadLocalFileBinary(filePath string) ([]byte, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
