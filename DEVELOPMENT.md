@@ -9,7 +9,7 @@ Setup N self-hosted runners
   - 8 vCPU
   - 4 GB RAM
   - 100 GB disk 
-- Follow https://github.com/justinc1/terraform-provider-scale/settings/actions/runners/new
+- Follow https://github.com/ScaleComputing/terraform-provider-hypercore/settings/actions/runners/new
   - Install as regular user
   - Use directory `/opt/actions-runner-0` etc.
   - Run it as service - `sudo ./svc.sh install; sudo ./svc.sh start`
