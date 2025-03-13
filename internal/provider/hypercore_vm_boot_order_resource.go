@@ -16,37 +16,37 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-scale/internal/utils"
+	"github.com/hashicorp/terraform-provider-hypercore/internal/utils"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &ScaleVMBootOrderResource{}
-var _ resource.ResourceWithImportState = &ScaleVMBootOrderResource{}
+var _ resource.Resource = &HypercoreVMBootOrderResource{}
+var _ resource.ResourceWithImportState = &HypercoreVMBootOrderResource{}
 
-func NewScaleVMBootOrderResource() resource.Resource {
-	return &ScaleVMBootOrderResource{}
+func NewHypercoreVMBootOrderResource() resource.Resource {
+	return &HypercoreVMBootOrderResource{}
 }
 
-// ScaleVMBootOrderResource defines the resource implementation.
-type ScaleVMBootOrderResource struct {
+// HypercoreVMBootOrderResource defines the resource implementation.
+type HypercoreVMBootOrderResource struct {
 	client *utils.RestClient
 }
 
-// ScaleVMBootOrderResourceModel describes the resource data model.
-type ScaleVMBootOrderResourceModel struct {
+// HypercoreVMBootOrderResourceModel describes the resource data model.
+type HypercoreVMBootOrderResourceModel struct {
 	Id          types.String `tfsdk:"id"`
 	VmUUID      types.String `tfsdk:"vm_uuid"`
 	BootDevices types.List   `tfsdk:"boot_devices"`
 }
 
-func (r *ScaleVMBootOrderResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *HypercoreVMBootOrderResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_vm_boot_order"
 }
 
-func (r *ScaleVMBootOrderResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *HypercoreVMBootOrderResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Scale VM boot order resource to manage VM boot devices' order",
+		MarkdownDescription: "Hypercore VM boot order resource to manage VM boot devices' order",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -68,8 +68,8 @@ func (r *ScaleVMBootOrderResource) Schema(ctx context.Context, req resource.Sche
 	}
 }
 
-func (r *ScaleVMBootOrderResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMBootOrderResource CONFIGURE")
+func (r *HypercoreVMBootOrderResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMBootOrderResource CONFIGURE")
 	// Prevent padisk if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -89,9 +89,9 @@ func (r *ScaleVMBootOrderResource) Configure(ctx context.Context, req resource.C
 	r.client = restClient
 }
 
-func (r *ScaleVMBootOrderResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMBootOrderResource CREATE")
-	var data ScaleVMBootOrderResourceModel
+func (r *HypercoreVMBootOrderResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMBootOrderResource CREATE")
+	var data HypercoreVMBootOrderResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -138,9 +138,9 @@ func (r *ScaleVMBootOrderResource) Create(ctx context.Context, req resource.Crea
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMBootOrderResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMBootOrderResource READ")
-	var data ScaleVMBootOrderResourceModel
+func (r *HypercoreVMBootOrderResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMBootOrderResource READ")
+	var data HypercoreVMBootOrderResourceModel
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
@@ -151,7 +151,7 @@ func (r *ScaleVMBootOrderResource) Read(ctx context.Context, req resource.ReadRe
 	// Boot Order read ======================================================================
 	restClient := *r.client
 	vmUUID := data.VmUUID.ValueString()
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMBootOrderResource Read oldState vmUUID=%s\n", vmUUID))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreVMBootOrderResource Read oldState vmUUID=%s\n", vmUUID))
 
 	pHc3VM, err := utils.GetOneVMWithError(vmUUID, restClient)
 	if err != nil {
@@ -160,7 +160,7 @@ func (r *ScaleVMBootOrderResource) Read(ctx context.Context, req resource.ReadRe
 	}
 	hc3VM := *pHc3VM
 
-	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleVMBootOrderResource: vm_uuid=%s, boot_devices=%v\n", vmUUID, data.BootDevices.Elements()))
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreVMBootOrderResource: vm_uuid=%s, boot_devices=%v\n", vmUUID, data.BootDevices.Elements()))
 
 	// save into the Terraform state.
 	data.Id = types.StringValue(vmUUID)
@@ -183,11 +183,11 @@ func (r *ScaleVMBootOrderResource) Read(ctx context.Context, req resource.ReadRe
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMBootOrderResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMBootOrderResource UPDATE")
-	var data_state ScaleVMBootOrderResourceModel
+func (r *HypercoreVMBootOrderResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMBootOrderResource UPDATE")
+	var data_state HypercoreVMBootOrderResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
-	var data ScaleVMBootOrderResourceModel
+	var data HypercoreVMBootOrderResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -221,15 +221,15 @@ func (r *ScaleVMBootOrderResource) Update(ctx context.Context, req resource.Upda
 	}
 	newHc3VM := *pHc3VM
 
-	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleVMBootOrderResource: vm_uuid=%s, boot_devices=%v", vmUUID, newHc3VM["bootDevices"]))
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreVMBootOrderResource: vm_uuid=%s, boot_devices=%v", vmUUID, newHc3VM["bootDevices"]))
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMBootOrderResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMBootOrderResource DELETE")
-	var data ScaleVMBootOrderResourceModel
+func (r *HypercoreVMBootOrderResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMBootOrderResource DELETE")
+	var data HypercoreVMBootOrderResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -249,11 +249,11 @@ func (r *ScaleVMBootOrderResource) Delete(ctx context.Context, req resource.Dele
 	// }
 }
 
-func (r *ScaleVMBootOrderResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMBootOrderResource IMPORT_STATE")
+func (r *HypercoreVMBootOrderResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMBootOrderResource IMPORT_STATE")
 
 	vmUUID := req.ID
-	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleVMBootOrderResource: vmUUID=%s", vmUUID))
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreVMBootOrderResource: vmUUID=%s", vmUUID))
 
 	restClient := *r.client
 	hc3VM, err := utils.GetOneVMWithError(vmUUID, restClient)

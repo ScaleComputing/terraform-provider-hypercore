@@ -15,45 +15,45 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-scale/internal/utils"
+	"github.com/hashicorp/terraform-provider-hypercore/internal/utils"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ datasource.DataSource              = &scaleVMDataSource{}
-	_ datasource.DataSourceWithConfigure = &scaleVMDataSource{}
+	_ datasource.DataSource              = &hypercoreVMDataSource{}
+	_ datasource.DataSourceWithConfigure = &hypercoreVMDataSource{}
 )
 
-// NewScaleVMDataSource is a helper function to simplify the provider implementation.
-func NewScaleVMDataSource() datasource.DataSource {
-	return &scaleVMDataSource{}
+// NewHypercoreVMDataSource is a helper function to simplify the provider implementation.
+func NewHypercoreVMDataSource() datasource.DataSource {
+	return &hypercoreVMDataSource{}
 }
 
-// scaleVMDataSource is the data source implementation.
-type scaleVMDataSource struct {
+// hypercoreVMDataSource is the data source implementation.
+type hypercoreVMDataSource struct {
 	client *utils.RestClient
 }
 
 // coffeesDataSourceModel maps the data source schema data.
-type scaleVMsDataSourceModel struct {
-	FilterName types.String   `tfsdk:"name"`
-	Vms        []scaleVMModel `tfsdk:"vms"`
+type hypercoreVMsDataSourceModel struct {
+	FilterName types.String       `tfsdk:"name"`
+	Vms        []hypercoreVMModel `tfsdk:"vms"`
 }
 
-// scaleVMModel maps VM schema data.
-type scaleVMModel struct {
-	UUID        types.String     `tfsdk:"uuid"`
-	Name        types.String     `tfsdk:"name"`
-	Description types.String     `tfsdk:"description"`
-	PowerState  types.String     `tfsdk:"power_state"`
-	VCPU        types.Int32      `tfsdk:"vcpu"`
-	Memory      types.Int64      `tfsdk:"memory"`
-	Tags        []types.String   `tfsdk:"tags"`
-	Disks       []ScaleDiskModel `tfsdk:"disks"`
+// hypercoreVMModel maps VM schema data.
+type hypercoreVMModel struct {
+	UUID        types.String         `tfsdk:"uuid"`
+	Name        types.String         `tfsdk:"name"`
+	Description types.String         `tfsdk:"description"`
+	PowerState  types.String         `tfsdk:"power_state"`
+	VCPU        types.Int32          `tfsdk:"vcpu"`
+	Memory      types.Int64          `tfsdk:"memory"`
+	Tags        []types.String       `tfsdk:"tags"`
+	Disks       []HypercoreDiskModel `tfsdk:"disks"`
 	// TODO nics
 }
 
-type ScaleDiskModel struct {
+type HypercoreDiskModel struct {
 	UUID types.String  `tfsdk:"uuid"`
 	Type types.String  `tfsdk:"type"`
 	Slot types.Int64   `tfsdk:"slot"`
@@ -61,12 +61,12 @@ type ScaleDiskModel struct {
 }
 
 // Metadata returns the data source type name.
-func (d *scaleVMDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (d *hypercoreVMDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_vm"
 }
 
 // Schema defines the schema for the data source.
-func (d *scaleVMDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *hypercoreVMDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -133,7 +133,7 @@ func (d *scaleVMDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 }
 
 // Configure adds the provider configured client to the data source.
-func (d *scaleVMDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *hypercoreVMDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Add a nil check when handling ProviderData because Terraform
 	// sets that data after it calls the ConfigureProvider RPC.
 	if req.ProviderData == nil {
@@ -154,8 +154,8 @@ func (d *scaleVMDataSource) Configure(_ context.Context, req datasource.Configur
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *scaleVMDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var conf scaleVMsDataSourceModel
+func (d *hypercoreVMDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var conf hypercoreVMsDataSourceModel
 	req.Config.Get(ctx, &conf)
 	filter_name := conf.FilterName.ValueString()
 
@@ -170,7 +170,7 @@ func (d *scaleVMDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	)
 	tflog.Info(ctx, fmt.Sprintf("TTRT: filter_name=%s vm_count=%d\n", filter_name, len(hc3_vms)))
 
-	var state scaleVMsDataSourceModel
+	var state hypercoreVMsDataSourceModel
 	state.FilterName = types.StringValue(filter_name)
 	for _, vm := range hc3_vms {
 		// tags
@@ -185,7 +185,7 @@ func (d *scaleVMDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		if !ok {
 			panic(fmt.Sprintf("Unexpected blockDevs field: %v", vm["blockDevs"]))
 		}
-		disks := make([]ScaleDiskModel, 0)
+		disks := make([]HypercoreDiskModel, 0)
 		for _, blockDev1 := range blockDevs {
 			blockDev2, ok := blockDev1.(map[string]any)
 			if !ok {
@@ -196,7 +196,7 @@ func (d *scaleVMDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			slot := utils.AnyToInteger64(blockDev2["slot"])
 			size_B := float64(utils.AnyToInteger64(blockDev2["capacity"]))
 			size_GB := types.Float64Value(size_B / 1000 / 1000 / 1000)
-			disk := ScaleDiskModel{
+			disk := HypercoreDiskModel{
 				UUID: types.StringValue(uuid),
 				Type: types.StringValue(disk_type), // TODO convert "VIRTIO_DISK" to "virtio_disk" - or not?
 				Slot: types.Int64Value(slot),
@@ -207,7 +207,7 @@ func (d *scaleVMDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		// VM
 		memory_B := utils.AnyToInteger64(vm["mem"])
 		memory_MiB := memory_B / 1024 / 1024
-		scaleVMState := scaleVMModel{
+		hypercoreVMState := hypercoreVMModel{
 			UUID:        types.StringValue(utils.AnyToString(vm["uuid"])),
 			Name:        types.StringValue(utils.AnyToString(vm["name"])),
 			VCPU:        types.Int32Value(int32(utils.AnyToInteger64(vm["numVCPU"]))),
@@ -217,7 +217,7 @@ func (d *scaleVMDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			Tags:        tags_String,
 			Disks:       disks,
 		}
-		state.Vms = append(state.Vms, scaleVMState)
+		state.Vms = append(state.Vms, hypercoreVMState)
 	}
 	tflog.Info(ctx, fmt.Sprintf("TTRT: filter_name=%s name=%s\n", filter_name, state.Vms[0].Name.String()))
 

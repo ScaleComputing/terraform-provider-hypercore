@@ -15,23 +15,23 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-scale/internal/utils"
+	"github.com/hashicorp/terraform-provider-hypercore/internal/utils"
 )
 
-// Ensure ScaleProvider satisfies various provider interfaces.
-var _ provider.Provider = &ScaleProvider{}
-var _ provider.ProviderWithFunctions = &ScaleProvider{}
+// Ensure HypercoreProvider satisfies various provider interfaces.
+var _ provider.Provider = &HypercoreProvider{}
+var _ provider.ProviderWithFunctions = &HypercoreProvider{}
 
-// ScaleProvider defines the provider implementation.
-type ScaleProvider struct {
+// HypercoreProvider defines the provider implementation.
+type HypercoreProvider struct {
 	// version is set to the provider version on release, "dev" when the
 	// provider is built and ran locally, and "test" when running acceptance
 	// testing.
 	version string
 }
 
-// ScaleProviderModel describes the provider data model.
-type ScaleProviderModel struct {
+// HypercoreProviderModel describes the provider data model.
+type HypercoreProviderModel struct {
 	Host       types.String  `tfsdk:"host"`
 	Username   types.String  `tfsdk:"username"`
 	Password   types.String  `tfsdk:"password"`
@@ -39,50 +39,50 @@ type ScaleProviderModel struct {
 	Timeout    types.Float64 `tfsdk:"timeout"`
 }
 
-func (p *ScaleProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "scale"
+func (p *HypercoreProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "hypercore"
 	resp.Version = p.version
 }
 
-func (p *ScaleProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *HypercoreProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
-				MarkdownDescription: "Scale Computing host URI; can also be set with `SC_HOST` environment variable.",
+				MarkdownDescription: "Hypercore Computing host URI; can also be set with `HC_HOST` environment variable.",
 				Optional:            true,
 			},
 			"username": schema.StringAttribute{
-				MarkdownDescription: "Scale Computing username; can also be set with `SC_USERNAME` environment variable.",
+				MarkdownDescription: "Hypercore Computing username; can also be set with `HC_USERNAME` environment variable.",
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"password": schema.StringAttribute{
-				MarkdownDescription: "Scale Computing password; can also be set with `SC_PASSWORD` environment variable.",
+				MarkdownDescription: "Hypercore Computing password; can also be set with `HC_PASSWORD` environment variable.",
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"auth_method": schema.StringAttribute{
-				MarkdownDescription: "Scale Computing authentication method; can also be set with `SC_AUTH_METHOD` environment variable. It can be set to `oidc` or `local` (default).",
+				MarkdownDescription: "Hypercore Computing authentication method; can also be set with `HC_AUTH_METHOD` environment variable. It can be set to `oidc` or `local` (default).",
 				Optional:            true,
 			},
 			"timeout": schema.Float64Attribute{
-				MarkdownDescription: "Scale Computing request timeout; can also be set with `SC_TIMEOUT` environment variable. Default is set to `60.0` seconds.",
+				MarkdownDescription: "Hypercore Computing request timeout; can also be set with `HC_TIMEOUT` environment variable. Default is set to `60.0` seconds.",
 				Optional:            true,
 			},
 		},
 	}
 }
 
-func (p *ScaleProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	scHost := os.Getenv("SC_HOST")
-	scUsername := os.Getenv("SC_USERNAME")
-	scPassword := os.Getenv("SC_PASSWORD")
-	scAuthMethod := os.Getenv("SC_AUTH_METHOD")
+func (p *HypercoreProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	scHost := os.Getenv("HC_HOST")
+	scUsername := os.Getenv("HC_USERNAME")
+	scPassword := os.Getenv("HC_PASSWORD")
+	scAuthMethod := os.Getenv("HC_AUTH_METHOD")
 
 	var scTimeoutF float64
-	scTimeout := os.Getenv("SC_TIMEOUT")
+	scTimeout := os.Getenv("HC_TIMEOUT")
 
-	var data ScaleProviderModel
+	var data HypercoreProviderModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
@@ -110,7 +110,7 @@ func (p *ScaleProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		resp.Diagnostics.AddError(
 			"Missing Host URI Configuration",
 			"While configuring the provider, the host URI was not found in "+
-				"the SC_HOST environment variable or provider "+
+				"the HC_HOST environment variable or provider "+
 				"configuration block host attribute.",
 		)
 	}
@@ -119,7 +119,7 @@ func (p *ScaleProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		resp.Diagnostics.AddError(
 			"Missing Username Configuration",
 			"While configuring the provider, the Username was not found in "+
-				"the SC_USERNAME environment variable or provider "+
+				"the HC_USERNAME environment variable or provider "+
 				"configuration block username attribute.",
 		)
 	}
@@ -128,7 +128,7 @@ func (p *ScaleProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		resp.Diagnostics.AddError(
 			"Missing Password Configuration",
 			"While configuring the provider, the Password was not found in "+
-				"the SC_PASSWORD environment variable or provider "+
+				"the HC_PASSWORD environment variable or provider "+
 				"configuration block password attribute.",
 		)
 	}
@@ -146,7 +146,7 @@ func (p *ScaleProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		return
 	}
 
-	// Scale client configuration for data sources and resources
+	// Hypercore client configuration for data sources and resources
 	restClient, _ := utils.NewRestClient(
 		scHost,
 		scUsername,
@@ -162,30 +162,30 @@ func (p *ScaleProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	resp.ResourceData = restClient
 }
 
-func (p *ScaleProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *HypercoreProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewScaleVMResource,
-		NewScaleNicResource,
-		NewScaleDiskResource,
-		NewScaleVirtualDiskResource,
-		NewScaleVMPowerStateResource,
-		NewScaleVMBootOrderResource,
+		NewHypercoreVMResource,
+		NewHypercoreNicResource,
+		NewHypercoreDiskResource,
+		NewHypercoreVirtualDiskResource,
+		NewHypercoreVMPowerStateResource,
+		NewHypercoreVMBootOrderResource,
 	}
 }
 
-func (p *ScaleProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *HypercoreProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewScaleVMDataSource,
+		NewHypercoreVMDataSource,
 	}
 }
 
-func (p *ScaleProvider) Functions(ctx context.Context) []func() function.Function {
+func (p *HypercoreProvider) Functions(ctx context.Context) []func() function.Function {
 	return []func() function.Function{}
 }
 
 func New(version string) func() provider.Provider {
 	return func() provider.Provider {
-		return &ScaleProvider{
+		return &HypercoreProvider{
 			version: version,
 		}
 	}

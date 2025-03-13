@@ -15,24 +15,24 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-scale/internal/utils"
+	"github.com/hashicorp/terraform-provider-hypercore/internal/utils"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &ScaleVMResource{}
-var _ resource.ResourceWithImportState = &ScaleVMResource{}
+var _ resource.Resource = &HypercoreVMResource{}
+var _ resource.ResourceWithImportState = &HypercoreVMResource{}
 
-func NewScaleVMResource() resource.Resource {
-	return &ScaleVMResource{}
+func NewHypercoreVMResource() resource.Resource {
+	return &HypercoreVMResource{}
 }
 
-// ScaleVMResource defines the resource implementation.
-type ScaleVMResource struct {
+// HypercoreVMResource defines the resource implementation.
+type HypercoreVMResource struct {
 	client *utils.RestClient
 }
 
-// ScaleVMResourceModel describes the resource data model.
-type ScaleVMResourceModel struct {
+// HypercoreVMResourceModel describes the resource data model.
+type HypercoreVMResourceModel struct {
 	Group       types.String `tfsdk:"group"`
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
@@ -48,14 +48,14 @@ type CloneModel struct {
 	MetaData     types.String `tfsdk:"meta_data"`
 }
 
-func (r *ScaleVMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *HypercoreVMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_vm"
 }
 
-func (r *ScaleVMResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *HypercoreVMResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "ScaleVM resource to create a VM from a template VM",
+		MarkdownDescription: "HypercoreVM resource to create a VM from a template VM",
 
 		Attributes: map[string]schema.Attribute{
 			"group": schema.StringAttribute{
@@ -95,7 +95,7 @@ func (r *ScaleVMResource) Schema(ctx context.Context, req resource.SchemaRequest
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "ScaleVM identifier",
+				MarkdownDescription: "HypercoreVM identifier",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -104,8 +104,8 @@ func (r *ScaleVMResource) Schema(ctx context.Context, req resource.SchemaRequest
 	}
 }
 
-func (r *ScaleVMResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMResource CONFIGURE")
+func (r *HypercoreVMResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMResource CONFIGURE")
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -125,10 +125,10 @@ func (r *ScaleVMResource) Configure(ctx context.Context, req resource.ConfigureR
 	r.client = restClient
 }
 
-func (r *ScaleVMResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMResource CREATE")
-	var data ScaleVMResourceModel
-	// var readData ScaleVMResourceModel
+func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMResource CREATE")
+	var data HypercoreVMResourceModel
+	// var readData HypercoreVMResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -196,9 +196,9 @@ func (r *ScaleVMResource) Create(ctx context.Context, req resource.CreateRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMResource READ")
-	var data ScaleVMResourceModel
+func (r *HypercoreVMResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMResource READ")
+	var data HypercoreVMResourceModel
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
@@ -217,17 +217,17 @@ func (r *ScaleVMResource) Read(ctx context.Context, req resource.ReadRequest, re
 	// VM read ======================================================================
 	restClient := *r.client
 	vm_uuid := data.Id.ValueString()
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMResource Read oldState vm_uuid=%s\n", vm_uuid))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreVMResource Read oldState vm_uuid=%s\n", vm_uuid))
 	hc3_vm := utils.GetOneVM(vm_uuid, restClient)
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMResource Read vmhc3_vm=%s\n", hc3_vm))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreVMResource Read vmhc3_vm=%s\n", hc3_vm))
 	hc3_vm_name := utils.AnyToString(hc3_vm["name"])
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMResource Read vm_uuid=%s hc3_vm=(name=%s)\n", vm_uuid, hc3_vm_name))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreVMResource Read vm_uuid=%s hc3_vm=(name=%s)\n", vm_uuid, hc3_vm_name))
 
 	data.Name = types.StringValue(utils.AnyToString(hc3_vm["name"]))
 	data.Description = types.StringValue(utils.AnyToString(hc3_vm["description"]))
 	// data.Group TODO - replace "group" string with "tags" list of strings
 
-	// NOTE: power state not needed here anymore because of the scale_vm_power_state resource
+	// NOTE: power state not needed here anymore because of the hypercore_vm_power_state resource
 	// hc3_power_state := utils.AnyToString(hc3_vm["state"])
 	// // line below look like correct thing to do. But "terraform plan -refresh-only"
 	// // complains about change 'power_state = "stop" -> "stopped"
@@ -250,11 +250,11 @@ func (r *ScaleVMResource) Read(ctx context.Context, req resource.ReadRequest, re
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMResource UPDATE")
-	var data_state ScaleVMResourceModel
+func (r *HypercoreVMResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMResource UPDATE")
+	var data_state HypercoreVMResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
-	var data ScaleVMResourceModel
+	var data HypercoreVMResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -274,8 +274,8 @@ func (r *ScaleVMResource) Update(ctx context.Context, req resource.UpdateRequest
 	// ======================================================================
 	restClient := *r.client
 	vm_uuid := data.Id.ValueString()
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMResource Update vm_uuid=%s REQ   vcpu=%d description=%s", vm_uuid, data.VCPU.ValueInt32(), data.Description.String()))
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMResource Update vm_uuid=%s STATE vcpu=%d description=%s", vm_uuid, data_state.VCPU.ValueInt32(), data_state.Description.String()))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreVMResource Update vm_uuid=%s REQ   vcpu=%d description=%s", vm_uuid, data.VCPU.ValueInt32(), data.Description.String()))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreVMResource Update vm_uuid=%s STATE vcpu=%d description=%s", vm_uuid, data_state.VCPU.ValueInt32(), data_state.Description.String()))
 
 	updatePayload := map[string]any{}
 	if data_state.Name != data.Name {
@@ -308,9 +308,9 @@ func (r *ScaleVMResource) Update(ctx context.Context, req resource.UpdateRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMResource DELETE")
-	var data ScaleVMResourceModel
+func (r *HypercoreVMResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMResource DELETE")
+	var data HypercoreVMResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -337,7 +337,7 @@ func (r *ScaleVMResource) Delete(ctx context.Context, req resource.DeleteRequest
 	taskTag.WaitTask(restClient, ctx)
 }
 
-func (r *ScaleVMResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMResource IMPORT_STATE")
+func (r *HypercoreVMResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMResource IMPORT_STATE")
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

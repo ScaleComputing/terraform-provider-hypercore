@@ -1,4 +1,4 @@
-# Terraform Provider Scale
+# Terraform Provider HyperCore
 ## Requirements
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0

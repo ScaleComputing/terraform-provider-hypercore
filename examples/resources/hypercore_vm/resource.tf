@@ -4,11 +4,11 @@ locals {
   vm_name           = "my-vm"
 }
 
-data "scale_vm" "clone_source_vm" {
+data "hypercore_vm" "clone_source_vm" {
   name = "source_vm"
 }
 
-resource "scale_vm" "myvm" {
+resource "hypercore_vm" "myvm" {
   group       = "my-group"
   name        = local.vm_name
   description = "some description"
@@ -17,7 +17,7 @@ resource "scale_vm" "myvm" {
   memory = 4096 # MiB
 
   clone = {
-    source_vm_uuid = data.scale_vm.clone_source_vm.vms.0.uuid
+    source_vm_uuid = data.hypercore_vm.clone_source_vm.vms.0.uuid
     meta_data = templatefile(local.vm_meta_data_tmpl, {
       name = local.vm_name,
     })
@@ -30,5 +30,5 @@ resource "scale_vm" "myvm" {
 }
 
 output "vm_uuid" {
-  value = scale_vm.myvm.id
+  value = hypercore_vm.myvm.id
 }

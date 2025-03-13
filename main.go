@@ -9,7 +9,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/hashicorp/terraform-provider-scale/internal/provider"
+	"github.com/hashicorp/terraform-provider-hypercore/internal/provider"
 )
 
 var (
@@ -31,7 +31,7 @@ func main() {
 		// TODO: Update this string with the published name of your provider.
 		// Also update the tfplugindocs generate command to either remove the
 		// -provider-name flag or set its value to the updated provider name.
-		Address: "registry.terraform.io/hashicorp/scale",
+		Address: "registry.terraform.io/hashicorp/hypercore",
 		Debug:   debug,
 	}
 

@@ -15,31 +15,31 @@ var requested_power_state string = "stop" // "started"
 // var testtf_src_uuid string = "27af8248-88ee-4420-85d7-78b735415064"  // https://172.31.6.11
 var testtf_src_uuid string = "ff36479e-06bb-4141-bad5-0097c8c1a4a6" // https://10.5.11.205
 
-func TestAccScaleVMResource(t *testing.T) {
+func TestAccHypercoreVMResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccScaleVMResourceConfig("testtf-vm", testtf_src_uuid),
+				Config: testAccHypercoreVMResourceConfig("testtf-vm", testtf_src_uuid),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("scale_vm.test", "description", "testtf-vm-description"),
-					resource.TestCheckResourceAttr("scale_vm.test", "memory", "4096"),
-					resource.TestCheckResourceAttr("scale_vm.test", "group", "testtf"),
-					resource.TestCheckResourceAttr("scale_vm.test", "clone.meta_data", ""),
-					resource.TestCheckResourceAttr("scale_vm.test", "clone.user_data", ""),
-					resource.TestCheckResourceAttr("scale_vm.test", "clone.source_vm_uuid", testtf_src_uuid),
-					resource.TestCheckResourceAttr("scale_vm.test", "name", "testtf-vm"),
-					resource.TestCheckResourceAttr("scale_vm.test", "vcpu", "4"),
-					// resource.TestCheckResourceAttr("scale_vm.test", "power_state", requested_power_state),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "description", "testtf-vm-description"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "memory", "4096"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "group", "testtf"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "clone.meta_data", ""),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "clone.user_data", ""),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "clone.source_vm_uuid", testtf_src_uuid),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "name", "testtf-vm"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "vcpu", "4"),
+					// resource.TestCheckResourceAttr("hypercore_vm.test", "power_state", requested_power_state),
 				),
 			},
 			// TODO make ImportState test pass again.
 			/*
 				// ImportState testing
 				{
-					ResourceName:      "scale_vm.test",
+					ResourceName:      "hypercore_vm.test",
 					ImportState:       true,
 					ImportStateVerify: true,
 					// This is not normally necessary, but is here because this
@@ -64,14 +64,14 @@ func TestAccScaleVMResource(t *testing.T) {
 			*/
 			// Update and Read testing
 			{
-				Config: testAccScaleVMResourceConfig("testtf-vm", testtf_src_uuid),
+				Config: testAccHypercoreVMResourceConfig("testtf-vm", testtf_src_uuid),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("scale_vm.test", "name", "testtf-vm"),
-					resource.TestCheckResourceAttr("scale_vm.test", "description", "testtf-vm-description"),
-					resource.TestCheckResourceAttr("scale_vm.test", "group", "testtf"),
-					resource.TestCheckResourceAttr("scale_vm.test", "vcpu", "4"),
-					resource.TestCheckResourceAttr("scale_vm.test", "memory", "4096"),
-					// resource.TestCheckResourceAttr("scale_vm.test", "power_state", requested_power_state),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "name", "testtf-vm"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "description", "testtf-vm-description"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "group", "testtf"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "vcpu", "4"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "memory", "4096"),
+					// resource.TestCheckResourceAttr("hypercore_vm.test", "power_state", requested_power_state),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -79,9 +79,9 @@ func TestAccScaleVMResource(t *testing.T) {
 	})
 }
 
-func testAccScaleVMResourceConfig(vm_name string, source_vm_uuid string) string {
+func testAccHypercoreVMResourceConfig(vm_name string, source_vm_uuid string) string {
 	return fmt.Sprintf(`
-resource "scale_vm" "test" {
+resource "hypercore_vm" "test" {
   name = %[1]q
   group = "testtf"
   vcpu = 4

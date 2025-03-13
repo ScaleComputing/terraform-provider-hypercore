@@ -15,24 +15,24 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-scale/internal/utils"
+	"github.com/hashicorp/terraform-provider-hypercore/internal/utils"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &ScaleDiskResource{}
-var _ resource.ResourceWithImportState = &ScaleDiskResource{}
+var _ resource.Resource = &HypercoreDiskResource{}
+var _ resource.ResourceWithImportState = &HypercoreDiskResource{}
 
-func NewScaleDiskResource() resource.Resource {
-	return &ScaleDiskResource{}
+func NewHypercoreDiskResource() resource.Resource {
+	return &HypercoreDiskResource{}
 }
 
-// ScaleDiskResource defines the resource implementation.
-type ScaleDiskResource struct {
+// HypercoreDiskResource defines the resource implementation.
+type HypercoreDiskResource struct {
 	client *utils.RestClient
 }
 
-// ScaleDiskResourceModel describes the resource data model.
-type ScaleDiskResourceModel struct {
+// HypercoreDiskResourceModel describes the resource data model.
+type HypercoreDiskResourceModel struct {
 	Id                  types.String  `tfsdk:"id"`
 	VmUUID              types.String  `tfsdk:"vm_uuid"`
 	Slot                types.Int64   `tfsdk:"slot"`
@@ -41,15 +41,15 @@ type ScaleDiskResourceModel struct {
 	SourceVirtualDiskID types.String  `tfsdk:"source_virtual_disk_id"`
 }
 
-func (r *ScaleDiskResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *HypercoreDiskResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_disk"
 }
 
-func (r *ScaleDiskResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *HypercoreDiskResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "" +
-			"Scale disk resource to manage VM disks. <br><br>" +
+			"Hypercore disk resource to manage VM disks. <br><br>" +
 			"To use this resource, it's recommended to set the environment variable `TF_CLI_ARGS_apply=\"-parallelism=1\"` or pass the `-parallelism` parameter to the `terraform apply`.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -83,8 +83,8 @@ func (r *ScaleDiskResource) Schema(ctx context.Context, req resource.SchemaReque
 	}
 }
 
-func (r *ScaleDiskResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	tflog.Info(ctx, "TTRT ScaleDiskResource CONFIGURE")
+func (r *HypercoreDiskResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	tflog.Info(ctx, "TTRT HypercoreDiskResource CONFIGURE")
 	// Prevent padisk if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -104,10 +104,10 @@ func (r *ScaleDiskResource) Configure(ctx context.Context, req resource.Configur
 	r.client = restClient
 }
 
-func (r *ScaleDiskResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	tflog.Info(ctx, "TTRT ScaleDiskResource CREATE")
-	var data ScaleDiskResourceModel
-	// var readData ScaleDiskResourceModel
+func (r *HypercoreDiskResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreDiskResource CREATE")
+	var data HypercoreDiskResourceModel
+	// var readData HypercoreDiskResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -205,9 +205,9 @@ func (r *ScaleDiskResource) Create(ctx context.Context, req resource.CreateReque
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleDiskResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	tflog.Info(ctx, "TTRT ScaleDiskResource READ")
-	var data ScaleDiskResourceModel
+func (r *HypercoreDiskResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Info(ctx, "TTRT HypercoreDiskResource READ")
+	var data HypercoreDiskResourceModel
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
@@ -219,7 +219,7 @@ func (r *ScaleDiskResource) Read(ctx context.Context, req resource.ReadRequest, 
 	restClient := *r.client
 	vmUUID := data.VmUUID.ValueString()
 	diskUUID := data.Id.ValueString()
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleDiskResource Read oldState vmUUID=%s\n", vmUUID))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreDiskResource Read oldState vmUUID=%s\n", vmUUID))
 
 	pDisk := utils.GetDiskByUUID(restClient, diskUUID)
 	if pDisk == nil {
@@ -229,7 +229,7 @@ func (r *ScaleDiskResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 	disk := *pDisk
 
-	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleDiskResource: vm_uuid=%s, disk_uuid=%s, disk=%v\n", vmUUID, diskUUID, disk))
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreDiskResource: vm_uuid=%s, disk_uuid=%s, disk=%v\n", vmUUID, diskUUID, disk))
 	// save into the Terraform state.
 	data.Id = types.StringValue(diskUUID)
 	data.VmUUID = types.StringValue(utils.AnyToString(disk["virDomainUUID"]))
@@ -241,11 +241,11 @@ func (r *ScaleDiskResource) Read(ctx context.Context, req resource.ReadRequest, 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleDiskResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	tflog.Info(ctx, "TTRT ScaleDiskResource UPDATE")
-	var data_state ScaleDiskResourceModel
+func (r *HypercoreDiskResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreDiskResource UPDATE")
+	var data_state HypercoreDiskResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
-	var data ScaleDiskResourceModel
+	var data HypercoreDiskResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -259,11 +259,11 @@ func (r *ScaleDiskResource) Update(ctx context.Context, req resource.UpdateReque
 	vmUUID := data.VmUUID.ValueString()
 	tflog.Debug(
 		ctx, fmt.Sprintf(
-			"TTRT ScaleDiskResource Update vm_uuid=%s disk_uuid=%s REQUESTED slot=%d type=%s size=%v\n",
+			"TTRT HypercoreDiskResource Update vm_uuid=%s disk_uuid=%s REQUESTED slot=%d type=%s size=%v\n",
 			vmUUID, diskUUID, data.Slot.ValueInt64(), data.Type.String(), data.Size.ValueFloat64()),
 	)
 	tflog.Debug(ctx, fmt.Sprintf(
-		"TTRT ScaleDiskResource Update vm_uuid=%s disk_uuid=%s STATE     slot=%d type=%s size=%v\n",
+		"TTRT HypercoreDiskResource Update vm_uuid=%s disk_uuid=%s STATE     slot=%d type=%s size=%v\n",
 		vmUUID, diskUUID, data_state.Slot.ValueInt64(), data_state.Type.String(), data.Size.ValueFloat64()),
 	)
 
@@ -314,15 +314,15 @@ func (r *ScaleDiskResource) Update(ctx context.Context, req resource.UpdateReque
 	newHc3Disk := *pDisk
 
 	data.Slot = types.Int64Value(utils.AnyToInteger64(newHc3Disk["slot"]))
-	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleDiskResource: vm_uuid=%s, disk_uuid=%s, disk=%v", vmUUID, diskUUID, newHc3Disk))
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreDiskResource: vm_uuid=%s, disk_uuid=%s, disk=%v", vmUUID, diskUUID, newHc3Disk))
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleDiskResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	tflog.Info(ctx, "TTRT ScaleDiskResource DELETE")
-	var data ScaleDiskResourceModel
+func (r *HypercoreDiskResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	tflog.Info(ctx, "TTRT HypercoreDiskResource DELETE")
+	var data HypercoreDiskResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -349,8 +349,8 @@ func (r *ScaleDiskResource) Delete(ctx context.Context, req resource.DeleteReque
 	taskTag.WaitTask(restClient, ctx)
 }
 
-func (r *ScaleDiskResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	tflog.Info(ctx, "TTRT ScaleDiskResource IMPORT_STATE")
+func (r *HypercoreDiskResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreDiskResource IMPORT_STATE")
 	idParts := strings.Split(req.ID, ":")
 	if len(idParts) != 3 {
 		msg := fmt.Sprintf("Disk import composite ID format is 'vm_uuid:disk_type:disk_slot'. ID='%s' is invalid.", req.ID)
@@ -360,7 +360,7 @@ func (r *ScaleDiskResource) ImportState(ctx context.Context, req resource.Import
 	vmUUID := idParts[0]
 	diskType := idParts[1]
 	slot := utils.AnyToInteger64(idParts[2])
-	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleDiskResource: vmUUID=%s, type=%s, slot=%d", vmUUID, diskType, slot))
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreDiskResource: vmUUID=%s, type=%s, slot=%d", vmUUID, diskType, slot))
 
 	restClient := *r.client
 	hc3VM := utils.GetOneVM(vmUUID, restClient)

@@ -1,4 +1,4 @@
-module github.com/hashicorp/terraform-provider-scale
+module github.com/hashicorp/terraform-provider-hypercore
 
 go 1.23.0
 

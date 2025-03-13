@@ -14,38 +14,38 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-scale/internal/utils"
+	"github.com/hashicorp/terraform-provider-hypercore/internal/utils"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &ScaleVMPowerStateResource{}
-var _ resource.ResourceWithImportState = &ScaleVMPowerStateResource{}
+var _ resource.Resource = &HypercoreVMPowerStateResource{}
+var _ resource.ResourceWithImportState = &HypercoreVMPowerStateResource{}
 
-func NewScaleVMPowerStateResource() resource.Resource {
-	return &ScaleVMPowerStateResource{}
+func NewHypercoreVMPowerStateResource() resource.Resource {
+	return &HypercoreVMPowerStateResource{}
 }
 
-// ScaleVMPowerStateResource defines the resource implementation.
-type ScaleVMPowerStateResource struct {
+// HypercoreVMPowerStateResource defines the resource implementation.
+type HypercoreVMPowerStateResource struct {
 	client *utils.RestClient
 }
 
-// ScaleVMPowerStateResourceModel describes the resource data model.
-type ScaleVMPowerStateResourceModel struct {
+// HypercoreVMPowerStateResourceModel describes the resource data model.
+type HypercoreVMPowerStateResourceModel struct {
 	Id          types.String `tfsdk:"id"`
 	VmUUID      types.String `tfsdk:"vm_uuid"`
 	State       types.String `tfsdk:"state"`
 	ForceSutoff types.Bool   `tfsdk:"force_shutoff"`
 }
 
-func (r *ScaleVMPowerStateResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *HypercoreVMPowerStateResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_vm_power_state"
 }
 
-func (r *ScaleVMPowerStateResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *HypercoreVMPowerStateResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Scale disk resource to manage VM disks",
+		MarkdownDescription: "Hypercore disk resource to manage VM disks",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -72,8 +72,8 @@ func (r *ScaleVMPowerStateResource) Schema(ctx context.Context, req resource.Sch
 	}
 }
 
-func (r *ScaleVMPowerStateResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMPowerStateResource CONFIGURE")
+func (r *HypercoreVMPowerStateResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMPowerStateResource CONFIGURE")
 	// Prevent padisk if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -93,9 +93,9 @@ func (r *ScaleVMPowerStateResource) Configure(ctx context.Context, req resource.
 	r.client = restClient
 }
 
-func (r *ScaleVMPowerStateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMPowerStateResource CREATE")
-	var data ScaleVMPowerStateResourceModel
+func (r *HypercoreVMPowerStateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMPowerStateResource CREATE")
+	var data HypercoreVMPowerStateResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -173,9 +173,9 @@ func (r *ScaleVMPowerStateResource) Create(ctx context.Context, req resource.Cre
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMPowerStateResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMPowerStateResource READ")
-	var data ScaleVMPowerStateResourceModel
+func (r *HypercoreVMPowerStateResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMPowerStateResource READ")
+	var data HypercoreVMPowerStateResourceModel
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
@@ -186,7 +186,7 @@ func (r *ScaleVMPowerStateResource) Read(ctx context.Context, req resource.ReadR
 	// Power state read ======================================================================
 	restClient := *r.client
 	vmUUID := data.VmUUID.ValueString()
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMPowerStateResource Read oldState vmUUID=%s\n", vmUUID))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreVMPowerStateResource Read oldState vmUUID=%s\n", vmUUID))
 
 	pHc3VM, err := utils.GetOneVMWithError(vmUUID, restClient)
 	if err != nil {
@@ -195,7 +195,7 @@ func (r *ScaleVMPowerStateResource) Read(ctx context.Context, req resource.ReadR
 	}
 	hc3VM := *pHc3VM
 
-	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleVMPowerStateResource: vm_uuid=%s, state=%s\n", vmUUID, data.State.ValueString()))
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreVMPowerStateResource: vm_uuid=%s, state=%s\n", vmUUID, data.State.ValueString()))
 
 	// save into the Terraform state.
 	data.Id = types.StringValue(vmUUID)
@@ -206,11 +206,11 @@ func (r *ScaleVMPowerStateResource) Read(ctx context.Context, req resource.ReadR
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMPowerStateResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMPowerStateResource UPDATE")
-	var data_state ScaleVMPowerStateResourceModel
+func (r *HypercoreVMPowerStateResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMPowerStateResource UPDATE")
+	var data_state HypercoreVMPowerStateResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
-	var data ScaleVMPowerStateResourceModel
+	var data HypercoreVMPowerStateResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -226,11 +226,11 @@ func (r *ScaleVMPowerStateResource) Update(ctx context.Context, req resource.Upd
 	vmDesiredState := data.State.ValueString()
 	tflog.Debug(
 		ctx, fmt.Sprintf(
-			"TTRT ScaleVMPowerStateResource Update vm_uuid=%s REQUESTED state=%s\n",
+			"TTRT HypercoreVMPowerStateResource Update vm_uuid=%s REQUESTED state=%s\n",
 			vmUUID, vmDesiredState),
 	)
 	tflog.Debug(ctx, fmt.Sprintf(
-		"TTRT ScaleVMPowerStateResource Update vm_uuid=%s STATE     state=%s\n",
+		"TTRT HypercoreVMPowerStateResource Update vm_uuid=%s STATE     state=%s\n",
 		vmUUID, data_state.State.ValueString()),
 	)
 
@@ -283,15 +283,15 @@ func (r *ScaleVMPowerStateResource) Update(ctx context.Context, req resource.Upd
 		return
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleVMPowerStateResource: vm_uuid=%s, state=%s, action_performed=%s", vmUUID, hc3PowerState, actionType))
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreVMPowerStateResource: vm_uuid=%s, state=%s, action_performed=%s", vmUUID, hc3PowerState, actionType))
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleVMPowerStateResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMPowerStateResource DELETE")
-	var data ScaleVMPowerStateResourceModel
+func (r *HypercoreVMPowerStateResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMPowerStateResource DELETE")
+	var data HypercoreVMPowerStateResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -311,11 +311,11 @@ func (r *ScaleVMPowerStateResource) Delete(ctx context.Context, req resource.Del
 	// }
 }
 
-func (r *ScaleVMPowerStateResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	tflog.Info(ctx, "TTRT ScaleVMPowerStateResource IMPORT_STATE")
+func (r *HypercoreVMPowerStateResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreVMPowerStateResource IMPORT_STATE")
 
 	vmUUID := req.ID
-	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleVMPowerStateResource: vmUUID=%s", vmUUID))
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreVMPowerStateResource: vmUUID=%s", vmUUID))
 
 	restClient := *r.client
 	hc3VM, err := utils.GetOneVMWithError(vmUUID, restClient)

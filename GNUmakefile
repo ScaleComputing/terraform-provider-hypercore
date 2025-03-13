@@ -1,4 +1,4 @@
-PROVIDER_NAME ?= scale
+PROVIDER_NAME ?= hypercore
 PROVIDER_VERSION ?= 0.1.0
 ORGANIZATION ?= xlab
 ARCHITECTURE ?= linux_amd64

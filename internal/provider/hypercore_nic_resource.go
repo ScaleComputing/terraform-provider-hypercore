@@ -15,24 +15,24 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-scale/internal/utils"
+	"github.com/hashicorp/terraform-provider-hypercore/internal/utils"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &ScaleNicResource{}
-var _ resource.ResourceWithImportState = &ScaleNicResource{}
+var _ resource.Resource = &HypercoreNicResource{}
+var _ resource.ResourceWithImportState = &HypercoreNicResource{}
 
-func NewScaleNicResource() resource.Resource {
-	return &ScaleNicResource{}
+func NewHypercoreNicResource() resource.Resource {
+	return &HypercoreNicResource{}
 }
 
-// ScaleNicResource defines the resource implementation.
-type ScaleNicResource struct {
+// HypercoreNicResource defines the resource implementation.
+type HypercoreNicResource struct {
 	client *utils.RestClient
 }
 
-// ScaleNicResourceModel describes the resource data model.
-type ScaleNicResourceModel struct {
+// HypercoreNicResourceModel describes the resource data model.
+type HypercoreNicResourceModel struct {
 	Id     types.String `tfsdk:"id"`
 	VmUUID types.String `tfsdk:"vm_uuid"`
 	Vlan   types.Int64  `tfsdk:"vlan"`
@@ -40,15 +40,15 @@ type ScaleNicResourceModel struct {
 	// MacAddress types.String `tfsdk:"type"`
 }
 
-func (r *ScaleNicResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *HypercoreNicResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_nic"
 }
 
-func (r *ScaleNicResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *HypercoreNicResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "" +
-			"Scale NIC resource to manage VM NICs. <br><br>" +
+			"Hypercore NIC resource to manage VM NICs. <br><br>" +
 			"To use this resource, it's recommended to set the environment variable `TF_CLI_ARGS_apply=\"-parallelism=1\"` or pass the `-parallelism` parameter to the `terraform apply`.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -74,8 +74,8 @@ func (r *ScaleNicResource) Schema(ctx context.Context, req resource.SchemaReques
 	}
 }
 
-func (r *ScaleNicResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	tflog.Info(ctx, "TTRT ScaleNicResource CONFIGURE")
+func (r *HypercoreNicResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	tflog.Info(ctx, "TTRT HypercoreNicResource CONFIGURE")
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -95,10 +95,10 @@ func (r *ScaleNicResource) Configure(ctx context.Context, req resource.Configure
 	r.client = restClient
 }
 
-func (r *ScaleNicResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	tflog.Info(ctx, "TTRT ScaleNicResource CREATE")
-	var data ScaleNicResourceModel
-	// var readData ScaleNicResourceModel
+func (r *HypercoreNicResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreNicResource CREATE")
+	var data HypercoreNicResourceModel
+	// var readData HypercoreNicResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -135,9 +135,9 @@ func (r *ScaleNicResource) Create(ctx context.Context, req resource.CreateReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleNicResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	tflog.Info(ctx, "TTRT ScaleNicResource READ")
-	var data ScaleNicResourceModel
+func (r *HypercoreNicResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Info(ctx, "TTRT HypercoreNicResource READ")
+	var data HypercoreNicResourceModel
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
@@ -149,7 +149,7 @@ func (r *ScaleNicResource) Read(ctx context.Context, req resource.ReadRequest, r
 	restClient := *r.client
 	vmUUID := data.VmUUID.ValueString()
 	nicUUID := data.Id.ValueString()
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleNicResource Read oldState vmUUID=%s\n", vmUUID))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreNicResource Read oldState vmUUID=%s\n", vmUUID))
 
 	pNic := utils.GetNic(restClient, nicUUID)
 	if pNic == nil {
@@ -159,7 +159,7 @@ func (r *ScaleNicResource) Read(ctx context.Context, req resource.ReadRequest, r
 	}
 	nic := *pNic
 	//
-	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleNicResource: vm_uuid=%s, nic_uuid=%s, nic=%v\n", vmUUID, nicUUID, nic))
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreNicResource: vm_uuid=%s, nic_uuid=%s, nic=%v\n", vmUUID, nicUUID, nic))
 	// save into the Terraform state.
 	data.Id = types.StringValue(nicUUID)
 	data.VmUUID = types.StringValue(utils.AnyToString(nic["virDomainUUID"]))
@@ -171,11 +171,11 @@ func (r *ScaleNicResource) Read(ctx context.Context, req resource.ReadRequest, r
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleNicResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	tflog.Info(ctx, "TTRT ScaleNicResource UPDATE")
-	var data_state ScaleNicResourceModel
+func (r *HypercoreNicResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreNicResource UPDATE")
+	var data_state HypercoreNicResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
-	var data ScaleNicResourceModel
+	var data HypercoreNicResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -187,8 +187,8 @@ func (r *ScaleNicResource) Update(ctx context.Context, req resource.UpdateReques
 	restClient := *r.client
 	nicUUID := data.Id.ValueString()
 	vmUUID := data.VmUUID.ValueString()
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleNicResource Update vm_uuid=%s nic_uuid=%s REQUESTED vlan=%d type=%s", vmUUID, nicUUID, data.Vlan.ValueInt64(), data.Type.String()))
-	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleNicResource Update vm_uuid=%s nic_uuid=%s STATE     vlan=%d type=%s", vmUUID, nicUUID, data_state.Vlan.ValueInt64(), data_state.Type.String()))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreNicResource Update vm_uuid=%s nic_uuid=%s REQUESTED vlan=%d type=%s", vmUUID, nicUUID, data.Vlan.ValueInt64(), data.Type.String()))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreNicResource Update vm_uuid=%s nic_uuid=%s STATE     vlan=%d type=%s", vmUUID, nicUUID, data_state.Vlan.ValueInt64(), data_state.Type.String()))
 
 	updatePayload := map[string]any{
 		"virDomainUUID": vmUUID,
@@ -210,7 +210,7 @@ func (r *ScaleNicResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 	nic := *pNic
 	//
-	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleNicResource: vm_uuid=%s, nic_uuid=%s, nic=%v", vmUUID, nicUUID, nic))
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreNicResource: vm_uuid=%s, nic_uuid=%s, nic=%v", vmUUID, nicUUID, nic))
 
 	// TODO MAC, IP address etc
 
@@ -218,9 +218,9 @@ func (r *ScaleNicResource) Update(ctx context.Context, req resource.UpdateReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *ScaleNicResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	tflog.Info(ctx, "TTRT ScaleNicResource DELETE")
-	var data ScaleNicResourceModel
+func (r *HypercoreNicResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	tflog.Info(ctx, "TTRT HypercoreNicResource DELETE")
+	var data HypercoreNicResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -247,8 +247,8 @@ func (r *ScaleNicResource) Delete(ctx context.Context, req resource.DeleteReques
 	taskTag.WaitTask(restClient, ctx)
 }
 
-func (r *ScaleNicResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	tflog.Info(ctx, "TTRT ScaleNicResource IMPORT_STATE")
+func (r *HypercoreNicResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	tflog.Info(ctx, "TTRT HypercoreNicResource IMPORT_STATE")
 	idParts := strings.Split(req.ID, ":")
 	if len(idParts) != 3 {
 		msg := fmt.Sprintf("NIC import composite ID format is 'vm_uuid:nic_type:nic_slot'. ID='%s' is invalid.", req.ID)
@@ -258,7 +258,7 @@ func (r *ScaleNicResource) ImportState(ctx context.Context, req resource.ImportS
 	vmUUID := idParts[0]
 	nicType := idParts[1]
 	vlan := utils.AnyToInteger64(idParts[2])
-	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleNicResource: vmUUID=%s, type=%s, vlan=%d", vmUUID, nicType, vlan))
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreNicResource: vmUUID=%s, type=%s, vlan=%d", vmUUID, nicType, vlan))
 
 	restClient := *r.client
 	hc3VM := utils.GetOneVM(vmUUID, restClient)
