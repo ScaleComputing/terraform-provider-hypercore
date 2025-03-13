@@ -13,9 +13,9 @@ Content-Disposition: attachment; filename="cloud-config.txt"
 
 # Uncomment for password login
 # Username: ubuntu (image jammy-server-cloudimg-amd64.img)
-# password: "password"
-# chpasswd: { expire: False }
-# ssh_pwauth: True
+password: "password"
+chpasswd: { expire: False }
+ssh_pwauth: True
 
 hostname: ${name}
 # fqdn: ${name}.example.com
