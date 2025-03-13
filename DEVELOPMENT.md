@@ -17,9 +17,9 @@ Setup N self-hosted runners
 Add needed variables/secrets to github project:
 - variable CI_CONFIG_HC_IP205, content
   ```
-  SC_HOST=https://10.5.11.205
-  SC_USERNAME=admin
-  SC_PASSWORD=todo
+  HC_HOST=https://10.5.11.205
+  HC_USERNAME=admin
+  HC_PASSWORD=todo
   ```
 
 TEMP: create VM named `testtf-src`.

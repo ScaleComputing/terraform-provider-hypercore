@@ -111,7 +111,7 @@ jobs:
           TF_ACC: "1"
         run: |
           set -o allexport; eval "$(echo "$CI_CONFIG_HC_IP205_dos" | tr -s '\r\n' '\n')"; set +o allexport;
-          echo cur-shell SC_HOST=$SC_HOST
-          sh -c 'echo sub-shell SC_HOST=$SC_HOST'
+          echo cur-shell HC_HOST=$HC_HOST
+          sh -c 'echo sub-shell HC_HOST=$HC_HOST'
           go test -v -cover ./internal/provider/
         timeout-minutes: 10
