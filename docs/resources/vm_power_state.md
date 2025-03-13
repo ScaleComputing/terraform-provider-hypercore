@@ -57,6 +57,10 @@ import {
 - `state` (String) Desired power state of the VM. Can be: `SHUTOFF`, `RUNNING`, `PAUSED`
 - `vm_uuid` (String) VM UUID of which we want to set the power state.
 
+### Optional
+
+- `force_shutoff` (Boolean) Set to `true` if you want to put the VM into the `SHUTOFF` state by force. This option will only be taken into account when `state` is set to `SHUTOFF`. Default is `false`.
+
 ### Read-Only
 
 - `id` (String) Power state identifier

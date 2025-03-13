@@ -32,9 +32,10 @@ type ScaleVMPowerStateResource struct {
 
 // ScaleVMPowerStateResourceModel describes the resource data model.
 type ScaleVMPowerStateResourceModel struct {
-	Id     types.String `tfsdk:"id"`
-	VmUUID types.String `tfsdk:"vm_uuid"`
-	State  types.String `tfsdk:"state"`
+	Id          types.String `tfsdk:"id"`
+	VmUUID      types.String `tfsdk:"vm_uuid"`
+	State       types.String `tfsdk:"state"`
+	ForceSutoff types.Bool   `tfsdk:"force_shutoff"`
 }
 
 func (r *ScaleVMPowerStateResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -60,6 +61,12 @@ func (r *ScaleVMPowerStateResource) Schema(ctx context.Context, req resource.Sch
 			"state": schema.StringAttribute{
 				MarkdownDescription: "Desired power state of the VM. Can be: `SHUTOFF`, `RUNNING`, `PAUSED`",
 				Required:            true,
+			},
+			"force_shutoff": schema.BoolAttribute{
+				MarkdownDescription: "" +
+					"Set to `true` if you want to put the VM into the `SHUTOFF` state by force. " +
+					"This option will only be taken into account when `state` is set to `SHUTOFF`. Default is `false`.",
+				Optional: true,
 			},
 		},
 	}
@@ -104,7 +111,7 @@ func (r *ScaleVMPowerStateResource) Create(ctx context.Context, req resource.Cre
 		return
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("TTRT Create: vm_uuid=%s, state=%s", data.VmUUID.ValueString(), data.State.ValueString()))
+	tflog.Info(ctx, fmt.Sprintf("TTRT Create: vm_uuid=%s, state=%s, force_shutdown=%t", data.VmUUID.ValueString(), data.State.ValueString(), data.ForceSutoff.ValueBool()))
 
 	diagPowerState := utils.ValidatePowerState(data.State.ValueString())
 	if diagPowerState != nil {
@@ -116,7 +123,8 @@ func (r *ScaleVMPowerStateResource) Create(ctx context.Context, req resource.Cre
 	// Power state is the end state of the VM that was the result of the performed action,
 	// so to get what action we need to perform to get to the desired end state of the VM,
 	// we need to check with the NEEDED_ACTION_FOR_POWER_STATE.
-	actionType := utils.NEEDED_ACTION_FOR_POWER_STATE[data.State.ValueString()]
+	// actionType := utils.NEEDED_ACTION_FOR_POWER_STATE[data.State.ValueString()]
+	actionType := utils.GetNeededActionForState(data.State.ValueString(), data.ForceSutoff.ValueBool())
 	createPayload := []map[string]any{
 		{
 			"virDomainUUID": data.VmUUID.ValueString(),
@@ -132,6 +140,28 @@ func (r *ScaleVMPowerStateResource) Create(ctx context.Context, req resource.Cre
 	tflog.Info(ctx, fmt.Sprintf("TTRT Created: vm_uuid=%s, state=%s, action_performed=%s", data.VmUUID.ValueString(), data.State.ValueString(), actionType))
 
 	// TODO: Check if HC3 matches TF
+	hc3PowerState, diag := utils.GetVMPowerState(data.VmUUID.ValueString(), *r.client)
+	if diag != nil {
+		resp.Diagnostics.AddError(diag.Summary(), diag.Detail())
+		return
+	}
+
+	if hc3PowerState != data.State.ValueString() {
+		var hintMsg string
+		if data.State.ValueString() == "SHUTOFF" {
+			hintMsg = "Use 'force_shutoff' attribute to force the VM to transition into this state."
+		}
+
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Couldn't transition into the '%s' state.", data.State.ValueString()),
+			fmt.Sprintf(
+				"VM couldn't be transitioned from '%s' state into the '%s' state. %s",
+				hc3PowerState, data.State.ValueString(), hintMsg,
+			),
+		)
+		return
+	}
+
 	// save into the Terraform state.
 	data.Id = types.StringValue(data.VmUUID.ValueString())
 
@@ -153,7 +183,7 @@ func (r *ScaleVMPowerStateResource) Read(ctx context.Context, req resource.ReadR
 		return
 	}
 
-	// Disk read ======================================================================
+	// Power state read ======================================================================
 	restClient := *r.client
 	vmUUID := data.VmUUID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("TTRT ScaleVMPowerStateResource Read oldState vmUUID=%s\n", vmUUID))
@@ -192,6 +222,7 @@ func (r *ScaleVMPowerStateResource) Update(ctx context.Context, req resource.Upd
 	restClient := *r.client
 	// resourceId := data.Id.ValueString()  // this should be the same as the vmUUID
 	vmUUID := data.VmUUID.ValueString()
+	forceShutoff := data.ForceSutoff.ValueBool()
 	vmDesiredState := data.State.ValueString()
 	tflog.Debug(
 		ctx, fmt.Sprintf(
@@ -215,7 +246,8 @@ func (r *ScaleVMPowerStateResource) Update(ctx context.Context, req resource.Upd
 	// Power state is the end state of the VM that was the result of the performed action,
 	// so to get what action we need to perform to get to the desired end state of the VM,
 	// we need to check with the NEEDED_ACTION_FOR_POWER_STATE.
-	actionType := utils.NEEDED_ACTION_FOR_POWER_STATE[vmDesiredState]
+	// actionType := utils.NEEDED_ACTION_FOR_POWER_STATE[vmDesiredState]
+	actionType := utils.GetNeededActionForState(vmDesiredState, forceShutoff)
 	updatePayload := []map[string]any{
 		{
 			"virDomainUUID": vmUUID,
@@ -229,16 +261,29 @@ func (r *ScaleVMPowerStateResource) Update(ctx context.Context, req resource.Upd
 	}
 
 	// TODO: Check if HC3 matches TF
-	// Do not trust UpdateVMPowerState made what we asked for. Read new power state from HC3.
-	pHc3VM, err := utils.GetOneVMWithError(vmUUID, restClient)
-	if err != nil {
-		msg := fmt.Sprintf("VM not found - vmUUID=%s.", vmUUID)
-		resp.Diagnostics.AddError("VM not found", msg)
+	hc3PowerState, diag := utils.GetVMPowerState(vmUUID, restClient)
+	if diag != nil {
+		resp.Diagnostics.AddError(diag.Summary(), diag.Detail())
 		return
 	}
-	newHc3VM := *pHc3VM
 
-	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleVMPowerStateResource: vm_uuid=%s, state=%s, action_performed=%s", vmUUID, newHc3VM["state"], actionType))
+	if hc3PowerState != vmDesiredState {
+		var hintMsg string
+		if vmDesiredState == "SHUTOFF" {
+			hintMsg = "Use 'force_shutoff' attribute to force the VM to transition into this state."
+		}
+
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Couldn't transition into the '%s' state.", vmDesiredState),
+			fmt.Sprintf(
+				"VM couldn't be transitioned from '%s' state into the '%s' state. %s",
+				hc3PowerState, vmDesiredState, hintMsg,
+			),
+		)
+		return
+	}
+
+	tflog.Info(ctx, fmt.Sprintf("TTRT ScaleVMPowerStateResource: vm_uuid=%s, state=%s, action_performed=%s", vmUUID, hc3PowerState, actionType))
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

@@ -19,10 +19,15 @@ var ALLOWED_POWER_STATES = map[string]bool{
 var NEEDED_ACTION_FOR_POWER_STATE = map[string]string{
 	"RUNNING": "START",
 	"SHUTOFF": "SHUTDOWN",
-	// TODO: Add "STOP" power state - needs force_shutdown flag implementation
-	// should look like this:
-	// "SHUTOFF": "STOP",
-	"PAUSED": "PAUSE",
+	"PAUSED":  "PAUSE",
+}
+
+func GetNeededActionForState(desiredState string, forceShutoff bool) string {
+	if forceShutoff {
+		return "STOP"
+	}
+
+	return NEEDED_ACTION_FOR_POWER_STATE[desiredState]
 }
 
 func ModifyVMPowerState(
@@ -50,7 +55,22 @@ func ModifyVMPowerState(
 	return nil
 }
 
-func GetVMPowerState(vmUUID string, restClient RestClient) (*string, diag.Diagnostic) {
+func GetVMPowerState(vmUUID string, restClient RestClient) (string, diag.Diagnostic) {
+	vm, err := GetOneVMWithError(vmUUID, restClient)
+
+	if err != nil {
+		return "", diag.NewErrorDiagnostic(
+			"VM not found",
+			err.Error(),
+		)
+	}
+
+	powerState := AnyToString((*vm)["state"])
+
+	return powerState, nil
+}
+
+func GetVMDesiredState(vmUUID string, restClient RestClient) (*string, diag.Diagnostic) {
 	vm, err := GetOneVMWithError(vmUUID, restClient)
 
 	if err != nil {
@@ -60,7 +80,7 @@ func GetVMPowerState(vmUUID string, restClient RestClient) (*string, diag.Diagno
 		)
 	}
 
-	powerState := AnyToString((*vm)["state"])
+	powerState := AnyToString((*vm)["desiredDisposition"])
 
 	return &powerState, nil
 }
