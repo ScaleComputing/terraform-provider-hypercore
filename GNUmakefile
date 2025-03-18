@@ -1,7 +1,8 @@
 PROVIDER_NAME ?= hypercore
 PROVIDER_VERSION ?= 0.1.0
 ORGANIZATION ?= xlab
-ARCHITECTURE ?= linux_amd64
+# ARCHITECTURE is linux_amd64, darwin_arm64
+ARCHITECTURE := $(shell go version | awk '{print $$4}' | sed 's|/|_|' )
 
 DOTENV_CMD ?= dotenv -f .env run
 # DOTENV_CMD =
@@ -14,6 +15,7 @@ help: ## prints help for targets with comments
 all: fmt lint install generate  ## format, lint and install (build) the binary and generate docs 
 
 build:  ## build provider
+	@echo ARCHITECTURE=$(ARCHITECTURE)
 	mkdir -p bin
 	go build -o ./bin -v ./...
 

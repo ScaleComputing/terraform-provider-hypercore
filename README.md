@@ -8,24 +8,50 @@
 
 ### Installation
 #### 1 Terraform
+
+Follow https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli
+
+For Linux Ubuntu.
 ```shell
 wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 sudo apt update && sudo apt install terraform
+```
 
-# check installation
+For Apple Mac.
+
+
+```shell
+# Install brew if it is not yet installed.
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install terraform
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
+brew update
+brew upgrade hashicorp/tap/terraform
+```
+
+Check installation.
+
+```shell
 terraform --version
 ```
 
 #### 2 Go
+
+See https://go.dev/doc/install
+
+For Linux Ubuntu
+
 ```shell
-# donwload latest version
+# download latest version
 curl -LO https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
 
 # remove old version and install the new one
 sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.23.4.linux-amd64.tar.gz
 
-# remove donwloaded tar because it's not needed anymore
+# remove downloaded tar because it's not needed anymore
 rm go1.23.4.linux-amd64.tar.gz
 
 # better to add this in your ~/.bashrc
@@ -33,12 +59,26 @@ export PATH=$PATH:/usr/local/go/bin
 
 # refresh your shell if needed
 source ~/.bashrc
+```
 
-# check installation
+For Apple Mac.
+
+```shell
+# select the correct one - darwin-arm64.pkg or darwin-amd64.pkg
+curl -LO https://go.dev/dl/go1.24.1.darwin-arm64.pkg
+curl -LO https://go.dev/dl/go1.24.1.darwin-amd64.pkg
+sudo installer -pkg  go1.24.1.darwin-arm64.pkg -target /
+# logout/login
+```
+
+Check installation.
+
+```shell
 go version
 ```
 
 #### 3 Golangci-lint
+
 ```shell
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
 
@@ -48,7 +88,7 @@ golangci-lint --version
 
 #### 4 Dotenv
 ```shell
-pip install python-dotenv==1.0.1
+# DROP this? pip install python-dotenv==1.0.1
 ```
 
 ## Building The Provider
@@ -59,6 +99,7 @@ pip install python-dotenv==1.0.1
 
 ```shell
 go install
+ls -al $GOPATH/bin/terraform-provider-hypercore $HOME/go/bin/terraform-provider-hypercore  # one of both is the provider binary
 ```
 
 ## Adding Dependencies

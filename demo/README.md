@@ -4,7 +4,9 @@ Prepare:
     - Remove VM `testtf-demo`, if it exists.
     - Remove virtual disk `jammy-server-cloudimg-amd64.img`, if it exists.
 
-Then run:
+Follow [top level README.md](../README.md) to install terraform and golang.
+
+Next install provider locally. Run:
 
 ```bash
 # install provider locally
