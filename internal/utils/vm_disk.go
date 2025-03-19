@@ -18,7 +18,7 @@ var ALLOWED_DISK_TYPES = map[string]bool{
 	"IDE_FLOPPY":  true,
 	"NVRAM":       true,
 	"VTPM":        true,
-	"IDE_CDROM":   false,
+	"IDE_CDROM":   true,
 }
 
 type VMDisk struct {

@@ -456,6 +456,35 @@ func (rc *RestClient) PutBinaryRecord(endpoint string, binaryData []byte, conten
 	return jsonObjectToTaskTag(respJson), nil
 }
 
+func (rc *RestClient) PutBinaryRecordWithoutTaskTag(endpoint string, binaryData []byte, contentLength int64, timeout float64, ctx context.Context) (int, error) {
+	useTimeout := timeout
+	if timeout == -1 {
+		useTimeout = rc.Timeout
+	}
+	client := rc.HttpClient
+	client.Timeout = time.Duration(useTimeout * float64(time.Second))
+
+	req := rc.RequestBinary(
+		"PUT",
+		endpoint,
+		binaryData,
+		contentLength,
+		rc.AuthHeader,
+	)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(fmt.Errorf("Error making a request: %s", err.Error()))
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		panic(fmt.Errorf("Error making a request: got response status code %v", resp.StatusCode))
+	}
+
+	return resp.StatusCode, nil
+}
+
 func (rc *RestClient) DeleteRecord(endpoint string, timeout float64, ctx context.Context) *TaskTag {
 	useTimeout := timeout
 	if timeout == -1 {
