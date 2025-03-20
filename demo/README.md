@@ -12,8 +12,6 @@ Next install provider locally. Run:
 # install provider locally
 make install local_provider force_reinit_local
 cd demo
-ln -s ../local/.terraform
-ln -s ../local/.terraform.lock.hcl
 
 export TF_LOG=info
 export TF_CLI_ARGS_apply="-parallelism=1"
