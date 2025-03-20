@@ -240,3 +240,14 @@ func FetchFileBinaryFromURL(url string) ([]byte, error) {
 
 	return binaryData, nil
 }
+
+func GetFileSize(sourceFilePath string) int64 {
+	fileInfo, err := os.Stat(sourceFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			panic(fmt.Errorf("ISO file %s not found", sourceFilePath))
+		}
+		panic(fmt.Errorf("unable to get file info for %s: %v", sourceFilePath, err))
+	}
+	return fileInfo.Size()
+}
