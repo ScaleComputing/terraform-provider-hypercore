@@ -4,7 +4,6 @@
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
 - [Go](https://golang.org/doc/install) >= 1.22
 - [Golangci-lint](https://golangci-lint.run/welcome/install/#local-installation) v1.62.2
-- [dotenv](https://pypi.org/project/python-dotenv/) 1.0.1
 
 ### Installation
 #### 1 Terraform
@@ -86,11 +85,6 @@ go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
 golangci-lint --version
 ```
 
-#### 4 Dotenv
-```shell
-# DROP this? pip install python-dotenv==1.0.1
-```
-
 ## Building The Provider
 
 1. Clone the repository
@@ -162,28 +156,30 @@ testacc                        acceptance tests
 # install the provider locally
 make install local_provider
 
-# use the main.tf scrit in ./local
+# use the main.tf script in ./local
 cd local
 
 # create your .env from .env.example and replace with your credentials
-cp .env.example .env
+cp env.sh.example env.sh
+nano env.sh
+source env.sh
 
 # init all the providers in main.tf
-dotenv -f .env run terraform init
+terraform init
 
 # (optional) check how the resources will be generated
-dotenv -f .env run terraform plan
+terraform plan
 
 # apply the plan
-dotenv -f .env run terraform apply
+terraform apply
 
 # you can check the results in terraform.tfstate
 cat terraform.tfstate | less
 
 # destroy all resources
-dotenv -f .env run terraform destroy
+terraform destroy
 ```
-An example `.env` configuration can be found [here](./local/.env.example).
+An example `env.sh` configuration can be found [here](./local/env.sh.example).
 
 #### Fresh rerun
 ```shell
