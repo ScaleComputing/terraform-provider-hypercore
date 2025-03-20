@@ -15,7 +15,7 @@ cd demo
 
 export TF_LOG=info
 export TF_CLI_ARGS_apply="-parallelism=1"
-export HC_HOST=https://172.31.6.11
+export HC_HOST=https://TODO_YOUR_HYPERCORE_HOST
 export HC_USERNAME=admin
 export HC_PASSWORD=TODO
 export HC_TIMEOUT=600.0  # Virtual disk upload can be slow
