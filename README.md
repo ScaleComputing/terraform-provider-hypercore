@@ -4,28 +4,53 @@
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
 - [Go](https://golang.org/doc/install) >= 1.22
 - [Golangci-lint](https://golangci-lint.run/welcome/install/#local-installation) v1.62.2
-- [dotenv](https://pypi.org/project/python-dotenv/) 1.0.1
 
 ### Installation
 #### 1 Terraform
+
+Follow https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli
+
+For Linux Ubuntu.
 ```shell
 wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 sudo apt update && sudo apt install terraform
+```
 
-# check installation
+For Apple Mac.
+
+
+```shell
+# Install brew if it is not yet installed.
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install terraform
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
+brew update
+brew upgrade hashicorp/tap/terraform
+```
+
+Check installation.
+
+```shell
 terraform --version
 ```
 
 #### 2 Go
+
+See https://go.dev/doc/install
+
+For Linux Ubuntu
+
 ```shell
-# donwload latest version
+# download latest version
 curl -LO https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
 
 # remove old version and install the new one
 sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.23.4.linux-amd64.tar.gz
 
-# remove donwloaded tar because it's not needed anymore
+# remove downloaded tar because it's not needed anymore
 rm go1.23.4.linux-amd64.tar.gz
 
 # better to add this in your ~/.bashrc
@@ -33,22 +58,31 @@ export PATH=$PATH:/usr/local/go/bin
 
 # refresh your shell if needed
 source ~/.bashrc
+```
 
-# check installation
+For Apple Mac.
+
+```shell
+# select the correct one - darwin-arm64.pkg or darwin-amd64.pkg
+curl -LO https://go.dev/dl/go1.24.1.darwin-arm64.pkg
+curl -LO https://go.dev/dl/go1.24.1.darwin-amd64.pkg
+sudo installer -pkg  go1.24.1.darwin-arm64.pkg -target /
+# logout/login
+```
+
+Check installation.
+
+```shell
 go version
 ```
 
 #### 3 Golangci-lint
+
 ```shell
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
 
 # check installation
 golangci-lint --version
-```
-
-#### 4 Dotenv
-```shell
-pip install python-dotenv==1.0.1
 ```
 
 ## Building The Provider
@@ -59,6 +93,7 @@ pip install python-dotenv==1.0.1
 
 ```shell
 go install
+ls -al $GOPATH/bin/terraform-provider-hypercore $HOME/go/bin/terraform-provider-hypercore  # one of both is the provider binary
 ```
 
 ## Adding Dependencies
@@ -121,28 +156,30 @@ testacc                        acceptance tests
 # install the provider locally
 make install local_provider
 
-# use the main.tf scrit in ./local
+# use the main.tf script in ./local
 cd local
 
 # create your .env from .env.example and replace with your credentials
-cp .env.example .env
+cp env.sh.example env.sh
+nano env.sh
+source env.sh
 
 # init all the providers in main.tf
-dotenv -f .env run terraform init
+terraform init
 
 # (optional) check how the resources will be generated
-dotenv -f .env run terraform plan
+terraform plan
 
 # apply the plan
-dotenv -f .env run terraform apply
+terraform apply
 
 # you can check the results in terraform.tfstate
 cat terraform.tfstate | less
 
 # destroy all resources
-dotenv -f .env run terraform destroy
+terraform destroy
 ```
-An example `.env` configuration can be found [here](./local/.env.example).
+An example `env.sh` configuration can be found [here](./local/env.sh.example).
 
 #### Fresh rerun
 ```shell
