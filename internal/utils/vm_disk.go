@@ -311,14 +311,35 @@ func CreateDisk(
 	return diskUUID, *disk
 }
 
-func ValidateDiskType(diskType string) diag.Diagnostic {
+func ValidateDiskType(diskType string, isoUUID string) diag.Diagnostic {
 	if !ALLOWED_DISK_TYPES[diskType] {
 		return diag.NewErrorDiagnostic(
 			"Invalid disk type",
 			fmt.Sprintf("Disk type '%s' not allowed. Allowed types are: IDE_DISK, SCSI_DISK, VIRTIO_DISK, IDE_FLOPPY, NVRAM, VTPM", diskType),
 		)
 	}
+	if isoUUID != "" && diskType != "IDE_CDROM" {
+		return diag.NewErrorDiagnostic(
+			"Invalid disk type",
+			fmt.Sprintf("Disk type '%s' is not compatible with ISO, for ISO attach action type of IDE_CDROM is needed.", diskType),
+		)
+	}
 	return nil
+}
+
+func ValidateISOAttach(restClient RestClient, isoUUID string, isAttachingISO bool) (diag.Diagnostic, *map[string]any) {
+	if isAttachingISO {
+		iso := GetISOByUUID(restClient, isoUUID)
+		if iso == nil {
+			return diag.NewErrorDiagnostic(
+					"Invalid ISO UUID",
+					fmt.Sprintf("ISO with UUID '%s' not found.", isoUUID),
+				),
+				nil
+		}
+		return nil, iso
+	}
+	return nil, nil
 }
 
 func ValidateDiskSize(diskUUID string, oldSize float64, newSize float64) diag.Diagnostic {
