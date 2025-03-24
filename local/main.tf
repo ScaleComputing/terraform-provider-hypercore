@@ -12,46 +12,45 @@ terraform {
 provider "hypercore" {}
 
 locals {
-  vm_name        = "testtf-disk-justin"
-  empty_vm       = "testtf-ana"
-  clone_empty_vm = "testtf-clone-ana"
-
-  vm_meta_data_tmpl = "./assets/meta-data.ubuntu-22.04.yml.tftpl"
-  vm_user_data_tmpl = "./assets/user-data.ubuntu-22.04.yml.tftpl"
+  vm_name = "testtf-ana"
 }
 
-resource "hypercore_vm" "myvm" {
+data "hypercore_vm" "snapvm" {
   name = local.vm_name
-  clone = {
-    source_vm_uuid = ""
-    meta_data      = ""
-    user_data      = ""
-  }
-  affinity_strategy = {
-    strict_affinity     = true
-    preferred_node_uuid = data.hypercore_node.cluster0_peer1.nodes.0.uuid
-    backup_node_uuid    = data.hypercore_node.cluster0_peer1.nodes.0.uuid
-  }
 }
 
-data "hypercore_node" "cluster0_all" {
+resource "hypercore_vm_snapshot" "snapshot" {
+  vm_uuid = data.hypercore_vm.snapvm.vms.0.uuid
+  label   = "testtf-ana-snapshot-3"
+  type    = "USER" # can be USER, AUTOMATED, SUPPORT
 }
 
-data "hypercore_node" "cluster0_peer1" {
-  peer_id = 1
+resource "hypercore_vm_snapshot" "imported-snapshot" {
+  vm_uuid = data.hypercore_vm.snapvm.vms.0.uuid
 }
 
-output "myvm" {
-  value = hypercore_vm.myvm
+import {
+  to = hypercore_vm_snapshot.imported-snapshot
+  id = "b6cc2257-d61b-4461-b3e3-2c8fab3e8614"
 }
 
-output "cluster_0_peer_1_uuid" {
-  value = data.hypercore_node.cluster0_peer1.nodes.0.uuid
-}
-
-data "hypercore_vm" "demo" {
-  name = "demo-vm"
-}
-output "vm_demo" {
-  value = data.hypercore_vm.demo
-}
+# NOTE: What a snapshot schedule will look like
+# resource "hypercore_vm_snapshot" "scheduled_snapshot" {
+#   vm_uuid = data.hypercore_vm.snapvm.vms.0.uuid
+#   type = "AUTOMATED"  # can be USER, AUTOMATED, SUPPORT
+# 
+#   # usable only if type is AUTOMATED
+#   # schedule_uuid = hypercore_snapshot_schedule.testtf-schedule.id
+# }
+# 
+# resource "hypercore_vm_snapshot_schedule" "testtf-schedule" {
+#   name = "schedule-name"
+#   rules = [
+#     {
+#       start_time = "2025-01-01 13:58:16",
+#       frequency = "MINUTELY",  # SECONDLY, MINUTELY, HOURLY, DAILY, WEEKLY, MONTHLY, YEARLY
+#       interval = "5"
+#       keep_snapshot_for_seconds = 10
+#     }
+#   ]
+# }
