@@ -171,6 +171,7 @@ func (p *HypercoreProvider) Resources(ctx context.Context) []func() resource.Res
 		NewHypercoreISOResource,
 		NewHypercoreVMPowerStateResource,
 		NewHypercoreVMBootOrderResource,
+		NewHypercoreVMSnapshotResource,
 	}
 }
 
