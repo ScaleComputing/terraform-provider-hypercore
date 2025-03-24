@@ -31,6 +31,12 @@ resource "hypercore_disk" "os" {
   source_virtual_disk_id = hypercore_virtual_disk.ubuntu_2204.id
 }
 
+resource "hypercore_disk" "iso" {
+  vm_uuid                = hypercore_vm.demo_vm.id
+  type                   = "IDE_CDROM"
+  iso_uuid               = hypercore_iso.alpine_virt.id
+}
+
 resource "hypercore_nic" "vlan_all" {
   vm_uuid                = hypercore_vm.demo_vm.id
   type                   = "VIRTIO"
@@ -47,6 +53,7 @@ resource "hypercore_vm_power_state" "demo_vm" {
   state   = "RUNNING" # available states are: SHUTOFF, RUNNING, PAUSED
   depends_on = [
     hypercore_disk.os,
+    hypercore_disk.iso,
     hypercore_nic.vlan_all,
     hypercore_vm_boot_order.demo_vm_boot_order,
   ]
@@ -56,11 +63,13 @@ resource "hypercore_vm_boot_order" "demo_vm_boot_order" {
   vm_uuid = hypercore_vm.demo_vm.id
   boot_devices = [
     hypercore_disk.os.id,
+    hypercore_disk.iso.id,
     hypercore_nic.vlan_all.id,
   ]
 
   depends_on = [
     hypercore_disk.os,
+    hypercore_disk.iso,
     hypercore_nic.vlan_all,
   ]
 }
