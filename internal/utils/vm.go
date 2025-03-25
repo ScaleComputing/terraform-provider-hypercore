@@ -56,19 +56,20 @@ const (
 )
 
 type VM struct {
-	UUID               string
-	VMName             string
-	sourceVMUUID       string
-	cloudInit          map[string]any
-	preserveMacAddress bool
-	description        *string
-	tags               *[]string
-	vcpu               *int32
-	memory             *int64
-	powerState         *string
-	strictAffinity     bool
-	preferredNodeUUID  string
-	backupNodeUUID     string
+	UUID                 string
+	VMName               string
+	sourceVMUUID         string
+	cloudInit            map[string]any
+	preserveMacAddress   bool
+	description          *string
+	tags                 *[]string
+	vcpu                 *int32
+	memory               *int64
+	snapshotScheduleUUID *string
+	powerState           *string
+	strictAffinity       bool
+	preferredNodeUUID    string
+	backupNodeUUID       string
 
 	_wasNiceShutdownTried  bool
 	_didNiceShutdownWork   bool
@@ -87,6 +88,7 @@ func NewVM(
 	_tags *[]string,
 	_vcpu *int32,
 	_memory *int64,
+	_snapshotScheduleUUID *string,
 	_powerState *string,
 	_strictAffinity bool,
 	_preferredNodeUUID string,
@@ -104,14 +106,15 @@ func NewVM(
 			"userData": userDataB64,
 			"metaData": metaDataB64,
 		},
-		description:       _description,
-		tags:              _tags,
-		vcpu:              _vcpu,
-		memory:            _memory,
-		powerState:        _powerState,
-		strictAffinity:    _strictAffinity,
-		preferredNodeUUID: _preferredNodeUUID,
-		backupNodeUUID:    _backupNodeUUID,
+		description:          _description,
+		tags:                 _tags,
+		vcpu:                 _vcpu,
+		memory:               _memory,
+		snapshotScheduleUUID: _snapshotScheduleUUID,
+		powerState:           _powerState,
+		strictAffinity:       _strictAffinity,
+		preferredNodeUUID:    _preferredNodeUUID,
+		backupNodeUUID:       _backupNodeUUID,
 
 		// helpers
 		_wasNiceShutdownTried:  false,
@@ -412,6 +415,9 @@ func (vc *VM) BuildUpdatePayload(changedParams map[string]bool) map[string]any {
 	if changed, ok := changedParams["vcpu"]; ok && changed {
 		updatePayload["numVCPU"] = *vc.vcpu
 	}
+	if changed, ok := changedParams["snapshotScheduleUUID"]; ok && changed {
+		updatePayload["snapshotScheduleUUID"] = *vc.snapshotScheduleUUID
+	}
 
 	affinityStrategy := map[string]any{}
 	if changed, ok := changedParams["strictAffinity"]; ok && changed {
@@ -454,6 +460,9 @@ func (vc *VM) GetChangedParams(ctx context.Context, vmFromClient map[string]any)
 			desiredPowerState := FromTerraformPowerActionToTerraformPowerState[requestedPowerAction]
 			changedParams["powerState"] = desiredPowerState != vmFromClient["state"]
 		}
+	}
+	if vc.snapshotScheduleUUID != nil {
+		changedParams["snapshotScheduleUUID"] = *vc.snapshotScheduleUUID != vmFromClient["snapshotScheduleUUID"]
 	}
 
 	hc3AffinityStrategy := AnyToMap(vmFromClient["affinityStrategy"])

@@ -43,14 +43,15 @@ type hypercoreVMsDataSourceModel struct {
 
 // hypercoreVMModel maps VM schema data.
 type hypercoreVMModel struct {
-	UUID        types.String         `tfsdk:"uuid"`
-	Name        types.String         `tfsdk:"name"`
-	Description types.String         `tfsdk:"description"`
-	PowerState  types.String         `tfsdk:"power_state"`
-	VCPU        types.Int32          `tfsdk:"vcpu"`
-	Memory      types.Int64          `tfsdk:"memory"`
-	Tags        []types.String       `tfsdk:"tags"`
-	Disks       []HypercoreDiskModel `tfsdk:"disks"`
+	UUID                 types.String         `tfsdk:"uuid"`
+	Name                 types.String         `tfsdk:"name"`
+	Description          types.String         `tfsdk:"description"`
+	PowerState           types.String         `tfsdk:"power_state"`
+	VCPU                 types.Int32          `tfsdk:"vcpu"`
+	Memory               types.Int64          `tfsdk:"memory"`
+	SnapshotScheduleUUID types.String         `tfsdk:"snapshot_schedule_uuid"`
+	Tags                 []types.String       `tfsdk:"tags"`
+	Disks                []HypercoreDiskModel `tfsdk:"disks"`
 	// TODO nics
 	AffinityStrategy AffinityStrategyModel `tfsdk:"affinity_strategy"`
 }
@@ -91,6 +92,10 @@ func (d *hypercoreVMDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 						"memory": schema.Int64Attribute{
 							MarkdownDescription: "Memory (RAM) size in MiB",
 							Optional:            true,
+						},
+						"snapshot_schedule_uuid": schema.StringAttribute{
+							MarkdownDescription: "UUID of the applied snapshot schedule for creating automated snapshots",
+							Computed:            true,
 						},
 						"description": schema.StringAttribute{
 							Computed: true,
@@ -226,15 +231,16 @@ func (d *hypercoreVMDataSource) Read(ctx context.Context, req datasource.ReadReq
 		memory_B := utils.AnyToInteger64(vm["mem"])
 		memory_MiB := memory_B / 1024 / 1024
 		hypercoreVMState := hypercoreVMModel{
-			UUID:             types.StringValue(utils.AnyToString(vm["uuid"])),
-			Name:             types.StringValue(utils.AnyToString(vm["name"])),
-			VCPU:             types.Int32Value(int32(utils.AnyToInteger64(vm["numVCPU"]))),
-			Memory:           types.Int64Value(memory_MiB),
-			Description:      types.StringValue(utils.AnyToString(vm["description"])),
-			PowerState:       types.StringValue(utils.AnyToString(vm["state"])), // TODO convert (stopped vs SHUTOFF)
-			Tags:             tags_String,
-			AffinityStrategy: affinityStrategy,
-			Disks:            disks,
+			UUID:                 types.StringValue(utils.AnyToString(vm["uuid"])),
+			Name:                 types.StringValue(utils.AnyToString(vm["name"])),
+			VCPU:                 types.Int32Value(int32(utils.AnyToInteger64(vm["numVCPU"]))),
+			Memory:               types.Int64Value(memory_MiB),
+			SnapshotScheduleUUID: types.StringValue(utils.AnyToString(vm["snapshotScheduleUUID"])),
+			Description:          types.StringValue(utils.AnyToString(vm["description"])),
+			PowerState:           types.StringValue(utils.AnyToString(vm["state"])), // TODO convert (stopped vs SHUTOFF)
+			Tags:                 tags_String,
+			AffinityStrategy:     affinityStrategy,
+			Disks:                disks,
 		}
 		state.Vms = append(state.Vms, hypercoreVMState)
 	}
