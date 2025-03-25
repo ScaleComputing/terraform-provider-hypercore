@@ -34,14 +34,15 @@ type HypercoreVMResource struct {
 
 // HypercoreVMResourceModel describes the resource data model.
 type HypercoreVMResourceModel struct {
-	Group            types.String          `tfsdk:"group"`
-	Name             types.String          `tfsdk:"name"`
-	Description      types.String          `tfsdk:"description"`
-	VCPU             types.Int32           `tfsdk:"vcpu"`
-	Memory           types.Int64           `tfsdk:"memory"`
-	Clone            CloneModel            `tfsdk:"clone"`
-	AffinityStrategy AffinityStrategyModel `tfsdk:"affinity_strategy"`
-	Id               types.String          `tfsdk:"id"`
+	Group                types.String          `tfsdk:"group"`
+	Name                 types.String          `tfsdk:"name"`
+	Description          types.String          `tfsdk:"description"`
+	VCPU                 types.Int32           `tfsdk:"vcpu"`
+	Memory               types.Int64           `tfsdk:"memory"`
+	SnapshotScheduleUUID types.String          `tfsdk:"snapshot_schedule_uuid"`
+	Clone                CloneModel            `tfsdk:"clone"`
+	AffinityStrategy     AffinityStrategyModel `tfsdk:"affinity_strategy"`
+	Id                   types.String          `tfsdk:"id"`
 }
 
 type CloneModel struct {
@@ -89,6 +90,10 @@ func (r *HypercoreVMResource) Schema(ctx context.Context, req resource.SchemaReq
 					"Memory (RAM) size in `MiB`: If the cloned VM was already created <br>" +
 					"and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)",
 				Optional: true,
+			},
+			"snapshot_schedule_uuid": schema.StringAttribute{
+				MarkdownDescription: "UUID of the snapshot schedule to create automatic snapshots",
+				Optional:            true,
 			},
 			"clone": schema.ObjectAttribute{
 				MarkdownDescription: "" +
@@ -207,6 +212,7 @@ func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateReq
 		tags,
 		data.VCPU.ValueInt32Pointer(),
 		data.Memory.ValueInt64Pointer(),
+		data.SnapshotScheduleUUID.ValueStringPointer(),
 		nil,
 		data.AffinityStrategy.StrictAffinity.ValueBool(),
 		data.AffinityStrategy.PreferredNodeUUID.ValueString(),
@@ -278,6 +284,7 @@ func (r *HypercoreVMResource) Read(ctx context.Context, req resource.ReadRequest
 	// uiState TODO
 	data.VCPU = types.Int32Value(int32(utils.AnyToInteger64(hc3_vm["numVCPU"])))
 	data.Memory = types.Int64Value(utils.AnyToInteger64(hc3_vm["mem"]) / 1024 / 1024)
+	data.SnapshotScheduleUUID = types.StringValue(utils.AnyToString(hc3_vm["snapshotScheduleUUID"]))
 
 	affinityStrategy := utils.AnyToMap(hc3_vm["affinityStrategy"])
 	data.AffinityStrategy.StrictAffinity = types.BoolValue(utils.AnyToBool(affinityStrategy["strictAffinity"]))
@@ -334,6 +341,9 @@ func (r *HypercoreVMResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 	if data_state.VCPU != data.VCPU {
 		updatePayload["numVCPU"] = data.VCPU.ValueInt32()
+	}
+	if data_state.SnapshotScheduleUUID != data.SnapshotScheduleUUID {
+		updatePayload["snapshotScheduleUUID"] = data.SnapshotScheduleUUID.ValueString()
 	}
 
 	affinityStrategy := map[string]any{}
