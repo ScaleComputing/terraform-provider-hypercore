@@ -39,6 +39,7 @@ type HypercoreDiskResourceModel struct {
 	Type                types.String  `tfsdk:"type"`
 	Size                types.Float64 `tfsdk:"size"`
 	SourceVirtualDiskID types.String  `tfsdk:"source_virtual_disk_id"`
+	IsoUUID             types.String  `tfsdk:"iso_uuid"`
 }
 
 func (r *HypercoreDiskResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -77,6 +78,10 @@ func (r *HypercoreDiskResource) Schema(ctx context.Context, req resource.SchemaR
 			},
 			"source_virtual_disk_id": schema.StringAttribute{
 				MarkdownDescription: "UUID of the virtual disk to use to clone and attach to the VM.",
+				Optional:            true,
+			},
+			"iso_uuid": schema.StringAttribute{
+				MarkdownDescription: "ISO UUID we want to attach to the disk, only available with disk type IDE_CDROM.",
 				Optional:            true,
 			},
 		},
@@ -128,9 +133,18 @@ func (r *HypercoreDiskResource) Create(ctx context.Context, req resource.CreateR
 
 	tflog.Info(ctx, fmt.Sprintf("TTRT Create: vm_uuid=%s, type=%s, slot=%d, size=%d", data.VmUUID.ValueString(), data.Type.ValueString(), data.Slot.ValueInt64(), data.Slot.ValueInt64()))
 
-	diagDiskType := utils.ValidateDiskType(data.Type.ValueString())
+	var diskUUID string
+	var disk map[string]any
+	isAttachingISO := data.IsoUUID.ValueString() != ""
+
+	diagDiskType := utils.ValidateDiskType(data.Type.ValueString(), data.IsoUUID.ValueString())
 	if diagDiskType != nil {
 		resp.Diagnostics.AddError(diagDiskType.Summary(), diagDiskType.Detail())
+		return
+	}
+	diagISOAttach, iso := utils.ValidateISOAttach(*r.client, data.IsoUUID.ValueString(), isAttachingISO)
+	if diagISOAttach != nil {
+		resp.Diagnostics.AddError(diagISOAttach.Summary(), diagISOAttach.Detail())
 		return
 	}
 
@@ -139,9 +153,9 @@ func (r *HypercoreDiskResource) Create(ctx context.Context, req resource.CreateR
 		"type":          data.Type.ValueString(),
 		"capacity":      data.Size.ValueFloat64() * 1000 * 1000 * 1000, // GB to B
 	}
-
-	var diskUUID string
-	var disk map[string]any
+	if isAttachingISO {
+		createPayload["path"] = (*iso)["path"]
+	}
 
 	sourceVirtualDiskID := data.SourceVirtualDiskID.ValueString()
 	if sourceVirtualDiskID != "" {
@@ -164,6 +178,7 @@ func (r *HypercoreDiskResource) Create(ctx context.Context, req resource.CreateR
 				"capacity":      originalVDSizeBytes,
 			},
 		}
+
 		diskUUID, disk = utils.AttachVirtualDisk(
 			*r.client,
 			attachPayload,
@@ -257,6 +272,8 @@ func (r *HypercoreDiskResource) Update(ctx context.Context, req resource.UpdateR
 	restClient := *r.client
 	diskUUID := data.Id.ValueString()
 	vmUUID := data.VmUUID.ValueString()
+	isAttachingISO := data.IsoUUID.ValueString() != ""
+
 	tflog.Debug(
 		ctx, fmt.Sprintf(
 			"TTRT HypercoreDiskResource Update vm_uuid=%s disk_uuid=%s REQUESTED slot=%d type=%s size=%v\n",
@@ -287,16 +304,28 @@ func (r *HypercoreDiskResource) Update(ctx context.Context, req resource.UpdateR
 	}
 
 	// Validate the type
-	diagDiskType := utils.ValidateDiskType(data.Type.ValueString())
+	diagDiskType := utils.ValidateDiskType(data.Type.ValueString(), data.IsoUUID.String())
 	if diagDiskType != nil {
 		resp.Diagnostics.AddError(diagDiskType.Summary(), diagDiskType.Detail())
 		return
 	}
+	diagISOAttach, iso := utils.ValidateISOAttach(*r.client, data.IsoUUID.ValueString(), isAttachingISO)
+	if diagISOAttach != nil {
+		resp.Diagnostics.AddError(diagISOAttach.Summary(), diagISOAttach.Detail())
+		return
+	}
+
+	isDetachingISO := oldHc3Disk["path"] != "" && data.IsoUUID.ValueString() == "" && data.Type.ValueString() == "IDE_CDROM"
 
 	updatePayload := map[string]any{
 		"virDomainUUID": vmUUID,
 		"type":          data.Type.ValueString(),
 		"capacity":      data.Size.ValueFloat64() * 1000 * 1000 * 1000, // GB to B
+	}
+	if isAttachingISO {
+		updatePayload["path"] = (*iso)["path"]
+	} else if isDetachingISO {
+		updatePayload["path"] = ""
 	}
 	diag := utils.UpdateDisk(restClient, diskUUID, updatePayload, ctx)
 	if diag != nil {
