@@ -179,12 +179,6 @@ func (r *HypercoreDiskResource) Create(ctx context.Context, req resource.CreateR
 			},
 		}
 
-		if isAttachingISO {
-			if templateMap, ok := attachPayload["template"].(map[string]any); ok {
-				templateMap["path"] = (*iso)["path"]
-			}
-		}
-
 		diskUUID, disk = utils.AttachVirtualDisk(
 			*r.client,
 			attachPayload,
