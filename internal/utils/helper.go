@@ -93,6 +93,15 @@ func AnyToString(str any) string {
 	return stringifiedAny
 }
 
+func AnyToBool(value any) bool {
+	switch v := value.(type) {
+	case bool:
+		return v
+	}
+
+	panic(fmt.Sprintf("Unexpected variable where an bool was expected: %v (type %T)", value, value))
+}
+
 func AnyToInteger64(integer any) int64 {
 	switch v := integer.(type) {
 	case int:

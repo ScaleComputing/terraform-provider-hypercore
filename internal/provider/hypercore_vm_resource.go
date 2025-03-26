@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -33,19 +34,26 @@ type HypercoreVMResource struct {
 
 // HypercoreVMResourceModel describes the resource data model.
 type HypercoreVMResourceModel struct {
-	Group       types.String `tfsdk:"group"`
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	VCPU        types.Int32  `tfsdk:"vcpu"`
-	Memory      types.Int64  `tfsdk:"memory"`
-	Clone       CloneModel   `tfsdk:"clone"`
-	Id          types.String `tfsdk:"id"`
+	Group            types.String          `tfsdk:"group"`
+	Name             types.String          `tfsdk:"name"`
+	Description      types.String          `tfsdk:"description"`
+	VCPU             types.Int32           `tfsdk:"vcpu"`
+	Memory           types.Int64           `tfsdk:"memory"`
+	Clone            CloneModel            `tfsdk:"clone"`
+	AffinityStrategy AffinityStrategyModel `tfsdk:"affinity_strategy"`
+	Id               types.String          `tfsdk:"id"`
 }
 
 type CloneModel struct {
 	SourceVMUUID types.String `tfsdk:"source_vm_uuid"`
 	UserData     types.String `tfsdk:"user_data"`
 	MetaData     types.String `tfsdk:"meta_data"`
+}
+
+type AffinityStrategyModel struct {
+	StrictAffinity    types.Bool   `tfsdk:"strict_affinity"`
+	PreferredNodeUUID types.String `tfsdk:"preferred_node_uuid"`
+	BackupNodeUUID    types.String `tfsdk:"backup_node_uuid"`
 }
 
 func (r *HypercoreVMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -92,6 +100,30 @@ func (r *HypercoreVMResource) Schema(ctx context.Context, req resource.SchemaReq
 					"user_data":      types.StringType,
 					"meta_data":      types.StringType,
 				},
+			},
+			"affinity_strategy": schema.ObjectAttribute{
+				MarkdownDescription: "VM node affinity.",
+				Optional:            true,
+				AttributeTypes: map[string]attr.Type{
+					"strict_affinity":     types.BoolType,
+					"preferred_node_uuid": types.StringType,
+					"backup_node_uuid":    types.StringType,
+				},
+				Computed: true,
+				Default: objectdefault.StaticValue(
+					types.ObjectValueMust(
+						map[string]attr.Type{
+							"strict_affinity":     types.BoolType,
+							"preferred_node_uuid": types.StringType,
+							"backup_node_uuid":    types.StringType,
+						},
+						map[string]attr.Value{
+							"strict_affinity":     types.BoolValue(false),
+							"preferred_node_uuid": types.StringValue(""),
+							"backup_node_uuid":    types.StringValue(""),
+						},
+					),
+				),
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -176,6 +208,9 @@ func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateReq
 		data.VCPU.ValueInt32Pointer(),
 		data.Memory.ValueInt64Pointer(),
 		nil,
+		data.AffinityStrategy.StrictAffinity.ValueBool(),
+		data.AffinityStrategy.PreferredNodeUUID.ValueString(),
+		data.AffinityStrategy.BackupNodeUUID.ValueString(),
 	)
 	changed, msg := vmClone.Create(*r.client, ctx)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
@@ -244,6 +279,11 @@ func (r *HypercoreVMResource) Read(ctx context.Context, req resource.ReadRequest
 	data.VCPU = types.Int32Value(int32(utils.AnyToInteger64(hc3_vm["numVCPU"])))
 	data.Memory = types.Int64Value(utils.AnyToInteger64(hc3_vm["mem"]) / 1024 / 1024)
 
+	affinityStrategy := utils.AnyToMap(hc3_vm["affinityStrategy"])
+	data.AffinityStrategy.StrictAffinity = types.BoolValue(utils.AnyToBool(affinityStrategy["strictAffinity"]))
+	data.AffinityStrategy.PreferredNodeUUID = types.StringValue(utils.AnyToString(affinityStrategy["preferredNodeUUID"]))
+	data.AffinityStrategy.BackupNodeUUID = types.StringValue(utils.AnyToString(affinityStrategy["backupNodeUUID"]))
+
 	// ==============================================================================
 
 	// Save updated data into Terraform state
@@ -294,6 +334,20 @@ func (r *HypercoreVMResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 	if data_state.VCPU != data.VCPU {
 		updatePayload["numVCPU"] = data.VCPU.ValueInt32()
+	}
+
+	affinityStrategy := map[string]any{}
+	if data_state.AffinityStrategy.StrictAffinity != data.AffinityStrategy.StrictAffinity {
+		affinityStrategy["strictAffinity"] = data.AffinityStrategy.StrictAffinity.ValueBool()
+	}
+	if data_state.AffinityStrategy.PreferredNodeUUID != data.AffinityStrategy.PreferredNodeUUID {
+		affinityStrategy["preferredNodeUUID"] = data.AffinityStrategy.PreferredNodeUUID.ValueString()
+	}
+	if data_state.AffinityStrategy.BackupNodeUUID != data.AffinityStrategy.BackupNodeUUID {
+		affinityStrategy["backupNodeUUID"] = data.AffinityStrategy.BackupNodeUUID.ValueString()
+	}
+	if len(affinityStrategy) > 0 {
+		updatePayload["affinityStrategy"] = affinityStrategy
 	}
 
 	taskTag, _ := restClient.UpdateRecord( /**/
