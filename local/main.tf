@@ -48,3 +48,10 @@ output "myvm" {
 output "cluster_0_peer_1_uuid" {
   value = data.hypercore_node.cluster0_peer1.nodes.0.uuid
 }
+
+data "hypercore_vm" "demo" {
+  name = "demo-vm"
+}
+output "vm_demo" {
+  value = data.hypercore_vm.demo
+}
