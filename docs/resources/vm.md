@@ -28,8 +28,9 @@ resource "hypercore_vm" "myvm" {
   name        = local.vm_name
   description = "some description"
 
-  vcpu   = 4
-  memory = 4096 # MiB
+  vcpu                   = 4
+  memory                 = 4096 # MiB
+  snapshot_schedule_uuid = data.hypercore_vm.clone_source_vm.vms.0.snapshot_schedule_uuid
 
   clone = {
     source_vm_uuid = data.hypercore_vm.clone_source_vm.vms.0.uuid
@@ -63,6 +64,7 @@ output "vm_uuid" {
 - `description` (String) Description of this VM
 - `group` (String) Group/tag to create this VM in
 - `memory` (Number) Memory (RAM) size in `MiB`: If the cloned VM was already created <br>and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)
+- `snapshot_schedule_uuid` (String) UUID of the snapshot schedule to create automatic snapshots
 - `vcpu` (Number) Number of CPUs on this VM. If the cloned VM was already created and it's <br>`VCPU` was modified, the cloned VM will be rebooted (either gracefully or forcefully)
 
 ### Read-Only
