@@ -54,7 +54,7 @@ jobs:
             (echo; echo "Unexpected difference in directories after code generation. Run 'make generate' command and commit."; exit 1)
 
   # Run acceptance tests in a matrix with Terraform CLI versions
-  test:
+  acceptance-test:
     name: Terraform Provider Acceptance Tests
     needs: build
     runs-on: self-hosted
