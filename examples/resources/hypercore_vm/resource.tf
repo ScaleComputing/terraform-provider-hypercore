@@ -13,8 +13,9 @@ resource "hypercore_vm" "myvm" {
   name        = local.vm_name
   description = "some description"
 
-  vcpu   = 4
-  memory = 4096 # MiB
+  vcpu                   = 4
+  memory                 = 4096 # MiB
+  snapshot_schedule_uuid = data.hypercore_vm.clone_source_vm.vms.0.snapshot_schedule_uuid
 
   clone = {
     source_vm_uuid = data.hypercore_vm.clone_source_vm.vms.0.uuid

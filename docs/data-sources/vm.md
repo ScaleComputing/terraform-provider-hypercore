@@ -52,6 +52,7 @@ Read-Only:
 - `disks` (Attributes List) List of disks (see [below for nested schema](#nestedatt--vms--disks))
 - `name` (String)
 - `power_state` (String)
+- `snapshot_schedule_uuid` (String) UUID of the applied snapshot schedule for creating automated snapshots
 - `uuid` (String)
 
 <a id="nestedatt--vms--affinity_strategy"></a>
