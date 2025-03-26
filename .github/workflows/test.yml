@@ -116,3 +116,15 @@ jobs:
           sh -c 'echo sub-shell HC_HOST=$HC_HOST'
           go test -v -cover ./internal/provider/
         timeout-minutes: 10
+  unit-test:
+    name: Go Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - name: Run Unit Tests
+        run: go test -v -cover ./...
