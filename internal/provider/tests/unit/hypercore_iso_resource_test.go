@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Test Schema function of HypercoreISOResource
 func TestHypercoreISOResource_Schema(t *testing.T) {
 	// Create an instance of the resource
 	r := &provider.HypercoreISOResource{}
