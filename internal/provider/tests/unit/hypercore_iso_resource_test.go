@@ -7,15 +7,17 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-provider-hypercore/internal/provider"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/stretchr/testify/assert"
 )
 
 // Test Schema function of HypercoreISOResource
 func TestHypercoreISOResource_Schema(t *testing.T) {
 	// Create an instance of the resource
-	r := &HypercoreISOResource{}
+	r := &provider.HypercoreISOResource{}
 
 	// Prepare request and response objects
 	req := resource.SchemaRequest{}
