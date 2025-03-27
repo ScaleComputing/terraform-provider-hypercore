@@ -127,4 +127,4 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
       - name: Run Unit Tests
-        run: go test -v -cover ./internal/provider/tests/unit/
+        run: go test -v -cover -coverpkg=github.com/hashicorp/terraform-provider-hypercore/internal/provider ./internal/provider/tests/unit/
