@@ -113,7 +113,7 @@ jobs:
           set -o allexport; eval "$(echo "$CI_CONFIG_HC_IP205_dos" | tr -s '\r\n' '\n')"; set +o allexport;
           echo cur-shell HC_HOST=$HC_HOST
           sh -c 'echo sub-shell HC_HOST=$HC_HOST'
-          go test -v -cover ./internal/provider/
+          go test -v -cover ./internal/provider/tests/acceptance/
         timeout-minutes: 10
   unit-test:
     name: Go Unit Tests
@@ -127,4 +127,4 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
       - name: Run Unit Tests
-        run: go test -v -cover ./...
+        run: go test -v -cover ./internal/provider/tests/unit/
