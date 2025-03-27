@@ -11,6 +11,8 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"slices"
+	"sort"
 	"strconv"
 )
 
@@ -250,4 +252,25 @@ func GetFileSize(sourceFilePath string) int64 {
 		panic(fmt.Errorf("unable to get file info for %s: %v", sourceFilePath, err))
 	}
 	return fileInfo.Size()
+}
+
+func SortUUIDs(uuids []string) []string {
+	sortedUUIDs := make([]string, len(uuids))
+	copy(sortedUUIDs, uuids)
+
+	sort.Slice(sortedUUIDs, func(i, j int) bool {
+		return sortedUUIDs[i] < sortedUUIDs[j]
+	})
+
+	return sortedUUIDs
+}
+
+func FindMissingStringItems(newList []string, oldList []string) []string {
+	missing := []string{}
+	for _, oldItem := range oldList {
+		if !slices.Contains(newList, oldItem) {
+			missing = append(missing, oldItem)
+		}
+	}
+	return missing
 }
