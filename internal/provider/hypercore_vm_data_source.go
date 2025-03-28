@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -51,6 +52,7 @@ type hypercoreVMModel struct {
 	Tags        []types.String       `tfsdk:"tags"`
 	Disks       []HypercoreDiskModel `tfsdk:"disks"`
 	// TODO nics
+	AffinityStrategy AffinityStrategyModel `tfsdk:"affinity_strategy"`
 }
 
 type HypercoreDiskModel struct {
@@ -99,6 +101,15 @@ func (d *hypercoreVMDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 						"tags": schema.ListAttribute{
 							ElementType: types.StringType,
 							Optional:    true,
+						},
+						"affinity_strategy": schema.ObjectAttribute{
+							MarkdownDescription: "VM node affinity.",
+							Computed:            true,
+							AttributeTypes: map[string]attr.Type{
+								"strict_affinity":     types.BoolType,
+								"preferred_node_uuid": types.StringType,
+								"backup_node_uuid":    types.StringType,
+							},
 						},
 
 						"disks": schema.ListNestedAttribute{
@@ -204,18 +215,26 @@ func (d *hypercoreVMDataSource) Read(ctx context.Context, req datasource.ReadReq
 			}
 			disks = append(disks, disk)
 		}
+
+		hc3affinityStrategy := utils.AnyToMap(vm["affinityStrategy"])
+		var affinityStrategy AffinityStrategyModel
+		affinityStrategy.StrictAffinity = types.BoolValue(utils.AnyToBool(hc3affinityStrategy["strictAffinity"]))
+		affinityStrategy.PreferredNodeUUID = types.StringValue(utils.AnyToString(hc3affinityStrategy["preferredNodeUUID"]))
+		affinityStrategy.BackupNodeUUID = types.StringValue(utils.AnyToString(hc3affinityStrategy["backupNodeUUID"]))
+
 		// VM
 		memory_B := utils.AnyToInteger64(vm["mem"])
 		memory_MiB := memory_B / 1024 / 1024
 		hypercoreVMState := hypercoreVMModel{
-			UUID:        types.StringValue(utils.AnyToString(vm["uuid"])),
-			Name:        types.StringValue(utils.AnyToString(vm["name"])),
-			VCPU:        types.Int32Value(int32(utils.AnyToInteger64(vm["numVCPU"]))),
-			Memory:      types.Int64Value(memory_MiB),
-			Description: types.StringValue(utils.AnyToString(vm["description"])),
-			PowerState:  types.StringValue(utils.AnyToString(vm["state"])), // TODO convert (stopped vs SHUTOFF)
-			Tags:        tags_String,
-			Disks:       disks,
+			UUID:             types.StringValue(utils.AnyToString(vm["uuid"])),
+			Name:             types.StringValue(utils.AnyToString(vm["name"])),
+			VCPU:             types.Int32Value(int32(utils.AnyToInteger64(vm["numVCPU"]))),
+			Memory:           types.Int64Value(memory_MiB),
+			Description:      types.StringValue(utils.AnyToString(vm["description"])),
+			PowerState:       types.StringValue(utils.AnyToString(vm["state"])), // TODO convert (stopped vs SHUTOFF)
+			Tags:             tags_String,
+			AffinityStrategy: affinityStrategy,
+			Disks:            disks,
 		}
 		state.Vms = append(state.Vms, hypercoreVMState)
 	}
