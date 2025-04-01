@@ -119,6 +119,7 @@ func (d *hypercoreNodeDataSource) Read(ctx context.Context, req datasource.ReadR
 		"/rest/v1/Node",
 		query,
 		-1.0,
+		false,
 	)
 	tflog.Info(ctx, fmt.Sprintf("TTRT: filter_peer_id=%v node_count=%d\n", filter_peer_id, len(hc3_nodes)))
 
