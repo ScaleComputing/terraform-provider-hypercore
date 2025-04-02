@@ -216,7 +216,7 @@ func (rc *RestClient) Login() {
 	}
 }
 
-func (rc *RestClient) ListRecords(endpoint string, query map[string]any, timeout float64) []map[string]any {
+func (rc *RestClient) ListRecords(endpoint string, query map[string]any, timeout float64, recursiveFiltering bool) []map[string]any {
 	useTimeout := timeout
 	if timeout == -1 {
 		useTimeout = rc.Timeout
@@ -242,6 +242,9 @@ func (rc *RestClient) ListRecords(endpoint string, query map[string]any, timeout
 	}
 
 	records := rc.ToJsonObjectList(resp)
+	if recursiveFiltering {
+		return filterResultsRecursive(records, query)
+	}
 	return filterResults(records, query)
 }
 
@@ -251,7 +254,7 @@ func (rc *RestClient) GetRecord(endpoint string, query map[string]any, mustExist
 		useTimeout = rc.Timeout
 	}
 
-	records := rc.ListRecords(endpoint, query, useTimeout)
+	records := rc.ListRecords(endpoint, query, useTimeout, false)
 	if len(records) > 1 {
 		panic(fmt.Sprintf("%d records from endpoint %s match the %v query.", len(records), endpoint, query))
 	}

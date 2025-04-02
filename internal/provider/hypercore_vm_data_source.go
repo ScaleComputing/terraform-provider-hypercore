@@ -183,6 +183,7 @@ func (d *hypercoreVMDataSource) Read(ctx context.Context, req datasource.ReadReq
 		"/rest/v1/VirDomain",
 		query,
 		-1.0,
+		false,
 	)
 	tflog.Info(ctx, fmt.Sprintf("TTRT: filter_name=%s vm_count=%d\n", filter_name, len(hc3_vms)))
 

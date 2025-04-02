@@ -484,6 +484,7 @@ func GetOneVM(uuid string, restClient RestClient) map[string]any {
 		url,
 		map[string]any{},
 		-1.0,
+		false,
 	)
 
 	if len(records) == 0 {
@@ -513,6 +514,7 @@ func GetVMOrFail(query map[string]any, restClient RestClient) []map[string]any {
 		"/rest/v1/VirDomain",
 		query,
 		-1.0,
+		false,
 	)
 
 	if len(records) == 0 {
@@ -527,6 +529,7 @@ func GetVM(query map[string]any, restClient RestClient) []map[string]any {
 		"/rest/v1/VirDomain",
 		query,
 		-1.0,
+		false,
 	)
 
 	if len(records) == 0 {
