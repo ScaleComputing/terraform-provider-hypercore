@@ -12,88 +12,47 @@ terraform {
 provider "hypercore" {}
 
 locals {
-  vm_name         = "testtf-ana"
-  another_vm_name = "testtf-ana-3"
-  create_vm_name  = "testtf-ana-scheduled"
+  vm_name         = "testtf-ana-replication"
+  another_vm_name = "testtf-ana"
 }
 
-
-data "hypercore_vm" "snapvm" {
+data "hypercore_vm" "vm-repl" {
   name = local.vm_name
 }
 
-output "testtf-ana" {
-  value = data.hypercore_vm.snapvm.vms.0.snapshot_schedule_uuid
-}
-
-data "hypercore_vm" "another_snapvm_schedule" {
+data "hypercore_vm" "vm-repl-2" {
   name = local.another_vm_name
 }
 
-resource "hypercore_vm_snapshot" "snapshot" {
-  vm_uuid = data.hypercore_vm.snapvm.vms.0.uuid
-  label   = "testtf-ana-snapshot"
-}
+resource "hypercore_vm_replication" "testtf-replication" {
+  vm_uuid = data.hypercore_vm.vm-repl.vms.0.uuid
+  label   = "testtf-ana-create-replication"
 
-resource "hypercore_vm_snapshot" "imported-snapshot" {
-  vm_uuid = data.hypercore_vm.snapvm.vms.0.uuid
-}
+  connection_uuid = "6ab8c456-85af-4c97-8cb7-76246552b1e6" # remote connection UUID
+  enable          = false                                  # should this default to true like in the HC3 swagger docs or make it required either way (whether it's true or false)?
 
-import {
-  to = hypercore_vm_snapshot.imported-snapshot
-  id = "24ab2255-ca77-49ec-bc96-f469cec3affb"
-}
-
-resource "hypercore_vm_snapshot_schedule" "testtf-schedule" {
-  name = "testtf-schedule-2"
-  rules = [
-    {
-      name                    = "testtf-rule-1",
-      start_timestamp         = "2023-02-01 00:00:00",
-      frequency               = "FREQ=MINUTELY;INTERVAL=1",
-      local_retention_seconds = 300
-    },
-    {
-      name                    = "testtf-rule-2",
-      start_timestamp         = "2023-02-01 00:00:00",
-      frequency               = "FREQ=MINUTELY;INTERVAL=1",
-      local_retention_seconds = 300
-    }
-  ]
-}
-
-resource "hypercore_vm" "testtf-ana-scheduled" {
-  group                  = "testtfxlab"
-  name                   = local.create_vm_name
-  description            = "Testing terraform resources"
-  vcpu                   = 4
-  memory                 = 4096 # MiB
-  snapshot_schedule_uuid = hypercore_vm_snapshot_schedule.testtf-schedule.id
-
-  clone = {
-    meta_data      = ""
-    source_vm_uuid = ""
-    user_data      = ""
+  # I'm testing with replication localhost - added the connection to itself
+  # - become two vm_uuid's when searching by vm by name. One is replication so vm_uuid would change
+  # - when actually replicating (with two different clusters), this "ignore_changes" wouldn't be necessary
+  lifecycle {
+    ignore_changes = [vm_uuid]
   }
-
-  depends_on = [
-    hypercore_vm_snapshot_schedule.testtf-schedule # make sure the schedule was created first
-  ]
 }
 
-output "testtf-ana-scheduled" {
-  value = hypercore_vm.testtf-ana-scheduled.snapshot_schedule_uuid
-}
+resource "hypercore_vm_replication" "testtf-replication-imported" {
+  vm_uuid = data.hypercore_vm.vm-repl-2.vms.0.uuid
 
-resource "hypercore_vm_snapshot_schedule" "testtf-schedule-no-rules" {
-  name = "testtf-schedule-no-rules-3"
-}
+  # enable = true
 
-resource "hypercore_vm_snapshot_schedule" "testtf-schedule-imported" {
-  name = "testtf-existing-schedule"
+  # I'm testing with replication localhost - added the connection to itself
+  # - become two vm_uuid's when searching by vm by name. One is replication so vm_uuid would change
+  # - when actually replicating (with two different clusters), this "ignore_changes" wouldn't be necessary
+  lifecycle {
+    ignore_changes = [vm_uuid]
+  }
 }
 
 import {
-  to = hypercore_vm_snapshot_schedule.testtf-schedule-imported
-  id = "69b21f14-6bb6-4dd5-a6bc-6dec9bd59c96"
+  to = hypercore_vm_replication.testtf-replication-imported
+  id = "7eb23160-2c80-4519-b23d-b43fb3ca9da4"
 }

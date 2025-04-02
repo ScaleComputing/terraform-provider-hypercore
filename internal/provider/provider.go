@@ -173,6 +173,7 @@ func (p *HypercoreProvider) Resources(ctx context.Context) []func() resource.Res
 		NewHypercoreVMBootOrderResource,
 		NewHypercoreVMSnapshotResource,
 		NewHypercoreVMSnapshotScheduleResource,
+		NewHypercoreVMReplicationResource,
 	}
 }
 

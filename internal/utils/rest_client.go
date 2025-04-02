@@ -289,7 +289,16 @@ func (rc *RestClient) CreateRecord(endpoint string, payload map[string]any, time
 	respJson := rc.ToJson(resp)
 	if resp.StatusCode == 400 {
 		respByte, ok := respJson.([]byte)
+
 		if !ok { // this check is needed because of conversion from any to []byte
+			// jsonErrorString, err := json.Marshal(respJson)
+			// if err != nil {
+			// 	panic(fmt.Errorf("Unexpected response body: %v", respJson))
+			// }
+			respJsonMap := AnyToMap(respJson)
+			if respErr, ok := respJsonMap["error"]; ok {
+				return nil, resp.StatusCode, fmt.Errorf("%s", AnyToString(respErr))
+			}
 			panic(fmt.Errorf("Unexpected response body: %v", respJson))
 		}
 		panic(fmt.Errorf("Error making a request: Maybe the arguments passed to were incorrectly formatted: %v - response: %v", payload, string(respByte)))
