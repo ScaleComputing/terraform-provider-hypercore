@@ -13,7 +13,7 @@ import (
 
 var source_vm_uuid = "97904009-1878-4881-b6df-83c85ab7dc1a"
 var test_vm_name = "integration-test-vm-nic"
-var resourceID = ""
+var test_vm_uuid = ""
 
 //var source_vm_name = "integration-test-vm"
 
@@ -28,12 +28,12 @@ func TestAccHypercoreNicResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Store the resource ID for later use
 					func(s *terraform.State) error {
-						rs, ok := s.RootModule().Resources[test_vm_name]
+						rs, ok := s.RootModule().Resources["hypercore_vm.test"]
 						if !ok {
 							return fmt.Errorf("not found: %s", test_vm_name)
 						}
-						resourceID = rs.Primary.ID // Capture the ID
-						fmt.Printf("Captured Resource ID: %s\n", resourceID)
+						test_vm_uuid = rs.Primary.Attributes["id"] // Capture the ID
+						fmt.Printf("Captured Resource ID: %s\n", test_vm_uuid)
 						return nil
 					},
 					resource.TestCheckResourceAttr("hypercore_vm.test", "name", test_vm_name),
@@ -45,7 +45,7 @@ func TestAccHypercoreNicResource(t *testing.T) {
 			},
 			// Create new NIC
 			{
-				Config: testAccHypercoreNicResourceConfig(resourceID),
+				Config: testAccHypercoreNicResourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("hypercore_nic.test", "vlan", "11"),
 					resource.TestCheckResourceAttr("hypercore_nic.test", "type", "VIRTIO"),
@@ -72,7 +72,7 @@ resource "hypercore_vm" "test" {
 `, source_vm_uuid)
 }
 
-func testAccHypercoreNicResourceConfig(test_vm_uuid string) string {
+func testAccHypercoreNicResourceConfig() string {
 	return fmt.Sprintf(`
 resource "hypercore_nic" "test" {
   vm_uuid = %[1]q
