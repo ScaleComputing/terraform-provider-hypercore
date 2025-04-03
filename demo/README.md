@@ -1,9 +1,11 @@
 Prepare:
  - Create VM named `testtf-src-empty`, with 0 disks and 0 nics.
- - Since demo does not try to import existing resources:
-    - Remove VM `testtf-demo`, if it exists.
-    - Remove virtual disk `jammy-server-cloudimg-amd64.img`, if it exists.
-    - Remove ISO `alpine-virt-3.21.3-x86_64.iso`, if it exists
+ - The demo does not try to import existing resources.
+   Remove following resources if they exists:
+    - VM `testtf-demo`
+    - VM replica `testtf-demo`
+    - virtual disk `jammy-server-cloudimg-amd64.img`,
+    - ISO `alpine-virt-3.21.3-x86_64.iso`
 
 Follow [top level README.md](../README.md) to install terraform and golang.
 
