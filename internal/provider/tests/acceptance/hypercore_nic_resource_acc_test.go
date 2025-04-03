@@ -64,6 +64,7 @@ resource "hypercore_vm" "test" {
 `, source_vm_uuid)
 }
 
+/*
 func testAccHypercoreNicResourceConfig(source_vm_uuid string) string {
 	return fmt.Sprintf(`
 resource "hypercore_vm" "test" {
@@ -80,3 +81,4 @@ resource "hypercore_vm" "test" {
 }
 `, source_vm_uuid)
 }
+*/
