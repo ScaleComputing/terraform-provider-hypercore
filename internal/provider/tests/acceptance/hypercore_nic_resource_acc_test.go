@@ -63,13 +63,13 @@ data "hypercore_vm" "nicvm" {
 }
 
 resource "hypercore_nic" "test" {
-  vm_uuid = hypercore_vm.nicvm.vms.0.uuid
+  vm_uuid = data.hypercore_vm.nicvm.vms.0.uuid
   vlan    = 11
   type    = "VIRTIO"
 }
 
 output "vm_id" {
-  value = hypercore_vm.nicvm.vms.0.uuid
+  value = data.hypercore_vm.nicvm.vms.0.uuid
 }
 `, source_vm_uuid, test_vm_name)
 }
