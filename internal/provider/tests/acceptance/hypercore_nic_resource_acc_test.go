@@ -64,7 +64,6 @@ data "hypercore_vm" "test" {
 
 resource "hypercore_nic" "test" {
   vm_uuid = hypercore_vm.test.vms.0.uuid
-}
   vlan    = 11
   type    = "VIRTIO"
 }
