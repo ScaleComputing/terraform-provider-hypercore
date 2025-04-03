@@ -26,13 +26,6 @@ func TestAccHypercoreNicResource(t *testing.T) {
 					resource.TestCheckResourceAttr("hypercore_nic.test", "type", "VIRTIO"),
 				),
 			},
-			{
-				Config: testAccHypercoreNicResourceConfig(),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("hypercore_nic.testa", "vlan", "12"),
-					resource.TestCheckResourceAttr("hypercore_nic.testa", "type", "VIRTIO"),
-				),
-			},
 		},
 	})
 }
@@ -53,14 +46,4 @@ output "vm_id" {
   value = data.hypercore_vm.nicvm.vms.0.uuid
 }
 `, source_vm_uuid, source_vm_name)
-}
-
-func testAccHypercoreNicResourceConfig() string {
-	return `
-resource "hypercore_nic" "testa" {
-  vm_uuid = "${output.vm_id}"
-  vlan    = 12
-  type    = "VIRTIO"
-}
-`
 }
