@@ -11,8 +11,6 @@ import (
 )
 
 var source_vm_uuid = "97904009-1878-4881-b6df-83c85ab7dc1a"
-var test_vm_name = "integration-test-vm-nic"
-
 var source_vm_name = "integration-test-vm"
 
 func TestAccHypercoreNicResource(t *testing.T) {
