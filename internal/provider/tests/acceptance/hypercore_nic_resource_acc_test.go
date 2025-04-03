@@ -33,6 +33,13 @@ func TestAccHypercoreNicResource(t *testing.T) {
 					resource.TestCheckResourceAttr("hypercore_nic.test", "type", "VIRTIO"),
 				),
 			},
+			{
+				Config: testAccHypercoreNicResourceConfig(source_vm_uuid),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("hypercore_nic.testa", "vlan", "12"),
+					resource.TestCheckResourceAttr("hypercore_nic.testa", "type", "VIRTIO"),
+				),
+			},
 		},
 	})
 }
@@ -40,7 +47,7 @@ func TestAccHypercoreNicResource(t *testing.T) {
 func testAccHypercoreSourceVMRConfig(source_vm_uuid string) string {
 	return fmt.Sprintf(`
 resource "hypercore_vm" "test" {
-  name = "integration-test-vm-nic"
+  name = %[2]q
   group = "Xlabintegrationtest"
   vcpu = 4
   memory = 4096
@@ -52,14 +59,30 @@ resource "hypercore_vm" "test" {
   }
 }
 data "hypercore_vm" "test" {
-  id = hypercore_vm.test.id
+  name = %[2]q
 }
 
 resource "hypercore_nic" "test" {
-  vm_uuid = data.hypercore_vm.test.id
+  vm_uuid = hypercore_vm.test.vms.0.uuid
+}
   vlan    = 11
   type    = "VIRTIO"
 }
 
-`, source_vm_uuid)
+output "vm_id" {
+  value = hypercore_vm.test.vms.0.uuid
+}
+}
+
+`, source_vm_uuid, test_vm_name)
+}
+
+func testAccHypercoreNicResourceConfig(source_vm_uuid string) string {
+	return `
+resource "hypercore_nic" "testa" {
+  vm_uuid = "${output.vm_id}"
+  vlan    = 12
+  type    = "VIRTIO"
+}
+`
 }
