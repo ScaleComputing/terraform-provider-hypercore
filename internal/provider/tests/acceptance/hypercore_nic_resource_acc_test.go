@@ -26,16 +26,17 @@ func TestAccHypercoreNicResource(t *testing.T) {
 			{
 				Config: testAccHypercoreSourceVMRConfig(source_vm_uuid),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					// Store the resource ID for later use
+					// Store cloned VM uuid for later use
 					func(s *terraform.State) error {
 						rs, ok := s.RootModule().Resources["hypercore_vm.test"]
 						if !ok {
 							return fmt.Errorf("not found: %s", test_vm_name)
 						}
-						test_vm_uuid = rs.Primary.Attributes["id"] // Capture the ID
+						test_vm_uuid = rs.Primary.Attributes["id"]
 						fmt.Printf("Captured Resource ID: %s\n", test_vm_uuid)
 						return nil
 					},
+					fmt.Printf("Captured Resource ID: %s\n", test_vm_uuid)
 					resource.TestCheckResourceAttr("hypercore_vm.test", "name", test_vm_name),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "description", "integration-vm-description"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "group", "Xlabintegrationtest"),
