@@ -71,8 +71,6 @@ resource "hypercore_nic" "test" {
 output "vm_id" {
   value = hypercore_vm.test.vms.0.uuid
 }
-}
-
 `, source_vm_uuid, test_vm_name)
 }
 
