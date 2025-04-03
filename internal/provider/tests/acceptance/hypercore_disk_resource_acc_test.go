@@ -36,7 +36,7 @@ data "hypercore_vm" "diskvm" {
 resource "hypercore_disk" "test" {
   vm_uuid = data.hypercore_vm.diskvm.vms.0.uuid
   type    = "IDE_DISK"
-  size    = 3.0
+  size    = 3
 }
 
 output "vm_id" {
