@@ -45,7 +45,12 @@ func TestAccHypercoreNicResource(t *testing.T) {
 			},
 			// Create new NIC
 			{
-				Config: testAccHypercoreNicResourceConfig(),
+				Config: func() string {
+					if test_vm_uuid == "" {
+						panic("test_vm_uuid is empty! Ensure VM is created successfully before using it.")
+					}
+					return testAccHypercoreNicResourceConfig(test_vm_uuid)
+				}(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("hypercore_nic.test", "vlan", "11"),
 					resource.TestCheckResourceAttr("hypercore_nic.test", "type", "VIRTIO"),
@@ -72,7 +77,7 @@ resource "hypercore_vm" "test" {
 `, source_vm_uuid)
 }
 
-func testAccHypercoreNicResourceConfig() string {
+func testAccHypercoreNicResourceConfig(test_vm_uuid string) string {
 	return fmt.Sprintf(`
 resource "hypercore_nic" "test" {
   vm_uuid = %[1]q
