@@ -10,39 +10,37 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-var source_vm_name = "integration-test-vm"
-
-func TestAccHypercoreNicResource(t *testing.T) {
+func TestAccHypercoreDiskResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Clone VM and create NIC
 			{
-				Config: testAccHypercoreSourceVMRConfig(),
+				Config: testAccHypercoreDiskResourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("hypercore_nic.test", "vlan", "11"),
-					resource.TestCheckResourceAttr("hypercore_nic.test", "type", "VIRTIO"),
+					resource.TestCheckResourceAttr("hypercore_disk.test", "size", "3.0"),
+					resource.TestCheckResourceAttr("hypercore_disk.test", "type", "IDE_DISK"),
 				),
 			},
 		},
 	})
 }
 
-func testAccHypercoreSourceVMRConfig() string {
+func testAccHypercoreDiskResourceConfig() string {
 	return fmt.Sprintf(`
-data "hypercore_vm" "nicvm" {
+data "hypercore_vm" "diskvm" {
   name = %[1]q
 }
 
-resource "hypercore_nic" "test" {
-  vm_uuid = data.hypercore_vm.nicvm.vms.0.uuid
-  vlan    = 11
-  type    = "VIRTIO"
+resource "hypercore_disk" "test" {
+  vm_uuid = data.hypercore_vm.diskvm.vms.0.uuid
+  type    = "IDE_DISK"
+  size    = 3.0
 }
 
 output "vm_id" {
-  value = data.hypercore_vm.nicvm.vms.0.uuid
+  value = data.hypercore_vm.diskvm.vms.0.uuid
 }
 `, source_vm_name)
 }
