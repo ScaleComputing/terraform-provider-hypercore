@@ -19,7 +19,7 @@ func TestAccHypercoreDiskResource(t *testing.T) {
 			{
 				Config: testAccHypercoreDiskResourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("hypercore_disk.test", "size", "3.0"),
+					resource.TestCheckResourceAttr("hypercore_disk.test", "size", "3"),
 					resource.TestCheckResourceAttr("hypercore_disk.test", "type", "IDE_DISK"),
 				),
 			},
