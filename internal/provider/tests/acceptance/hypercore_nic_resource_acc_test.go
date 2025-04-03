@@ -13,7 +13,7 @@ import (
 var source_vm_uuid = "97904009-1878-4881-b6df-83c85ab7dc1a"
 var test_vm_name = "integration-test-vm-nic"
 
-//var source_vm_name = "integration-test-vm"
+var source_vm_name = "integration-test-vm"
 
 func TestAccHypercoreNicResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -24,11 +24,6 @@ func TestAccHypercoreNicResource(t *testing.T) {
 			{
 				Config: testAccHypercoreSourceVMRConfig(source_vm_uuid),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("hypercore_vm.test", "name", test_vm_name),
-					resource.TestCheckResourceAttr("hypercore_vm.test", "description", "integration-vm-description"),
-					resource.TestCheckResourceAttr("hypercore_vm.test", "group", "Xlabintegrationtest"),
-					resource.TestCheckResourceAttr("hypercore_vm.test", "vcpu", "4"),
-					resource.TestCheckResourceAttr("hypercore_vm.test", "memory", "4096"),
 					resource.TestCheckResourceAttr("hypercore_nic.test", "vlan", "11"),
 					resource.TestCheckResourceAttr("hypercore_nic.test", "type", "VIRTIO"),
 				),
@@ -46,18 +41,6 @@ func TestAccHypercoreNicResource(t *testing.T) {
 
 func testAccHypercoreSourceVMRConfig(source_vm_uuid string) string {
 	return fmt.Sprintf(`
-resource "hypercore_vm" "test" {
-  name = %[2]q
-  group = "Xlabintegrationtest"
-  vcpu = 4
-  memory = 4096
-  description = "integration-vm-description"
-  clone = {
-	source_vm_uuid = %[1]q
-	user_data = ""
-	meta_data = ""
-  }
-}
 data "hypercore_vm" "nicvm" {
   name = %[2]q
 }
@@ -71,7 +54,7 @@ resource "hypercore_nic" "test" {
 output "vm_id" {
   value = data.hypercore_vm.nicvm.vms.0.uuid
 }
-`, source_vm_uuid, test_vm_name)
+`, source_vm_uuid, source_vm_name)
 }
 
 func testAccHypercoreNicResourceConfig() string {
