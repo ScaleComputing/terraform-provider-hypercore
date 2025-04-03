@@ -20,7 +20,7 @@ func TestAccHypercoreNicResource(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Prepare VM for test (clone from source VM)
+			// Clone VM and create NIC
 			{
 				Config: testAccHypercoreSourceVMRConfig(source_vm_uuid),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -29,12 +29,6 @@ func TestAccHypercoreNicResource(t *testing.T) {
 					resource.TestCheckResourceAttr("hypercore_vm.test", "group", "Xlabintegrationtest"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "vcpu", "4"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "memory", "4096"),
-				),
-			},
-			// Create new NIC
-			{
-				Config: testAccHypercoreNicResourceConfig(),
-				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("hypercore_nic.test", "vlan", "11"),
 					resource.TestCheckResourceAttr("hypercore_nic.test", "type", "VIRTIO"),
 				),
@@ -57,15 +51,15 @@ resource "hypercore_vm" "test" {
 	meta_data = ""
   }
 }
-`, source_vm_uuid)
+data "hypercore_vm" "test" {
+  id = hypercore_vm.test.id
 }
 
-func testAccHypercoreNicResourceConfig() string {
-	return `
 resource "hypercore_nic" "test" {
-  vm_uuid = hypercore_vm.test.id
+  vm_uuid = data.hypercore_vm.test.id
   vlan    = 11
   type    = "VIRTIO"
 }
-`
+
+`, source_vm_uuid)
 }
