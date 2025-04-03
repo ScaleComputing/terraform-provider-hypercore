@@ -36,7 +36,7 @@ func TestAccHypercoreNicResource(t *testing.T) {
 						fmt.Printf("Captured Resource ID: %s\n", resourceID)
 						return nil
 					},
-					resource.TestCheckResourceAttr("hypercore_vm.test", "name", "integration-test-vm-nic"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "name", test_vm_name),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "description", "integration-vm-description"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "group", "Xlabintegrationtest"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "vcpu", "4"),
