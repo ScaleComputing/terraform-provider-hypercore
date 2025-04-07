@@ -18,8 +18,8 @@ func TestAccHypercoreVirtualDiskResource(t *testing.T) {
 			{
 				Config: testAccHypercoreVirtualDiskResourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("hypercore_virtual_disk.test", "size", "3"),
-					resource.TestCheckResourceAttr("hypercore_virtual_disk.test", "type", "IDE_DISK"),
+					resource.TestCheckResourceAttr("hypercore_disk.attach_vd_test", "size", "3.4"),
+					resource.TestCheckResourceAttr("hypercore_disk.attach_vd_test", "type", "VIRTIO_DISK"),
 				),
 			},
 		},
@@ -32,7 +32,7 @@ data "hypercore_vm" "integrationvm" {
   name = %[1]q
 }
 
-resource "hypercore_disk" "attach_vd" {
+resource "hypercore_disk" "attach_vd_test" {
   vm_uuid                = data.hypercore_vm.integrationvm.vms.0.uuid
   type                   = "VIRTIO_DISK"
   size                   = 3.4
