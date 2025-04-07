@@ -28,6 +28,15 @@ func TestAccHypercorePowerStateResource(t *testing.T) {
 
 func testAccHypercorePowerStateResourceConfig() string {
 	return fmt.Sprintf(`
+terraform {
+  required_providers {
+    null = {
+      source  = "hashicorp/null"
+      version = ">= 3.0.0"
+    }
+  }
+}
+
 data "hypercore_vm" "integrationvm" {
   name = %[1]q
 }
