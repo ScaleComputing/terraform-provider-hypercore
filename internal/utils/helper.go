@@ -12,6 +12,9 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
+
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 )
 
 func isSuperset(superset map[string]any, candidate map[string]any) bool {
@@ -302,4 +305,43 @@ func GetFileSize(sourceFilePath string) int64 {
 		panic(fmt.Errorf("unable to get file info for %s: %v", sourceFilePath, err))
 	}
 	return fileInfo.Size()
+}
+
+func ValidateSMB(server string, username string, password string, path string) diag.Diagnostic {
+	if server == "" {
+		return diag.NewErrorDiagnostic(
+			"Missing 'server' parameter",
+			"For using SMB, you must specify the 'server' parameter",
+		)
+	}
+	if username == "" {
+		return diag.NewErrorDiagnostic(
+			"Missing 'username' parameter",
+			"For using SMB, you must specify the 'username' parameter",
+		)
+	}
+	if password == "" {
+		return diag.NewErrorDiagnostic(
+			"Missing 'password' parameter",
+			"For using SMB, you must specify the 'password' parameter",
+		)
+	}
+	if path == "" {
+		return diag.NewErrorDiagnostic(
+			"Missing 'path' parameter",
+			"For using SMB, you must specify the 'path' parameter",
+		)
+	}
+	return nil
+}
+
+func ValidateHTTP(httpPath string) diag.Diagnostic {
+	if strings.HasPrefix(httpPath, "http://") || strings.HasPrefix(httpPath, "https://") {
+		return diag.NewErrorDiagnostic(
+			"Invalid HTTP path",
+			"Invalid HTTP path. Path must start with 'http://' or 'https://'",
+		)
+	}
+
+	return nil
 }

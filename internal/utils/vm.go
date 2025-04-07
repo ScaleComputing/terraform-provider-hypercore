@@ -175,6 +175,33 @@ func (vc *VM) Create(restClient RestClient, ctx context.Context) (bool, string) 
 	panic(fmt.Sprintf("There was a problem during cloning of %s %s, cloning failed.", sourceVMName, vc.sourceVMUUID))
 }
 
+func (vc *VM) ImportVM(
+	restClient RestClient,
+	source map[string]any,
+	ctx context.Context,
+) map[string]any {
+	payload := map[string]any{
+		"source": source,
+	}
+
+	importTemplate := vc.BuildImportTemplate()
+	if len(importTemplate) > 0 {
+		payload["template"] = importTemplate
+	}
+
+	taskTag, _, _ := restClient.CreateRecord(
+		"/rest/v1/VirDomain/import",
+		payload,
+		-1,
+	)
+	taskTag.WaitTask(restClient, ctx)
+	vmUUID := taskTag.CreatedUUID
+	vm := GetOneVM(vmUUID, restClient)
+
+	vc.UUID = vmUUID
+	return vm
+}
+
 func (vc *VM) SetVMParams(restClient RestClient, ctx context.Context) (bool, bool, map[string]any) {
 	vm := GetVMByName(vc.VMName, restClient, true)
 	changed, changedParams := vc.GetChangedParams(ctx, *vm)
@@ -436,6 +463,40 @@ func (vc *VM) BuildUpdatePayload(changedParams map[string]bool) map[string]any {
 	return updatePayload
 }
 
+func (vc *VM) BuildImportTemplate() map[string]any {
+	importTemplate := map[string]any{}
+
+	if vc.description != nil {
+		importTemplate["description"] = *vc.description
+	}
+	if vc.tags != nil {
+		importTemplate["tags"] = tagsListToCommaString(*vc.tags)
+	}
+	if vc.memory != nil {
+		vcMemoryBytes := *vc.memory * 1024 * 1024 // MB to B
+		importTemplate["mem"] = vcMemoryBytes
+	}
+	if vc.vcpu != nil {
+		importTemplate["numVCPU"] = *vc.vcpu
+	}
+
+	affinityStrategy := map[string]any{
+		"strictAffinity": vc.strictAffinity,
+	}
+
+	if vc.preferredNodeUUID != "" {
+		affinityStrategy["preferredNodeUUID"] = vc.preferredNodeUUID
+	}
+
+	if vc.backupNodeUUID != "" {
+		affinityStrategy["backupNodeUUID"] = vc.backupNodeUUID
+	}
+
+	importTemplate["affinityStrategy"] = affinityStrategy
+
+	return importTemplate
+}
+
 func (vc *VM) GetChangedParams(ctx context.Context, vmFromClient map[string]any) (bool, map[string]bool) {
 	changedParams := map[string]bool{}
 
@@ -476,6 +537,31 @@ func (vc *VM) GetChangedParams(ctx context.Context, vmFromClient map[string]any)
 		}
 	}
 	return false, changedParams
+}
+
+func BuildSMBImportSource(username string, password string, server string, path string, fileName string) map[string]any {
+	pathURI := fmt.Sprintf("smb://%s:%s@%s%s", username, password, server, path)
+
+	source := map[string]any{
+		"pathURI": pathURI,
+	}
+	if fileName != "" {
+		source["definitionFileName"] = fileName
+	}
+
+	return source
+}
+
+func BuildHTTPImportSource(httpPath string, fileName string) map[string]any {
+	source := map[string]any{
+		"pathURI": httpPath,
+	}
+
+	if fileName != "" {
+		source["definitionFileName"] = fileName
+	}
+
+	return source
 }
 
 func GetOneVM(uuid string, restClient RestClient) map[string]any {

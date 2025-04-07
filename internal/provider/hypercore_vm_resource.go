@@ -39,10 +39,20 @@ type HypercoreVMResourceModel struct {
 	Description          types.String          `tfsdk:"description"`
 	VCPU                 types.Int32           `tfsdk:"vcpu"`
 	Memory               types.Int64           `tfsdk:"memory"`
+	Import               ImportModel           `tfsdk:"import"`
 	SnapshotScheduleUUID types.String          `tfsdk:"snapshot_schedule_uuid"`
 	Clone                CloneModel            `tfsdk:"clone"`
 	AffinityStrategy     AffinityStrategyModel `tfsdk:"affinity_strategy"`
 	Id                   types.String          `tfsdk:"id"`
+}
+
+type ImportModel struct {
+	HTTPPath types.String `tfsdk:"http_path"`
+	Server   types.String `tfsdk:"server"`
+	Username types.String `tfsdk:"username"`
+	Password types.String `tfsdk:"password"`
+	Path     types.String `tfsdk:"path"`
+	FileName types.String `tfsdk:"file_name"`
 }
 
 type CloneModel struct {
@@ -94,6 +104,19 @@ func (r *HypercoreVMResource) Schema(ctx context.Context, req resource.SchemaReq
 			"snapshot_schedule_uuid": schema.StringAttribute{
 				MarkdownDescription: "UUID of the snapshot schedule to create automatic snapshots",
 				Optional:            true,
+			},
+			"import": schema.ObjectAttribute{
+				MarkdownDescription: "Options for importing a VM through an SMB server. <br>" +
+					"All parameters except `file_path` are **required**",
+				Optional: true,
+				AttributeTypes: map[string]attr.Type{
+					"http_path": types.StringType,
+					"server":    types.StringType,
+					"username":  types.StringType,
+					"password":  types.StringType,
+					"path":      types.StringType,
+					"file_name": types.StringType,
+				},
 			},
 			"clone": schema.ObjectAttribute{
 				MarkdownDescription: "" +
@@ -203,6 +226,7 @@ func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateReq
 
 	tflog.Info(ctx, fmt.Sprintf("TTRT Create: name=%s, source_uuid=%s", data.Name.ValueString(), data.Clone.SourceVMUUID.ValueString()))
 
+	// Import or clone
 	vmClone, _ := utils.NewVM(
 		data.Name.ValueString(),
 		data.Clone.SourceVMUUID.ValueString(),
@@ -218,13 +242,42 @@ func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateReq
 		data.AffinityStrategy.PreferredNodeUUID.ValueString(),
 		data.AffinityStrategy.BackupNodeUUID.ValueString(),
 	)
-	changed, msg := vmClone.Create(*r.client, ctx)
-	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
 
-	// General parametrization
-	// set: description, group, vcpu, memory, power_state
-	changed, vmWasRebooted, vmDiff := vmClone.SetVMParams(*r.client, ctx)
-	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
+	// http import
+	httpPath := data.Import.HTTPPath.ValueString()
+
+	// smb import
+	smbServer := data.Import.Server.ValueString()
+	smbUsername := data.Import.Username.ValueString()
+	smbPassword := data.Import.Password.ValueString()
+	smbPath := data.Import.Path.ValueString()
+	fileName := data.Import.FileName.ValueString()
+
+	isSMBImport := smbServer != "" || smbUsername != "" || smbPassword != "" || smbPath != ""
+	isHTTPImport := httpPath != ""
+
+	importedVM := map[string]any{}
+	if isHTTPImport && !isSMBImport {
+		utils.ValidateHTTP(httpPath)
+		httpSource := utils.BuildHTTPImportSource(httpPath, fileName)
+		importedVM = vmClone.ImportVM(*r.client, httpSource, ctx)
+		tflog.Debug(ctx, fmt.Sprintf("TTRT Create - with HTTP VM import: vm_uuid=%s, vm=%v", vmClone.UUID, importedVM))
+	} else if isSMBImport && !isHTTPImport {
+		utils.ValidateSMB(smbServer, smbUsername, smbPassword, smbPath)
+		smbSource := utils.BuildSMBImportSource(smbUsername, smbPassword, smbServer, smbPath, fileName)
+		importedVM = vmClone.ImportVM(*r.client, smbSource, ctx)
+		tflog.Debug(ctx, fmt.Sprintf("TTRT Create - with SMB VM import: vm_uuid=%s, vm=%v", vmClone.UUID, importedVM))
+	} else {
+		// Cloning
+		changed, msg := vmClone.Create(*r.client, ctx)
+		tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
+
+		// General parametrization
+		// set: description, group, vcpu, memory, power_state
+		changed, vmWasRebooted, vmDiff := vmClone.SetVMParams(*r.client, ctx)
+		tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
+
+	}
 
 	// save into the Terraform state.
 	data.Id = types.StringValue(vmClone.UUID)
