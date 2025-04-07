@@ -100,8 +100,12 @@ func IsTestVMRunning(host string) bool {
 
 	fmt.Println("Response Status:", resp.Status)
 	fmt.Println("Response Body:", string(body))
+
 	var result map[string]interface{}
-	json.Unmarshal(body, &result)
+	errr := json.Unmarshal(body, &result)
+	if errr != nil {
+		log.Fatal(errr)
+	}
 	fmt.Println("Response Status:", result)
 	return true
 }
