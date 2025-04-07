@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
@@ -10,10 +12,33 @@ import (
 
 func main() {
 	host := os.Getenv("HC_HOST")
-	// user := os.Getenv("HC_USERNAME")
-	// pass := os.Getenv("HC_PASSWORD")
+	user := os.Getenv("HC_USERNAME")
+	pass := os.Getenv("HC_PASSWORD")
 
-	resp, err := http.Get(fmt.Sprintf("%s/rest/v1/ISO", host))
+	// Create the Basic Authentication string
+	auth := user + ":" + pass
+	authHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(auth))
+
+	// The data you want to send in the body (if needed)
+
+	// Create a new POST request
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rest/v1/ISO", host), bytes.NewBuffer(nil))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Set the Content-Type header
+	req.Header.Set("Content-Type", "application/json")
+
+	// Set the Content-Length header (not required, it's usually set automatically)
+	// req.Header.Set("Content-Length", fmt.Sprintf("%d", len(data)))
+
+	// Set Basic Authentication header
+	req.Header.Set("Authorization", authHeader)
+
+	// Create an HTTP client and execute the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
 	}
