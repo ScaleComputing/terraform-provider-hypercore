@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -14,6 +15,14 @@ func main() {
 	host := os.Getenv("HC_HOST")
 	user := os.Getenv("HC_USERNAME")
 	pass := os.Getenv("HC_PASSWORD")
+
+	// Create a custom HTTP client with insecure transport
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, // Disable certificate verification
+		},
+	}
+	client := &http.Client{Transport: tr}
 
 	// Create the Basic Authentication string
 	auth := user + ":" + pass
@@ -36,8 +45,7 @@ func main() {
 	// Set Basic Authentication header
 	req.Header.Set("Authorization", authHeader)
 
-	// Create an HTTP client and execute the request
-	client := &http.Client{}
+	// Execute the request
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
