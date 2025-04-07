@@ -107,7 +107,7 @@ func IsTestVMRunning(host string) bool {
 		log.Fatal(errr)
 	}
 	fmt.Println("Response Status:", result)
-	return result[0]["state"] == "SHUTOFF"
+	return result[0]["state"] != "SHUTOFF"
 }
 
 func DoesVirtualDiskExist(host string) bool {
@@ -139,7 +139,15 @@ func DoesVirtualDiskExist(host string) bool {
 func main() {
 	host := os.Getenv("HC_HOST")
 
-	if !DoesTestVMExist(host) || IsTestVMRunning(host) || !DoesVirtualDiskExist(host) {
-		log.Fatal("One or more prerequisites are missing in your test environment")
+	if !DoesTestVMExist(host) {
+		log.Fatal("Test VM is missing")
+	}
+
+	if IsTestVMRunning(host) {
+		log.Fatal("Test VM is RUNNING and should be turned off before the testing begins")
+	}
+
+	if !DoesVirtualDiskExist(host) {
+		log.Fatal("Test Virtual disk is missing")
 	}
 }
