@@ -2,14 +2,29 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 	"os"
 )
 
 func main() {
-	value := os.Getenv("HC_HOST")
-	if value == "" {
-		fmt.Println("MY_ENV_VAR is not set")
-	} else {
-		fmt.Printf("MY_ENV_VAR: %s\n", value)
+	host := os.Getenv("HC_HOST")
+	// user := os.Getenv("HC_USERNAME")
+	// pass := os.Getenv("HC_PASSWORD")
+
+	resp, err := http.Get(fmt.Sprintf("%s/rest/v1/ISO", host))
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer resp.Body.Close()
+
+	// Read and print the response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Response Status:", resp.Status)
+	fmt.Println("Response Body:", string(body))
 }
