@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -72,7 +73,8 @@ func DoesTestVMExist(host string) bool {
 
 	fmt.Println("Response Status:", resp.Status)
 	fmt.Println("Response Body:", string(body))
-	return true
+
+	return resp.StatusCode == http.StatusOK
 }
 
 func IsTestVMRunning(host string) bool {
@@ -98,7 +100,10 @@ func IsTestVMRunning(host string) bool {
 
 	fmt.Println("Response Status:", resp.Status)
 	fmt.Println("Response Body:", string(body))
-	return false
+	var result map[string]interface{}
+	json.Unmarshal(body, &result)
+	fmt.Println("Response Status:", result)
+	return true
 }
 
 func DoesVirtualDiskExist(host string) bool {
@@ -124,7 +129,7 @@ func DoesVirtualDiskExist(host string) bool {
 
 	fmt.Println("Response Status:", resp.Status)
 	fmt.Println("Response Body:", string(body))
-	return true
+	return resp.StatusCode == http.StatusOK
 }
 
 func main() {
