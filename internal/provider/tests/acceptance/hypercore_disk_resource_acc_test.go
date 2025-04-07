@@ -15,7 +15,6 @@ func TestAccHypercoreDiskResource(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Clone VM and create NIC
 			{
 				Config: testAccHypercoreDiskResourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(

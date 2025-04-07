@@ -15,7 +15,6 @@ func TestAccHypercoreISOResource(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Create and Read testing
 			{
 				Config: testAccHypercoreISOResourceConfig("testtf-iso.iso"),
 				Check: resource.ComposeAggregateTestCheckFunc(

@@ -10,14 +10,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-var source_vm_name = "integration-test-vm"
-
 func TestAccHypercoreNicResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Clone VM and create NIC
 			{
 				Config: testAccHypercoreSourceVMRConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
