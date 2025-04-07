@@ -32,11 +32,12 @@ data "hypercore_vm" "integrationvm" {
   name = %[1]q
 }
 
-resource "hypercore_virtual_disk" "vd_upload_from_url" {
-  name       = "virtual-disk-acc-test.img"
-  source_url = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+resource "hypercore_disk" "attach_vd" {
+  vm_uuid                = data.hypercore_vm.integrationvm.vms.0.uuid
+  type                   = "VIRTIO_DISK"
+  size                   = 3.4
+  source_virtual_disk_id = %[2]q
 }
 
-
-`, source_vm_name)
+`, source_vm_name, existing_vdisk_uuid)
 }

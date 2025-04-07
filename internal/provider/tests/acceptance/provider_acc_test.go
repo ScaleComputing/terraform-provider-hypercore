@@ -13,7 +13,7 @@ import (
 
 var source_vm_name = "integration-test-vm"
 
-// var existing_vdisk_uuid = ""
+var existing_vdisk_uuid = "33c78baf-c3c6-4600-8432-9c7a2a3008ab"
 
 // testAccProtoV6ProviderFactories are used to instantiate a provider during
 // acceptance testing. The factory function will be invoked for every Terraform
