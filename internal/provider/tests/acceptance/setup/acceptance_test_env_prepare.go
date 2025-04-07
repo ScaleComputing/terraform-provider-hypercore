@@ -14,7 +14,7 @@ import (
 	"os"
 )
 
-// var source_vm_name = "integration-test-vm"
+// var source_vm_name = "integration-test-vm".
 var source_vm_uuid = "97904009-1878-4881-b6df-83c85ab7dc1a"
 var existing_vdisk_uuid = "33c78baf-c3c6-4600-8432-9c7a2a3008ab"
 
