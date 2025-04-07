@@ -19,6 +19,7 @@ func TestAccHypercorePowerStateResource(t *testing.T) {
 				Config: testAccHypercorePowerStateResourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("hypercore_vm_power_state.power_state_test", "state", "RUNNING"),
+					resource.TestCheckResourceAttr("hypercore_vm_power_state.power_state_test_cleanup", "state", "SHUTOFF"),
 				),
 			},
 		},
@@ -34,6 +35,11 @@ data "hypercore_vm" "integrationvm" {
 resource "hypercore_vm_power_state" "power_state_test" {
   vm_uuid = data.hypercore_vm.integrationvm.vms.0.uuid
   state   = "RUNNING"
+}
+
+resource "hypercore_vm_power_state" "power_state_test_cleanup" {
+  vm_uuid = data.hypercore_vm.integrationvm.vms.0.uuid
+  state   = "SHUTOFF"
 }
 
 `, source_vm_name)
