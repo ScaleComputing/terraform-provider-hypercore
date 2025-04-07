@@ -37,9 +37,21 @@ resource "hypercore_vm_power_state" "power_state_test" {
   state   = "RUNNING"
 }
 
+resource "null_resource" "wait" {
+  provisioner "local-exec" {
+    command = "sleep 15"
+  }
+}
+
 resource "hypercore_vm_power_state" "power_state_test_cleanup" {
   vm_uuid = data.hypercore_vm.integrationvm.vms.0.uuid
   state   = "SHUTOFF"
+}
+
+resource "null_resource" "wait" {
+  provisioner "local-exec" {
+    command = "sleep 15"
+  }
 }
 
 `, source_vm_name)
