@@ -37,7 +37,7 @@ resource "hypercore_vm_power_state" "power_state_test" {
   state   = "RUNNING"
 }
 
-resource "null_resource" "wait" {
+resource "null_resource" "wait_before" {
   provisioner "local-exec" {
     command = "sleep 15"
   }
@@ -48,7 +48,7 @@ resource "hypercore_vm_power_state" "power_state_test_cleanup" {
   state   = "SHUTOFF"
 }
 
-resource "null_resource" "wait" {
+resource "null_resource" "wait_after" {
   provisioner "local-exec" {
     command = "sleep 15"
   }
