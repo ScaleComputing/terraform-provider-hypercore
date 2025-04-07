@@ -107,7 +107,7 @@ func IsTestVMRunning(host string) bool {
 		log.Fatal(errr)
 	}
 	fmt.Println("Response Status:", result)
-	return result[0]["status"] == "SHUTOFF"
+	return result[0]["state"] == "SHUTOFF"
 }
 
 func DoesVirtualDiskExist(host string) bool {
