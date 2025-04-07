@@ -106,7 +106,6 @@ func IsTestVMRunning(host string) bool {
 	if errr != nil {
 		log.Fatal(errr)
 	}
-	fmt.Println("Response Status:", result)
 	return result[0]["state"] != "SHUTOFF"
 }
 
@@ -141,16 +140,13 @@ func main() {
 
 	if !DoesTestVMExist(host) {
 		log.Fatal("Test VM is missing")
-		os.Exit(1)
 	}
 
 	if IsTestVMRunning(host) {
 		log.Fatal("Test VM is RUNNING and should be turned off before the testing begins")
-		os.Exit(1)
 	}
 
 	if !DoesVirtualDiskExist(host) {
 		log.Fatal("Test Virtual disk is missing")
-		os.Exit(1)
 	}
 }
