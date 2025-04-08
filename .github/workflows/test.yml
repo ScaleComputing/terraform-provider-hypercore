@@ -117,6 +117,7 @@ jobs:
           . ./internal/provider/tests/acceptance/setup/env.txt
           go run ./internal/provider/tests/acceptance/setup/acceptance_test_env_prepare.go
           go test -v -cover -coverpkg=github.com/hashicorp/terraform-provider-hypercore/internal/provider ./internal/provider/tests/acceptance/
+          go run ./internal/provider/tests/acceptance/setup/acceptance_test_env_prepare.go "cleanup"
         timeout-minutes: 10
   unit-test:
     name: Go Unit Tests

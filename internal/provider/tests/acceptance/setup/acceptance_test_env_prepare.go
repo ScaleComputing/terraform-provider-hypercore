@@ -142,22 +142,53 @@ func DoesVirtualDiskExist(host string) bool {
 	return resp.StatusCode == http.StatusOK
 }
 
+func CleanupEnv(host string) {
+	client := SetHTTPClient()
+	data := []byte(fmt.Sprintf(`[{"virDomainUUID": "%s", "actionType": "STOP", "cause": "INTERNAL"}]`, source_vm_uuid))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/rest/v1/VirDomain/action", host), bytes.NewBuffer(data))
+	if err != nil {
+		log.Fatal(err)
+	}
+	req = SetHTTPHeader(req)
+
+	// Execute the request
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	// Read and print the response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Response Status:", resp.Status)
+	fmt.Println("Response Body:", string(body))
+}
+
 func main() {
 	host := os.Getenv("HC_HOST")
+	isCleanup := len(os.Args) < 1 && os.Args[1] == "cleanup"
 
-	if !AreEnvVariablesLoaded() {
-		log.Fatal("Environment variables aren't loaded, check env file in /acceptance/setup directory")
-	}
+	if isCleanup {
+		CleanupEnv(host)
+	} else {
+		if !AreEnvVariablesLoaded() {
+			log.Fatal("Environment variables aren't loaded, check env file in /acceptance/setup directory")
+		}
 
-	if !DoesTestVMExist(host) {
-		log.Fatal("Acceptance test VM is missing in your testing environment")
-	}
+		if !DoesTestVMExist(host) {
+			log.Fatal("Acceptance test VM is missing in your testing environment")
+		}
 
-	if IsTestVMRunning(host) {
-		log.Fatal("Acceptance test VM is RUNNING and should be turned off before the testing begins")
-	}
+		if IsTestVMRunning(host) {
+			log.Fatal("Acceptance test VM is RUNNING and should be turned off before the testing begins")
+		}
 
-	if !DoesVirtualDiskExist(host) {
-		log.Fatal("Acceptance test Virtual disk is missing in your testing environment")
+		if !DoesVirtualDiskExist(host) {
+			log.Fatal("Acceptance test Virtual disk is missing in your testing environment")
+		}
 	}
 }
