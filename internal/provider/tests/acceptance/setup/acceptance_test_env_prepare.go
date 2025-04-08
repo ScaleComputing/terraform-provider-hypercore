@@ -176,7 +176,7 @@ func main() {
 		Argument we are looking to pass is "cleanup" see test.yml workflow file for more information
 	*/
 	host := os.Getenv("HC_HOST")
-	isCleanup := len(os.Args) < 1 && os.Args[1] == "cleanup"
+	isCleanup := len(os.Args) > 1 && os.Args[1] == "cleanup"
 	fmt.Println("Are we doing Cleanup:", isCleanup)
 
 	if isCleanup {
