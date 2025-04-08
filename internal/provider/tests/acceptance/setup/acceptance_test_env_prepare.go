@@ -17,8 +17,9 @@ import (
 
 var source_vm_uuid = os.Getenv("SOURCE_VM_UUID")
 var existing_vdisk_uuid = os.Getenv("EXISTING_VDISK_UUID")
+var source_vm_name = os.Getenv("SOURCE_VM_NAME")
 
-func SetHeader(req *http.Request) *http.Request {
+func SetHTTPHeader(req *http.Request) *http.Request {
 	user := os.Getenv("HC_USERNAME")
 	pass := os.Getenv("HC_PASSWORD")
 
@@ -37,7 +38,7 @@ func SetHeader(req *http.Request) *http.Request {
 	return req
 }
 
-func SetClient() *http.Client {
+func SetHTTPClient() *http.Client {
 	// Create a custom HTTP client with insecure transport
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -49,13 +50,20 @@ func SetClient() *http.Client {
 	return client
 }
 
+func AreEnvVariablesLoaded() bool {
+	if source_vm_uuid == "" || existing_vdisk_uuid == "" || source_vm_name == "" {
+		return false
+	}
+	return true
+}
+
 func DoesTestVMExist(host string) bool {
-	client := SetClient()
+	client := SetHTTPClient()
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rest/v1/VirDomain/%s", host, source_vm_uuid), bytes.NewBuffer(nil))
 	if err != nil {
 		log.Fatal(err)
 	}
-	req = SetHeader(req)
+	req = SetHTTPHeader(req)
 
 	// Execute the request
 	resp, err := client.Do(req)
@@ -77,12 +85,12 @@ func DoesTestVMExist(host string) bool {
 }
 
 func IsTestVMRunning(host string) bool {
-	client := SetClient()
+	client := SetHTTPClient()
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rest/v1/VirDomain/%s", host, source_vm_uuid), bytes.NewBuffer(nil))
 	if err != nil {
 		log.Fatal(err)
 	}
-	req = SetHeader(req)
+	req = SetHTTPHeader(req)
 
 	// Execute the request
 	resp, err := client.Do(req)
@@ -109,12 +117,12 @@ func IsTestVMRunning(host string) bool {
 }
 
 func DoesVirtualDiskExist(host string) bool {
-	client := SetClient()
+	client := SetHTTPClient()
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rest/v1/VirtualDisk/%s", host, existing_vdisk_uuid), bytes.NewBuffer(nil))
 	if err != nil {
 		log.Fatal(err)
 	}
-	req = SetHeader(req)
+	req = SetHTTPHeader(req)
 
 	// Execute the request
 	resp, err := client.Do(req)
@@ -136,6 +144,10 @@ func DoesVirtualDiskExist(host string) bool {
 
 func main() {
 	host := os.Getenv("HC_HOST")
+
+	if !AreEnvVariablesLoaded() {
+		log.Fatal("Environment variables aren't loaded, check env file in /acceptance/setup directory")
+	}
 
 	if !DoesTestVMExist(host) {
 		log.Fatal("Acceptance test VM is missing in your testing environment")
