@@ -169,12 +169,20 @@ func CleanupEnv(host string) {
 }
 
 func main() {
+	/*
+		We are running env setup here based on the arguments passed into GO program it's either going to:
+			1. Prepare environment
+			2. Cleanup environment
+		Argument we are looking to pass is "cleanup" see test.yml workflow file for more information
+	*/
 	host := os.Getenv("HC_HOST")
 	isCleanup := len(os.Args) < 1 && os.Args[1] == "cleanup"
+	fmt.Println("Are we doing Cleanup:", isCleanup)
 
 	if isCleanup {
 		CleanupEnv(host)
 	} else {
+		// We are doing env prepare here, make sure all the necessary entities are setup and present
 		if !AreEnvVariablesLoaded() {
 			log.Fatal("Environment variables aren't loaded, check env file in /acceptance/setup directory")
 		}
