@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-provider-hypercore/internal/provider"
 )
 
-var source_vm_uuid = os.Getenv("SOURCE_VM_UUID")
+var source_vm_name = os.Getenv("SOURCE_VM_NAME")
 var existing_vdisk_uuid = os.Getenv("EXISTING_VDISK_UUID")
 
 // testAccProtoV6ProviderFactories are used to instantiate a provider during
