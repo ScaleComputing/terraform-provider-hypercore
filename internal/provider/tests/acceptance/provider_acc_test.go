@@ -4,6 +4,7 @@
 package acceptance
 
 import (
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
@@ -11,8 +12,8 @@ import (
 	"github.com/hashicorp/terraform-provider-hypercore/internal/provider"
 )
 
-var source_vm_name = "integration-test-vm"
-var existing_vdisk_uuid = "33c78baf-c3c6-4600-8432-9c7a2a3008ab"
+var source_vm_uuid = os.Getenv("SOURCE_VM_UUID")
+var existing_vdisk_uuid = os.Getenv("EXISTING_VDISK_UUID")
 
 // testAccProtoV6ProviderFactories are used to instantiate a provider during
 // acceptance testing. The factory function will be invoked for every Terraform

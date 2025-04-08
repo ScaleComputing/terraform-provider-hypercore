@@ -15,9 +15,8 @@ import (
 	"os"
 )
 
-// var source_vm_name = "integration-test-vm".
-var source_vm_uuid = "97904009-1878-4881-b6df-83c85ab7dc1a"
-var existing_vdisk_uuid = "33c78baf-c3c6-4600-8432-9c7a2a3008ab"
+var source_vm_uuid = os.Getenv("SOURCE_VM_UUID")
+var existing_vdisk_uuid = os.Getenv("EXISTING_VDISK_UUID")
 
 func SetHeader(req *http.Request) *http.Request {
 	user := os.Getenv("HC_USERNAME")
@@ -139,14 +138,14 @@ func main() {
 	host := os.Getenv("HC_HOST")
 
 	if !DoesTestVMExist(host) {
-		log.Fatal("Test VM is missing")
+		log.Fatal("Acceptance test VM is missing in your testing environment")
 	}
 
 	if IsTestVMRunning(host) {
-		log.Fatal("Test VM is RUNNING and should be turned off before the testing begins")
+		log.Fatal("Acceptance test VM is RUNNING and should be turned off before the testing begins")
 	}
 
 	if !DoesVirtualDiskExist(host) {
-		log.Fatal("Test Virtual disk is missing")
+		log.Fatal("Acceptance test Virtual disk is missing in your testing environment")
 	}
 }
