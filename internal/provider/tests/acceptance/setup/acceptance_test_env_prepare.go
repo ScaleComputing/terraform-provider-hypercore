@@ -70,8 +70,10 @@ func SetHTTPClient() *http.Client {
 
 	return client
 }
-func SendHTTPRequest(request *http.Request, client *http.Client) (*http.Response, []byte) {
-	resp, err := client.Do(request)
+func SendHTTPRequest(client *http.Client, method string, url string, data []byte) (*http.Response, []byte) {
+	req := SetHTTPMethod(method, url, data)
+	req = SetHTTPHeader(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatalf("Sending request failed with %v", err)
 	}
@@ -88,7 +90,7 @@ func SendHTTPRequest(request *http.Request, client *http.Client) (*http.Response
 
 	return resp, body
 }
-func SetHTTPRequest(method string, url string, data []byte) *http.Request {
+func SetHTTPMethod(method string, url string, data []byte) *http.Request {
 	var req *http.Request
 	var err error
 
@@ -116,20 +118,14 @@ func AreEnvVariablesLoaded(env EnvConfig) bool {
 func DoesTestVMExist(host string, client *http.Client, env EnvConfig) bool {
 	url := fmt.Sprintf("%s%s%s", host, VirDomainEndpoint, env.SourceVmUUID)
 
-	req := SetHTTPRequest("GET", url, nil)
-	req = SetHTTPHeader(req)
-
-	resp, _ := SendHTTPRequest(req, client)
+	resp, _ := SendHTTPRequest(client, "GET", url, nil)
 
 	return resp.StatusCode == http.StatusOK
 }
 func IsTestVMRunning(host string, client *http.Client, env EnvConfig) bool {
 	url := fmt.Sprintf("%s%s%s", host, VirDomainEndpoint, env.SourceVmUUID)
 
-	req := SetHTTPRequest("GET", url, nil)
-	req = SetHTTPHeader(req)
-
-	_, body := SendHTTPRequest(req, client)
+	_, body := SendHTTPRequest(client, "GET", url, nil)
 
 	var result []map[string]interface{}
 	err := json.Unmarshal(body, &result)
@@ -141,10 +137,7 @@ func IsTestVMRunning(host string, client *http.Client, env EnvConfig) bool {
 func DoesVirtualDiskExist(host string, client *http.Client, env EnvConfig) bool {
 	url := fmt.Sprintf("%s%s%s", host, VirtualDiskEndpoint, env.ExistingVdiskUUID)
 
-	req := SetHTTPRequest("GET", url, nil)
-	req = SetHTTPHeader(req)
-
-	resp, _ := SendHTTPRequest(req, client)
+	resp, _ := SendHTTPRequest(client, "GET", url, nil)
 
 	return resp.StatusCode == http.StatusOK
 }
@@ -152,10 +145,7 @@ func IsBootOrderCorrect(host string, client *http.Client, env EnvConfig) bool {
 	expectedBootOrder := []string{env.SourceDiskUUID, env.SourceNicUUID}
 	url := fmt.Sprintf("%s%s%s", host, VirDomainEndpoint, env.SourceVmUUID)
 
-	req := SetHTTPRequest("GET", url, nil)
-	req = SetHTTPHeader(req)
-
-	_, body := SendHTTPRequest(req, client)
+	_, body := SendHTTPRequest(client, "GET", url, nil)
 
 	var result []map[string]interface{}
 	err := json.Unmarshal(body, &result)
@@ -196,9 +186,7 @@ func PrepareEnv(host string, client *http.Client, env EnvConfig) {
 func CleanUpPowerState(host string, client *http.Client, env EnvConfig) {
 	data := []byte(fmt.Sprintf(`[{"virDomainUUID": "%s", "actionType": "STOP", "cause": "INTERNAL"}]`, env.SourceVmUUID))
 	url := fmt.Sprintf("%s%s", host, VirDomainActionEndpoint)
-	req := SetHTTPRequest("POST", url, data)
-	req = SetHTTPHeader(req)
-	SendHTTPRequest(req, client)
+	SendHTTPRequest(client, "POST", url, data)
 	// wait 30 seconds for VM to shutdown and then proceed with other cleanup tasks
 	time.Sleep(30 * time.Second)
 }
@@ -212,9 +200,7 @@ func CleanUpBootOrder(host string, client *http.Client, env EnvConfig) {
 		log.Fatalf("Failed to marshal JSON: %v", err)
 	}
 	url := fmt.Sprintf("%s%s%s", host, VirDomainEndpoint, env.SourceVmUUID)
-	req := SetHTTPRequest("POST", url, data)
-	req = SetHTTPHeader(req)
-	SendHTTPRequest(req, client)
+	SendHTTPRequest(client, "POST", url, data)
 }
 func CleanupEnv(host string, client *http.Client, env EnvConfig) {
 	CleanUpPowerState(host, client, env)
