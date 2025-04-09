@@ -53,6 +53,10 @@ resource "hypercore_vm_boot_order" "test" {
     hypercore_nic.test.id,
 	hypercore_disk.test.id,
   ]
+  depends_on = [
+    hypercore_nic.test,
+    hypercore_disk.test,
+  ]
 }
 `, source_vm_name)
 }
