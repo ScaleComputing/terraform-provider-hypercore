@@ -14,6 +14,8 @@ import (
 
 var source_vm_name = os.Getenv("SOURCE_VM_NAME")
 var existing_vdisk_uuid = os.Getenv("EXISTING_VDISK_UUID")
+var source_nic_uuid = os.Getenv("SOURCE_NIC_UUID")
+var source_disk_uuid = os.Getenv("SOURCE_DISK_UUID")
 
 // testAccProtoV6ProviderFactories are used to instantiate a provider during
 // acceptance testing. The factory function will be invoked for every Terraform

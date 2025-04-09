@@ -35,28 +35,12 @@ data "hypercore_vm" "bootvm" {
   name = %[1]q
 }
 
-resource "hypercore_disk" "test" {
-  vm_uuid = data.hypercore_vm.bootvm.vms.0.uuid
-  type    = "IDE_DISK"
-  size    = 4
-}
-
-resource "hypercore_nic" "test" {
-  vm_uuid = data.hypercore_vm.bootvm.vms.0.uuid
-  vlan    = 10
-  type    = "VIRTIO"
-}
-
 resource "hypercore_vm_boot_order" "test" {
   vm_uuid = data.hypercore_vm.bootvm.vms.0.uuid
   boot_devices = [
-    hypercore_nic.test.id,
-	hypercore_disk.test.id,
-  ]
-  depends_on = [
-    hypercore_nic.test,
-    hypercore_disk.test,
+    %[2]q,
+	%[3]q,
   ]
 }
-`, source_vm_name)
+`, source_vm_name, source_nic_uuid, source_disk_uuid)
 }

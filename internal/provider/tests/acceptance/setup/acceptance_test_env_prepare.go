@@ -18,6 +18,8 @@ import (
 var source_vm_uuid = os.Getenv("SOURCE_VM_UUID")
 var existing_vdisk_uuid = os.Getenv("EXISTING_VDISK_UUID")
 var source_vm_name = os.Getenv("SOURCE_VM_NAME")
+var source_disk_uuid = os.Getenv("SOURCE_DISK_UUID")
+var source_nic_uuid = os.Getenv("SOURCE_NIC_UUID")
 
 func SetHTTPHeader(req *http.Request) *http.Request {
 	user := os.Getenv("HC_USERNAME")
@@ -37,7 +39,6 @@ func SetHTTPHeader(req *http.Request) *http.Request {
 	req.Header.Set("Authorization", authHeader)
 	return req
 }
-
 func SetHTTPClient() *http.Client {
 	// Create a custom HTTP client with insecure transport
 	tr := &http.Transport{
@@ -56,7 +57,6 @@ func AreEnvVariablesLoaded() bool {
 	}
 	return true
 }
-
 func DoesTestVMExist(host string) bool {
 	client := SetHTTPClient()
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rest/v1/VirDomain/%s", host, source_vm_uuid), bytes.NewBuffer(nil))
@@ -83,7 +83,6 @@ func DoesTestVMExist(host string) bool {
 
 	return resp.StatusCode == http.StatusOK
 }
-
 func IsTestVMRunning(host string) bool {
 	client := SetHTTPClient()
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rest/v1/VirDomain/%s", host, source_vm_uuid), bytes.NewBuffer(nil))
@@ -115,7 +114,6 @@ func IsTestVMRunning(host string) bool {
 	}
 	return result[0]["state"] != "SHUTOFF"
 }
-
 func DoesVirtualDiskExist(host string) bool {
 	client := SetHTTPClient()
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rest/v1/VirtualDisk/%s", host, existing_vdisk_uuid), bytes.NewBuffer(nil))
@@ -142,8 +140,7 @@ func DoesVirtualDiskExist(host string) bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-func CleanupEnv(host string) {
-	client := SetHTTPClient()
+func CleanUpPowerState(host string, client *http.Client) {
 	data := []byte(fmt.Sprintf(`[{"virDomainUUID": "%s", "actionType": "STOP", "cause": "INTERNAL"}]`, source_vm_uuid))
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/rest/v1/VirDomain/action", host), bytes.NewBuffer(data))
 	if err != nil {
@@ -166,6 +163,44 @@ func CleanupEnv(host string) {
 
 	fmt.Println("Response Status:", resp.Status)
 	fmt.Println("Response Body:", string(body))
+}
+func CleanUpBootOrder(host string, client *http.Client) {
+	bootOrder := []string{source_disk_uuid, source_nic_uuid}
+	payload := map[string]interface{}{
+		"bootDevices": bootOrder,
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		log.Fatalf("Failed to marshal JSON: %v", err)
+	}
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/rest/v1/VirDomain/%s", host, source_vm_uuid), bytes.NewBuffer(data))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	req = SetHTTPHeader(req)
+
+	// Execute the request
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	// Read and print the response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Response Status:", resp.Status)
+	fmt.Println("Response Body:", string(body))
+}
+
+func CleanupEnv(host string) {
+	client := SetHTTPClient()
+	CleanUpPowerState(host, client)
+	CleanUpBootOrder(host, client)
 }
 
 func main() {
