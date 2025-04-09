@@ -42,7 +42,7 @@ resource "hypercore_disk" "test" {
 }
 
 resource "hypercore_nic" "test" {
-  vm_uuid = data.hypercore_vm.nicvm.vms.0.uuid
+  vm_uuid = data.hypercore_vm.bootvm.vms.0.uuid
   vlan    = 11
   type    = "VIRTIO"
 }
