@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reflect"
 )
 
 var source_vm_uuid = os.Getenv("SOURCE_VM_UUID")
@@ -139,6 +140,38 @@ func DoesVirtualDiskExist(host string) bool {
 	fmt.Println("Response Body:", string(body))
 	return resp.StatusCode == http.StatusOK
 }
+func IsBootOrderCorrect(host string) bool {
+	expectedBootOrder := []string{source_disk_uuid, source_nic_uuid}
+	client := SetHTTPClient()
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rest/v1/VirDomain/%s", host, source_vm_uuid), bytes.NewBuffer(nil))
+	if err != nil {
+		log.Fatal(err)
+	}
+	req = SetHTTPHeader(req)
+
+	// Execute the request
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	// Read and print the response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Response Status:", resp.Status)
+	fmt.Println("Response Body:", string(body))
+
+	var result []map[string]interface{}
+	errr := json.Unmarshal(body, &result)
+	if errr != nil {
+		log.Fatal(errr)
+	}
+	return reflect.DeepEqual(result[0]["bootDevices"], expectedBootOrder)
+}
 
 func CleanUpPowerState(host string, client *http.Client) {
 	data := []byte(fmt.Sprintf(`[{"virDomainUUID": "%s", "actionType": "STOP", "cause": "INTERNAL"}]`, source_vm_uuid))
@@ -232,6 +265,9 @@ func main() {
 
 		if !DoesVirtualDiskExist(host) {
 			log.Fatal("Acceptance test Virtual disk is missing in your testing environment")
+		}
+		if IsBootOrderCorrect(host) {
+			log.Fatal("Acceptance test Boot order is incorrect on the test VM, should be disk followed by network interface")
 		}
 	}
 }
