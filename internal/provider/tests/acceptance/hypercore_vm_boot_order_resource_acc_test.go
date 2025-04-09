@@ -36,7 +36,7 @@ data "hypercore_vm" "bootvm" {
 }
 
 resource "hypercore_disk" "test" {
-  vm_uuid = data.hypercore_vm.diskvm.vms.0.uuid
+  vm_uuid = data.hypercore_vm.bootvm.vms.0.uuid
   type    = "IDE_DISK"
   size    = 3
 }
@@ -48,7 +48,7 @@ resource "hypercore_nic" "test" {
 }
 
 resource "hypercore_vm_boot_order" "test" {
-  vm_uuid = data.hypercore_vm.diskvm.vms.0.uuid
+  vm_uuid = data.hypercore_vm.bootvm.vms.0.uuid
   boot_devices = [
     hypercore_disk.test.id,
     hypercore_nic.test.id,
