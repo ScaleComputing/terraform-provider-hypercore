@@ -198,8 +198,8 @@ func CleanUpPowerState(host string, client *http.Client) {
 	fmt.Println("Response Status:", resp.Status)
 	fmt.Println("Response Body:", string(body))
 
-	// wait 15 seconds for VM to shutdown and then proceed with other cleanup tasks
-	time.Sleep(15 * time.Second)
+	// wait 30 seconds for VM to shutdown and then proceed with other cleanup tasks
+	time.Sleep(30 * time.Second)
 }
 func CleanUpBootOrder(host string, client *http.Client) {
 	bootOrder := []string{source_disk_uuid, source_nic_uuid}
