@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"time"
 )
 
 var source_vm_uuid = os.Getenv("SOURCE_VM_UUID")
@@ -196,6 +197,9 @@ func CleanUpPowerState(host string, client *http.Client) {
 
 	fmt.Println("Response Status:", resp.Status)
 	fmt.Println("Response Body:", string(body))
+
+	// wait 15 seconds for VM to shutdown and then proceed with other cleanup tasks
+	time.Sleep(15 * time.Second)
 }
 func CleanUpBootOrder(host string, client *http.Client) {
 	bootOrder := []string{source_disk_uuid, source_nic_uuid}
@@ -253,21 +257,28 @@ func main() {
 		// We are doing env prepare here, make sure all the necessary entities are setup and present
 		if !AreEnvVariablesLoaded() {
 			log.Fatal("Environment variables aren't loaded, check env file in /acceptance/setup directory")
+		} else {
+			fmt.Println("Environment variables are loaded correctly")
 		}
-
 		if !DoesTestVMExist(host) {
 			log.Fatal("Acceptance test VM is missing in your testing environment")
+		} else {
+			fmt.Println("Acceptance test VM is present in the testing environment")
 		}
-
 		if IsTestVMRunning(host) {
 			log.Fatal("Acceptance test VM is RUNNING and should be turned off before the testing begins")
+		} else {
+			fmt.Println("Acceptance test VM is in the correct SHUTOFF state")
 		}
-
 		if !DoesVirtualDiskExist(host) {
 			log.Fatal("Acceptance test Virtual disk is missing in your testing environment")
+		} else {
+			fmt.Println("Acceptance test Virtual disk is present in your testing environment")
 		}
 		if IsBootOrderCorrect(host) {
 			log.Fatal("Acceptance test Boot order is incorrect on the test VM, should be disk followed by network interface")
+		} else {
+			fmt.Println("Acceptance test Boot order is in correct order")
 		}
 	}
 }
