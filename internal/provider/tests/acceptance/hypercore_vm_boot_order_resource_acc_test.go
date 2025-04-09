@@ -50,8 +50,8 @@ resource "hypercore_nic" "test" {
 resource "hypercore_vm_boot_order" "test" {
   vm_uuid = data.hypercore_vm.bootvm.vms.0.uuid
   boot_devices = [
-    hypercore_disk.test.id,
     hypercore_nic.test.id,
+	hypercore_disk.test.id,
   ]
 }
 `, source_vm_name)
