@@ -17,11 +17,29 @@ import (
 	"time"
 )
 
-var source_vm_uuid = os.Getenv("SOURCE_VM_UUID")
-var existing_vdisk_uuid = os.Getenv("EXISTING_VDISK_UUID")
-var source_vm_name = os.Getenv("SOURCE_VM_NAME")
-var source_disk_uuid = os.Getenv("SOURCE_DISK_UUID")
-var source_nic_uuid = os.Getenv("SOURCE_NIC_UUID")
+type EnvConfig struct {
+	SourceVmUUID      string
+	ExistingVdiskUUID string
+	SourceVmName      string
+	SourceDiskUUID    string
+	SourceNicUUID     string
+}
+
+const (
+	VirDomainEndpoint       = "/rest/v1/VirDomain/"
+	VirtualDiskEndpoint     = "/rest/v1/VirtualDisk/"
+	VirDomainActionEndpoint = "/rest/v1/VirDomain/action"
+)
+
+func LoadEnv() EnvConfig {
+	return EnvConfig{
+		SourceVmUUID:      os.Getenv("SOURCE_VM_UUID"),
+		ExistingVdiskUUID: os.Getenv("EXISTING_VDISK_UUID"),
+		SourceVmName:      os.Getenv("SOURCE_VM_NAME"),
+		SourceDiskUUID:    os.Getenv("SOURCE_DISK_UUID"),
+		SourceNicUUID:     os.Getenv("SOURCE_NIC_UUID"),
+	}
+}
 
 func SetHTTPHeader(req *http.Request) *http.Request {
 	user := os.Getenv("HC_USERNAME")
@@ -52,62 +70,52 @@ func SetHTTPClient() *http.Client {
 
 	return client
 }
+func SendHTTPRequest(request *http.Request, client *http.Client) (*http.Response, []byte) {
+	resp, err := client.Do(request)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
 
-func AreEnvVariablesLoaded() bool {
-	if source_vm_uuid == "" || existing_vdisk_uuid == "" || source_vm_name == "" {
+	// Read and print the response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Response Status:", resp.Status)
+	fmt.Println("Response Body:", string(body))
+
+	return resp, body
+}
+
+func AreEnvVariablesLoaded(env EnvConfig) bool {
+	if env.SourceVmUUID == "" || env.ExistingVdiskUUID == "" || env.SourceVmName == "" || env.SourceDiskUUID == "" || env.SourceNicUUID == "" {
 		return false
 	}
 	return true
 }
-func DoesTestVMExist(host string) bool {
-	client := SetHTTPClient()
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rest/v1/VirDomain/%s", host, source_vm_uuid), bytes.NewBuffer(nil))
+func DoesTestVMExist(host string, client *http.Client, env EnvConfig) bool {
+	url := fmt.Sprintf("%s%s%s", host, VirDomainEndpoint, env.SourceVmUUID)
+	req, err := http.NewRequest("GET", url, bytes.NewBuffer(nil))
 	if err != nil {
 		log.Fatal(err)
 	}
 	req = SetHTTPHeader(req)
 
-	// Execute the request
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	// Read and print the response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Response Status:", resp.Status)
-	fmt.Println("Response Body:", string(body))
+	resp, _ := SendHTTPRequest(req, client)
 
 	return resp.StatusCode == http.StatusOK
 }
-func IsTestVMRunning(host string) bool {
-	client := SetHTTPClient()
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rest/v1/VirDomain/%s", host, source_vm_uuid), bytes.NewBuffer(nil))
+func IsTestVMRunning(host string, client *http.Client, env EnvConfig) bool {
+	url := fmt.Sprintf("%s%s%s", host, VirDomainEndpoint, env.SourceVmUUID)
+	req, err := http.NewRequest("GET", url, bytes.NewBuffer(nil))
 	if err != nil {
 		log.Fatal(err)
 	}
 	req = SetHTTPHeader(req)
 
-	// Execute the request
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	// Read and print the response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Response Status:", resp.Status)
-	fmt.Println("Response Body:", string(body))
+	_, body := SendHTTPRequest(req, client)
 
 	var result []map[string]interface{}
 	errr := json.Unmarshal(body, &result)
@@ -116,55 +124,28 @@ func IsTestVMRunning(host string) bool {
 	}
 	return result[0]["state"] != "SHUTOFF"
 }
-func DoesVirtualDiskExist(host string) bool {
-	client := SetHTTPClient()
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rest/v1/VirtualDisk/%s", host, existing_vdisk_uuid), bytes.NewBuffer(nil))
+func DoesVirtualDiskExist(host string, client *http.Client, env EnvConfig) bool {
+	url := fmt.Sprintf("%s%s%s", host, VirtualDiskEndpoint, env.ExistingVdiskUUID)
+	req, err := http.NewRequest("GET", url, bytes.NewBuffer(nil))
 	if err != nil {
 		log.Fatal(err)
 	}
 	req = SetHTTPHeader(req)
 
-	// Execute the request
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
+	resp, _ := SendHTTPRequest(req, client)
 
-	// Read and print the response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Response Status:", resp.Status)
-	fmt.Println("Response Body:", string(body))
 	return resp.StatusCode == http.StatusOK
 }
-func IsBootOrderCorrect(host string) bool {
-	expectedBootOrder := []string{source_disk_uuid, source_nic_uuid}
-	client := SetHTTPClient()
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/rest/v1/VirDomain/%s", host, source_vm_uuid), bytes.NewBuffer(nil))
+func IsBootOrderCorrect(host string, client *http.Client, env EnvConfig) bool {
+	expectedBootOrder := []string{env.SourceDiskUUID, env.SourceNicUUID}
+	url := fmt.Sprintf("%s%s%s", host, VirDomainEndpoint, env.SourceVmUUID)
+	req, err := http.NewRequest("GET", url, bytes.NewBuffer(nil))
 	if err != nil {
 		log.Fatal(err)
 	}
 	req = SetHTTPHeader(req)
 
-	// Execute the request
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	// Read and print the response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Response Status:", resp.Status)
-	fmt.Println("Response Body:", string(body))
+	_, body := SendHTTPRequest(req, client)
 
 	var result []map[string]interface{}
 	errr := json.Unmarshal(body, &result)
@@ -174,35 +155,20 @@ func IsBootOrderCorrect(host string) bool {
 	return reflect.DeepEqual(result[0]["bootDevices"], expectedBootOrder)
 }
 
-func CleanUpPowerState(host string, client *http.Client) {
-	data := []byte(fmt.Sprintf(`[{"virDomainUUID": "%s", "actionType": "STOP", "cause": "INTERNAL"}]`, source_vm_uuid))
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/rest/v1/VirDomain/action", host), bytes.NewBuffer(data))
+func CleanUpPowerState(host string, client *http.Client, env EnvConfig) {
+	data := []byte(fmt.Sprintf(`[{"virDomainUUID": "%s", "actionType": "STOP", "cause": "INTERNAL"}]`, env.SourceVmUUID))
+	url := fmt.Sprintf("%s%s", host, VirDomainActionEndpoint)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	if err != nil {
 		log.Fatal(err)
 	}
 	req = SetHTTPHeader(req)
-
-	// Execute the request
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	// Read and print the response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Response Status:", resp.Status)
-	fmt.Println("Response Body:", string(body))
-
+	SendHTTPRequest(req, client)
 	// wait 30 seconds for VM to shutdown and then proceed with other cleanup tasks
 	time.Sleep(30 * time.Second)
 }
-func CleanUpBootOrder(host string, client *http.Client) {
-	bootOrder := []string{source_disk_uuid, source_nic_uuid}
+func CleanUpBootOrder(host string, client *http.Client, env EnvConfig) {
+	bootOrder := []string{env.SourceDiskUUID, env.SourceNicUUID}
 	payload := map[string]interface{}{
 		"bootDevices": bootOrder,
 	}
@@ -210,34 +176,19 @@ func CleanUpBootOrder(host string, client *http.Client) {
 	if err != nil {
 		log.Fatalf("Failed to marshal JSON: %v", err)
 	}
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/rest/v1/VirDomain/%s", host, source_vm_uuid), bytes.NewBuffer(data))
+	url := fmt.Sprintf("%s%s%s", host, VirDomainEndpoint, env.SourceVmUUID)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	req = SetHTTPHeader(req)
-
-	// Execute the request
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	// Read and print the response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Response Status:", resp.Status)
-	fmt.Println("Response Body:", string(body))
+	SendHTTPRequest(req, client)
 }
 
-func CleanupEnv(host string) {
-	client := SetHTTPClient()
-	CleanUpPowerState(host, client)
-	CleanUpBootOrder(host, client)
+func CleanupEnv(host string, client *http.Client, env EnvConfig) {
+	CleanUpPowerState(host, client, env)
+	CleanUpBootOrder(host, client, env)
 }
 
 func main() {
@@ -247,35 +198,37 @@ func main() {
 			2. Cleanup environment
 		Argument we are looking to pass is "cleanup" see test.yml workflow file for more information
 	*/
+	env := LoadEnv()
 	host := os.Getenv("HC_HOST")
+	client := SetHTTPClient()
 	isCleanup := len(os.Args) > 1 && os.Args[1] == "cleanup"
 	fmt.Println("Are we doing Cleanup:", isCleanup)
 
 	if isCleanup {
-		CleanupEnv(host)
+		CleanupEnv(host, client, env)
 	} else {
 		// We are doing env prepare here, make sure all the necessary entities are setup and present
-		if !AreEnvVariablesLoaded() {
+		if !AreEnvVariablesLoaded(env) {
 			log.Fatal("Environment variables aren't loaded, check env file in /acceptance/setup directory")
 		} else {
 			fmt.Println("Environment variables are loaded correctly")
 		}
-		if !DoesTestVMExist(host) {
+		if !DoesTestVMExist(host, client, env) {
 			log.Fatal("Acceptance test VM is missing in your testing environment")
 		} else {
 			fmt.Println("Acceptance test VM is present in the testing environment")
 		}
-		if IsTestVMRunning(host) {
+		if IsTestVMRunning(host, client, env) {
 			log.Fatal("Acceptance test VM is RUNNING and should be turned off before the testing begins")
 		} else {
 			fmt.Println("Acceptance test VM is in the correct SHUTOFF state")
 		}
-		if !DoesVirtualDiskExist(host) {
+		if !DoesVirtualDiskExist(host, client, env) {
 			log.Fatal("Acceptance test Virtual disk is missing in your testing environment")
 		} else {
 			fmt.Println("Acceptance test Virtual disk is present in your testing environment")
 		}
-		if IsBootOrderCorrect(host) {
+		if IsBootOrderCorrect(host, client, env) {
 			log.Fatal("Acceptance test Boot order is incorrect on the test VM, should be disk followed by network interface")
 		} else {
 			fmt.Println("Acceptance test Boot order is in correct order")
