@@ -73,20 +73,38 @@ func SetHTTPClient() *http.Client {
 func SendHTTPRequest(request *http.Request, client *http.Client) (*http.Response, []byte) {
 	resp, err := client.Do(request)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Sending request failed with %v", err)
 	}
 	defer resp.Body.Close()
 
 	// Read and print the response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Reading request response body failed with %v", err)
 	}
 
 	fmt.Println("Response Status:", resp.Status)
 	fmt.Println("Response Body:", string(body))
 
 	return resp, body
+}
+func SetHTTPRequest(method string, url string, data []byte) *http.Request {
+	var req *http.Request
+	var err error
+
+	// Set request method and body
+	if method == "GET" {
+		req, err = http.NewRequest("GET", url, bytes.NewBuffer(nil))
+	} else {
+		req, err = http.NewRequest("POST", url, bytes.NewBuffer(data))
+	}
+
+	// Handle any errors that occur
+	if err != nil {
+		log.Fatalf("%s request to url: %s failed with error: %v", method, url, err)
+	}
+
+	return req
 }
 
 func AreEnvVariablesLoaded(env EnvConfig) bool {
@@ -97,10 +115,8 @@ func AreEnvVariablesLoaded(env EnvConfig) bool {
 }
 func DoesTestVMExist(host string, client *http.Client, env EnvConfig) bool {
 	url := fmt.Sprintf("%s%s%s", host, VirDomainEndpoint, env.SourceVmUUID)
-	req, err := http.NewRequest("GET", url, bytes.NewBuffer(nil))
-	if err != nil {
-		log.Fatal(err)
-	}
+
+	req := SetHTTPRequest("GET", url, nil)
 	req = SetHTTPHeader(req)
 
 	resp, _ := SendHTTPRequest(req, client)
@@ -109,27 +125,23 @@ func DoesTestVMExist(host string, client *http.Client, env EnvConfig) bool {
 }
 func IsTestVMRunning(host string, client *http.Client, env EnvConfig) bool {
 	url := fmt.Sprintf("%s%s%s", host, VirDomainEndpoint, env.SourceVmUUID)
-	req, err := http.NewRequest("GET", url, bytes.NewBuffer(nil))
-	if err != nil {
-		log.Fatal(err)
-	}
+
+	req := SetHTTPRequest("GET", url, nil)
 	req = SetHTTPHeader(req)
 
 	_, body := SendHTTPRequest(req, client)
 
 	var result []map[string]interface{}
-	errr := json.Unmarshal(body, &result)
-	if errr != nil {
-		log.Fatal(errr)
+	err := json.Unmarshal(body, &result)
+	if err != nil {
+		log.Fatal(err)
 	}
 	return result[0]["state"] != "SHUTOFF"
 }
 func DoesVirtualDiskExist(host string, client *http.Client, env EnvConfig) bool {
 	url := fmt.Sprintf("%s%s%s", host, VirtualDiskEndpoint, env.ExistingVdiskUUID)
-	req, err := http.NewRequest("GET", url, bytes.NewBuffer(nil))
-	if err != nil {
-		log.Fatal(err)
-	}
+
+	req := SetHTTPRequest("GET", url, nil)
 	req = SetHTTPHeader(req)
 
 	resp, _ := SendHTTPRequest(req, client)
@@ -139,29 +151,52 @@ func DoesVirtualDiskExist(host string, client *http.Client, env EnvConfig) bool 
 func IsBootOrderCorrect(host string, client *http.Client, env EnvConfig) bool {
 	expectedBootOrder := []string{env.SourceDiskUUID, env.SourceNicUUID}
 	url := fmt.Sprintf("%s%s%s", host, VirDomainEndpoint, env.SourceVmUUID)
-	req, err := http.NewRequest("GET", url, bytes.NewBuffer(nil))
-	if err != nil {
-		log.Fatal(err)
-	}
+
+	req := SetHTTPRequest("GET", url, nil)
 	req = SetHTTPHeader(req)
 
 	_, body := SendHTTPRequest(req, client)
 
 	var result []map[string]interface{}
-	errr := json.Unmarshal(body, &result)
-	if errr != nil {
-		log.Fatal(errr)
+	err := json.Unmarshal(body, &result)
+	if err != nil {
+		log.Fatal(err)
 	}
 	return reflect.DeepEqual(result[0]["bootDevices"], expectedBootOrder)
+}
+func PrepareEnv(host string, client *http.Client, env EnvConfig) {
+	// We are doing env prepare here, make sure all the necessary entities are setup and present
+	if !AreEnvVariablesLoaded(env) {
+		log.Fatal("Environment variables aren't loaded, check env file in /acceptance/setup directory")
+	} else {
+		fmt.Println("Environment variables are loaded correctly")
+	}
+	if !DoesTestVMExist(host, client, env) {
+		log.Fatal("Acceptance test VM is missing in your testing environment")
+	} else {
+		fmt.Println("Acceptance test VM is present in the testing environment")
+	}
+	if IsTestVMRunning(host, client, env) {
+		log.Fatal("Acceptance test VM is RUNNING and should be turned off before the testing begins")
+	} else {
+		fmt.Println("Acceptance test VM is in the correct SHUTOFF state")
+	}
+	if !DoesVirtualDiskExist(host, client, env) {
+		log.Fatal("Acceptance test Virtual disk is missing in your testing environment")
+	} else {
+		fmt.Println("Acceptance test Virtual disk is present in your testing environment")
+	}
+	if IsBootOrderCorrect(host, client, env) {
+		log.Fatal("Acceptance test Boot order is incorrect on the test VM, should be disk followed by network interface")
+	} else {
+		fmt.Println("Acceptance test Boot order is in correct order")
+	}
 }
 
 func CleanUpPowerState(host string, client *http.Client, env EnvConfig) {
 	data := []byte(fmt.Sprintf(`[{"virDomainUUID": "%s", "actionType": "STOP", "cause": "INTERNAL"}]`, env.SourceVmUUID))
 	url := fmt.Sprintf("%s%s", host, VirDomainActionEndpoint)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
-	if err != nil {
-		log.Fatal(err)
-	}
+	req := SetHTTPRequest("POST", url, data)
 	req = SetHTTPHeader(req)
 	SendHTTPRequest(req, client)
 	// wait 30 seconds for VM to shutdown and then proceed with other cleanup tasks
@@ -177,15 +212,10 @@ func CleanUpBootOrder(host string, client *http.Client, env EnvConfig) {
 		log.Fatalf("Failed to marshal JSON: %v", err)
 	}
 	url := fmt.Sprintf("%s%s%s", host, VirDomainEndpoint, env.SourceVmUUID)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	req := SetHTTPRequest("POST", url, data)
 	req = SetHTTPHeader(req)
 	SendHTTPRequest(req, client)
 }
-
 func CleanupEnv(host string, client *http.Client, env EnvConfig) {
 	CleanUpPowerState(host, client, env)
 	CleanUpBootOrder(host, client, env)
@@ -207,31 +237,6 @@ func main() {
 	if isCleanup {
 		CleanupEnv(host, client, env)
 	} else {
-		// We are doing env prepare here, make sure all the necessary entities are setup and present
-		if !AreEnvVariablesLoaded(env) {
-			log.Fatal("Environment variables aren't loaded, check env file in /acceptance/setup directory")
-		} else {
-			fmt.Println("Environment variables are loaded correctly")
-		}
-		if !DoesTestVMExist(host, client, env) {
-			log.Fatal("Acceptance test VM is missing in your testing environment")
-		} else {
-			fmt.Println("Acceptance test VM is present in the testing environment")
-		}
-		if IsTestVMRunning(host, client, env) {
-			log.Fatal("Acceptance test VM is RUNNING and should be turned off before the testing begins")
-		} else {
-			fmt.Println("Acceptance test VM is in the correct SHUTOFF state")
-		}
-		if !DoesVirtualDiskExist(host, client, env) {
-			log.Fatal("Acceptance test Virtual disk is missing in your testing environment")
-		} else {
-			fmt.Println("Acceptance test Virtual disk is present in your testing environment")
-		}
-		if IsBootOrderCorrect(host, client, env) {
-			log.Fatal("Acceptance test Boot order is incorrect on the test VM, should be disk followed by network interface")
-		} else {
-			fmt.Println("Acceptance test Boot order is in correct order")
-		}
+		PrepareEnv(host, client, env)
 	}
 }
