@@ -107,6 +107,12 @@ jobs:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
       - run: go mod download
+      - name: Check Acceptance Test Environment
+        run: |
+          set -o allexport; eval "$(echo "$CI_CONFIG_HC_IP205_dos" | tr -s '\r\n' '\n')"; set +o allexport;
+          set -a
+          . ./internal/provider/tests/acceptance/setup/env.txt
+          go run ./internal/provider/tests/acceptance/setup/acceptance_test_env_prepare.go
       - env:
           TF_ACC: "1"
         run: |
@@ -115,7 +121,6 @@ jobs:
           sh -c 'echo sub-shell HC_HOST=$HC_HOST'
           set -a
           . ./internal/provider/tests/acceptance/setup/env.txt
-          go run ./internal/provider/tests/acceptance/setup/acceptance_test_env_prepare.go
           go test -v -cover -coverpkg=github.com/hashicorp/terraform-provider-hypercore/internal/provider ./internal/provider/tests/acceptance/
         timeout-minutes: 10
       - name: Cleanup Acceptance Test Environment
