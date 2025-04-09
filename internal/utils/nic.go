@@ -30,6 +30,7 @@ func CreateNic(
 		-1,
 	)
 	taskTag.WaitTask(restClient, ctx)
+	fmt.Println(payload)
 	nicUUID := taskTag.CreatedUUID
 	nic := GetNic(restClient, nicUUID)
 	return nicUUID, *nic
