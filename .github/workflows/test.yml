@@ -121,6 +121,8 @@ jobs:
       - name: Cleanup Acceptance Test Environment
         if: always()
         run: |
+          set -a
+          . ./internal/provider/tests/acceptance/setup/env.txt
           go run ./internal/provider/tests/acceptance/setup/acceptance_test_env_prepare.go "cleanup"
 
   unit-test:
