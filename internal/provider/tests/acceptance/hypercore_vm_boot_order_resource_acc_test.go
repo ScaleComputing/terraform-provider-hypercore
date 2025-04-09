@@ -18,11 +18,9 @@ func TestAccHypercoreBootOrderResource(t *testing.T) {
 			{
 				Config: testAccHypercoreBootOrderResourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("hypercore_disk.test", "size", "4"),
-					resource.TestCheckResourceAttr("hypercore_disk.test", "type", "IDE_DISK"),
-					resource.TestCheckResourceAttr("hypercore_nic.test", "vlan", "10"),
-					resource.TestCheckResourceAttr("hypercore_nic.test", "type", "VIRTIO"),
-					resource.TestCheckResourceAttr("hypercore_vm_boot_order.test", "boot_devices", "[hypercore_nic.test.id, hypercore_disk.test.id]"),
+					resource.TestCheckResourceAttr("hypercore_vm_boot_order.test", "boot_devices.#", "2"),
+					resource.TestCheckResourceAttr("hypercore_vm_boot_order.test", "boot_devices.0", source_nic_uuid),
+					resource.TestCheckResourceAttr("hypercore_vm_boot_order.test", "boot_devices.1", source_disk_uuid),
 				),
 			},
 		},
