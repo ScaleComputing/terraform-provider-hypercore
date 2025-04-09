@@ -1,25 +1,33 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package provider
+package acceptance
 
 import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-provider-hypercore/internal/provider"
 )
+
+/*
+var source_vm_name = os.Getenv("SOURCE_VM_NAME")
+var existing_vdisk_uuid = os.Getenv("EXISTING_VDISK_UUID")
+var source_nic_uuid = os.Getenv("SOURCE_NIC_UUID")
+var source_disk_uuid = os.Getenv("SOURCE_DISK_UUID")
+*/
 
 // testAccProtoV6ProviderFactories are used to instantiate a provider during
 // acceptance testing. The factory function will be invoked for every Terraform
 // CLI command executed to create a provider server to which the CLI can
 // reattach.
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"hypercore": providerserver.NewProtocol6WithError(New("test")()),
+	"hypercore": providerserver.NewProtocol6WithError(provider.New("test")()),
 }
 
 func testAccPreCheck(t *testing.T) {
-	// You can add code here to run prior to any test case execution, for example assertions
-	// about the appropriate environment variables being set are common to see in a pre-check
-	// function.
+	// Prechecks
+	// Don't use terraform CRUD operations here, this is ran prior to the test and will not cleanup
+
 }
