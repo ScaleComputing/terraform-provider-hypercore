@@ -6,8 +6,12 @@ package provider
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -393,6 +397,12 @@ func (r *HypercoreVMResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	restClient := *r.client
 	vm_uuid := data.Id.ValueString()
+	err := shutdownVM(ctx, vm_uuid, &restClient)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete shutdown VM, got error: %s", err))
+		return
+	}
+
 	taskTag := restClient.DeleteRecord(
 		fmt.Sprintf("/rest/v1/VirDomain/%s", vm_uuid),
 		-1,
@@ -404,4 +414,92 @@ func (r *HypercoreVMResource) Delete(ctx context.Context, req resource.DeleteReq
 func (r *HypercoreVMResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	tflog.Info(ctx, "TTRT HypercoreVMResource IMPORT_STATE")
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func shutdownVM(ctx context.Context, vmUUID string, restClient *utils.RestClient) diag.Diagnostic {
+	currentState, err := utils.GetVMPowerState(vmUUID, *restClient)
+	if err != nil {
+		return err
+	}
+	if currentState == "SHUTOFF" {
+		return nil
+	}
+	// VM needs to be shutdown
+
+	// VM shutdown might be already initiated, but not yet fully done.
+	// Send ACPI shutdown if needed.
+	desiredState, err := utils.GetVMDesiredState(vmUUID, *restClient)
+	if err != nil {
+		return err
+	}
+	if desiredState != "SHUTOFF" {
+		err = utils.ModifyVMPowerState(*restClient, vmUUID, "SHUTDOWN", ctx)
+		if err != nil {
+			return err
+		}
+	}
+	var maxWaitTime int = 300
+	envMaxWaitTime := os.Getenv("HC_VM_SHUTDOWN_TIMEOUT")
+	if envMaxWaitTime != "" {
+		val, err := strconv.Atoi(envMaxWaitTime)
+		if err != nil {
+			err_msg := fmt.Sprintf("TTRT HypercoreVMResource Destroy, environ HC_VM_SHUTDOWN_TIMEOUT=%s is not number, err=%s", envMaxWaitTime, err)
+			tflog.Error(ctx, err_msg)
+			var diags diag.Diagnostics
+			diags.AddError(
+				"Invalid environ variable HC_VM_SHUTDOWN_TIMEOUT",
+				err_msg,
+			)
+			return diags[0]
+		}
+		maxWaitTime = val
+	}
+	var waitSleep = 5
+	var waitTime = 0
+	for {
+		// wait on VM to stop
+		currentState, err := utils.GetVMPowerState(vmUUID, *restClient)
+		if err != nil {
+			return err
+		}
+		if currentState == "SHUTOFF" {
+			return nil
+		}
+		if waitTime > maxWaitTime {
+			break
+		}
+		time.Sleep(time.Duration(waitSleep) * time.Second)
+		waitTime += waitSleep
+	}
+
+	// force shutdown is needed
+	tflog.Warn(ctx, "TTRT HypercoreVMResource Destroy, VM is still running after nice ACPI shutdown, VM will be force shutoff.")
+	err = utils.ModifyVMPowerState(*restClient, vmUUID, "STOP", ctx)
+	if err != nil {
+		return err
+	}
+	waitTime = 0
+	for {
+		// wait on VM to stop
+		currentState, err := utils.GetVMPowerState(vmUUID, *restClient)
+		if err != nil {
+			return err
+		}
+		if currentState == "SHUTOFF" {
+			return nil
+		}
+		if waitTime > maxWaitTime {
+			break
+		}
+		time.Sleep(time.Duration(waitSleep) * time.Second)
+		waitTime += waitSleep
+	}
+
+	tflog.Error(ctx, "TTRT HypercoreVMResource Destroy, VM is still running after force shutdown")
+	var diags diag.Diagnostics
+	diags.AddError(
+		"Error Shutting down VM",
+		"Unable to shutdown VM with ACPI shutdown or force shutdown.",
+	)
+	return diags[0]
 }

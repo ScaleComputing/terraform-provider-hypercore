@@ -77,11 +77,11 @@ func GetVMPowerState(vmUUID string, restClient RestClient) (string, diag.Diagnos
 	return powerState, nil
 }
 
-func GetVMDesiredState(vmUUID string, restClient RestClient) (*string, diag.Diagnostic) {
+func GetVMDesiredState(vmUUID string, restClient RestClient) (string, diag.Diagnostic) {
 	vm, err := GetOneVMWithError(vmUUID, restClient)
 
 	if err != nil {
-		return nil, diag.NewErrorDiagnostic(
+		return "", diag.NewErrorDiagnostic(
 			"VM not found",
 			err.Error(),
 		)
@@ -89,7 +89,7 @@ func GetVMDesiredState(vmUUID string, restClient RestClient) (*string, diag.Diag
 
 	powerState := AnyToString((*vm)["desiredDisposition"])
 
-	return &powerState, nil
+	return powerState, nil
 }
 
 func ValidatePowerState(desiredState string) diag.Diagnostic {
