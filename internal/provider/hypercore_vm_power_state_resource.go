@@ -125,14 +125,7 @@ func (r *HypercoreVMPowerStateResource) Create(ctx context.Context, req resource
 	// we need to check with the NEEDED_ACTION_FOR_POWER_STATE.
 	// actionType := utils.NEEDED_ACTION_FOR_POWER_STATE[data.State.ValueString()]
 	actionType := utils.GetNeededActionForState(data.State.ValueString(), data.ForceSutoff.ValueBool())
-	createPayload := []map[string]any{
-		{
-			"virDomainUUID": data.VmUUID.ValueString(),
-			"actionType":    actionType,
-			"cause":         "INTERNAL",
-		},
-	}
-	diag := utils.ModifyVMPowerState(*r.client, data.VmUUID.ValueString(), createPayload, ctx)
+	diag := utils.ModifyVMPowerState(*r.client, data.VmUUID.ValueString(), actionType, ctx)
 	if diag != nil {
 		resp.Diagnostics.AddWarning(diag.Summary(), diag.Detail())
 	}
@@ -248,14 +241,7 @@ func (r *HypercoreVMPowerStateResource) Update(ctx context.Context, req resource
 	// we need to check with the NEEDED_ACTION_FOR_POWER_STATE.
 	// actionType := utils.NEEDED_ACTION_FOR_POWER_STATE[vmDesiredState]
 	actionType := utils.GetNeededActionForState(vmDesiredState, forceShutoff)
-	updatePayload := []map[string]any{
-		{
-			"virDomainUUID": vmUUID,
-			"actionType":    actionType,
-			"cause":         "INTERNAL",
-		},
-	}
-	diag := utils.ModifyVMPowerState(restClient, vmUUID, updatePayload, ctx)
+	diag := utils.ModifyVMPowerState(restClient, vmUUID, actionType, ctx)
 	if diag != nil {
 		resp.Diagnostics.AddWarning(diag.Summary(), diag.Detail())
 	}

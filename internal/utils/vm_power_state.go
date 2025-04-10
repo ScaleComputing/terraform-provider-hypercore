@@ -33,10 +33,17 @@ func GetNeededActionForState(desiredState string, forceShutoff bool) string {
 func ModifyVMPowerState(
 	restClient RestClient,
 	vmUUID string,
-	payload []map[string]any,
+	actionType string,
 	ctx context.Context,
 ) diag.Diagnostic {
 
+	payload := []map[string]any{
+		{
+			"virDomainUUID": vmUUID,
+			"actionType":    actionType,
+			"cause":         "INTERNAL",
+		},
+	}
 	taskTag, _, err := restClient.CreateRecordWithList(
 		"/rest/v1/VirDomain/action",
 		payload,
