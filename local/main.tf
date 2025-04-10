@@ -9,18 +9,38 @@ terraform {
   }
 }
 
+locals {
+  vm_name = "testtf-remove-running"
+  src_vm_name = "testtf-src-empty"
+}
+
 provider "hypercore" {}
 
-data "hypercore_remote_cluster_connection" "all_clusters" {}
-
-data "hypercore_remote_cluster_connection" "cluster-a" {
-  remote_cluster_name = "cluster-a"
+data "hypercore_vm" "src_empty" {
+  name = local.src_vm_name
 }
 
-output "all_remote_clusters" {
-  value = jsonencode(data.hypercore_remote_cluster_connection.all_clusters)
+resource "hypercore_vm" "vm_on" {
+  group       = "testtf"
+  name        = local.vm_name
+  description = "VM to be removed"
+  vcpu        = 1
+  memory      = 1234  # MiB
+  clone = {
+    source_vm_uuid = data.hypercore_vm.src_empty.vms.0.uuid
+    meta_data = ""
+    user_data = ""
+  }
 }
 
-output "filtered_remote_cluster" {
-  value = jsonencode(data.hypercore_remote_cluster_connection.cluster-a)
+resource "hypercore_vm_power_state" "vm_on" {
+  vm_uuid = hypercore_vm.vm_on.id
+  state = "RUNNING"
+}
+
+output "vm_on_uuid" {
+  value = hypercore_vm.vm_on.id
+}
+output "power_state" {
+  value = hypercore_vm_power_state.vm_on.state
 }
