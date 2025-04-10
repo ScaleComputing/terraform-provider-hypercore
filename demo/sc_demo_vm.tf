@@ -20,6 +20,18 @@ resource "hypercore_vm" "demo_vm" {
       ssh_import_id       = "",
     })
   }
+
+  snapshot_schedule_uuid = hypercore_vm_snapshot_schedule.demo1.id
+  # TODO update, "" -> null
+
+  # Pin VM to the first node in cluster
+  # If preferred_node fails, run VM on any other node.
+  affinity_strategy = {
+    strict_affinity = true
+    preferred_node_uuid = data.hypercore_node.node_1.nodes.0.uuid
+    backup_node_uuid = ""
+    # backup_node_uuid = data.hypercore_node.node_2.id
+  }
 }
 
 # Next clone existing virtual_disk, and attach it to the VM.
@@ -35,6 +47,8 @@ resource "hypercore_disk" "iso" {
   vm_uuid                = hypercore_vm.demo_vm.id
   type                   = "IDE_CDROM"
   iso_uuid               = hypercore_iso.alpine_virt.id
+  // TODO size, should be computed
+  size     = 0.066060288
 }
 
 resource "hypercore_nic" "vlan_all" {
@@ -50,7 +64,7 @@ resource "hypercore_nic" "vlan_all" {
 
 resource "hypercore_vm_power_state" "demo_vm" {
   vm_uuid = hypercore_vm.demo_vm.id
-  state   = "RUNNING" # available states are: SHUTOFF, RUNNING, PAUSED
+  state   = "SHUTOFF" # available states are: SHUTOFF, RUNNING, PAUSED
   depends_on = [
     hypercore_disk.os,
     hypercore_disk.iso,

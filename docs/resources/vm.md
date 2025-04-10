@@ -28,8 +28,9 @@ resource "hypercore_vm" "myvm" {
   name        = local.vm_name
   description = "some description"
 
-  vcpu   = 4
-  memory = 4096 # MiB
+  vcpu                   = 4
+  memory                 = 4096 # MiB
+  snapshot_schedule_uuid = data.hypercore_vm.clone_source_vm.vms.0.snapshot_schedule_uuid
 
   clone = {
     source_vm_uuid = data.hypercore_vm.clone_source_vm.vms.0.uuid
@@ -58,15 +59,27 @@ output "vm_uuid" {
 
 ### Optional
 
+- `affinity_strategy` (Object) VM node affinity. (see [below for nested schema](#nestedatt--affinity_strategy))
 - `clone` (Object) Clone options if the VM is being created as a clone. The `source_vm_uuid` is the UUID of the VM used for cloning, <br>`user_data` and `meta_data` are used for the cloud init data. (see [below for nested schema](#nestedatt--clone))
 - `description` (String) Description of this VM
 - `group` (String) Group/tag to create this VM in
 - `memory` (Number) Memory (RAM) size in `MiB`: If the cloned VM was already created <br>and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)
+- `snapshot_schedule_uuid` (String) UUID of the snapshot schedule to create automatic snapshots
 - `vcpu` (Number) Number of CPUs on this VM. If the cloned VM was already created and it's <br>`VCPU` was modified, the cloned VM will be rebooted (either gracefully or forcefully)
 
 ### Read-Only
 
 - `id` (String) HypercoreVM identifier
+
+<a id="nestedatt--affinity_strategy"></a>
+### Nested Schema for `affinity_strategy`
+
+Optional:
+
+- `backup_node_uuid` (String)
+- `preferred_node_uuid` (String)
+- `strict_affinity` (Boolean)
+
 
 <a id="nestedatt--clone"></a>
 ### Nested Schema for `clone`

@@ -26,6 +26,10 @@ TEMP: create VM named `testtf-src`.
 
 Prior to running acceptance tests we need to setup:
   1. Virtual machine
-  2. Virtual disk prior
+  2. Virtual disk
+    a. has one disk
+    b. has one nic
+    c. boot order is configured as [disk, nic]
+  2. Virtual disk (as standalone not attached to the testing VM)
   3. Add names and UUIDs to the env.txt file in /tests/acceptance/setup directory
   4. Virtual machine needs to be powered off

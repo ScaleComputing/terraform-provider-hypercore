@@ -47,11 +47,23 @@ Optional:
 
 Read-Only:
 
+- `affinity_strategy` (Object) VM node affinity. (see [below for nested schema](#nestedatt--vms--affinity_strategy))
 - `description` (String)
 - `disks` (Attributes List) List of disks (see [below for nested schema](#nestedatt--vms--disks))
 - `name` (String)
 - `power_state` (String)
+- `snapshot_schedule_uuid` (String) UUID of the applied snapshot schedule for creating automated snapshots
 - `uuid` (String)
+
+<a id="nestedatt--vms--affinity_strategy"></a>
+### Nested Schema for `vms.affinity_strategy`
+
+Read-Only:
+
+- `backup_node_uuid` (String)
+- `preferred_node_uuid` (String)
+- `strict_affinity` (Boolean)
+
 
 <a id="nestedatt--vms--disks"></a>
 ### Nested Schema for `vms.disks`

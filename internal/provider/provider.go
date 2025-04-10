@@ -171,12 +171,17 @@ func (p *HypercoreProvider) Resources(ctx context.Context) []func() resource.Res
 		NewHypercoreISOResource,
 		NewHypercoreVMPowerStateResource,
 		NewHypercoreVMBootOrderResource,
+		NewHypercoreVMSnapshotResource,
+		NewHypercoreVMSnapshotScheduleResource,
+		NewHypercoreVMReplicationResource,
 	}
 }
 
 func (p *HypercoreProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewHypercoreVMDataSource,
+		NewHypercoreNodeDataSource,
+		NewHypercoreRemoteClusterConnectionDataSource,
 	}
 }
 

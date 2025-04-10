@@ -87,6 +87,7 @@ resource "hypercore_vm" "test" {
   vcpu = 4
   memory = 4096
   description = "testtf-vm-description"
+  snapshot_schedule_uuid = ""
   // power_state = %[3]q
   clone = {
 	source_vm_uuid = %[2]q

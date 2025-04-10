@@ -40,6 +40,49 @@ func filterResults(results []map[string]any, filterData map[string]any) []map[st
 	return filtered
 }
 
+func isSupersetRecursive(superset map[string]any, candidate map[string]any) bool {
+	if candidate == nil {
+		return true
+	}
+
+	for key, value := range candidate {
+		supValue, ok := superset[key]
+		if !ok {
+			return false
+		}
+
+		switch v := value.(type) {
+		case map[string]any:
+			// recursive check if map
+			if subMap, ok := supValue.(map[string]any); ok {
+				if !isSupersetRecursive(subMap, v) {
+					return false
+				}
+			} else {
+				return false
+			}
+		default:
+			// do normal check if not a map
+			if supValue != v {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func filterResultsRecursive(results []map[string]any, filterData map[string]any) []map[string]any {
+	filtered := []map[string]any{}
+
+	for _, element := range results {
+		if isSupersetRecursive(element, filterData) {
+			filtered = append(filtered, element)
+		}
+	}
+
+	return filtered
+}
+
 // nolint:unused
 func filterMap(input map[string]any, fieldNames ...string) map[string]any {
 	output := map[string]any{}
@@ -91,6 +134,15 @@ func AnyToString(str any) string {
 		panic(fmt.Sprintf("Unexpected variable where a string was expected: %v", str))
 	}
 	return stringifiedAny
+}
+
+func AnyToBool(value any) bool {
+	switch v := value.(type) {
+	case bool:
+		return v
+	}
+
+	panic(fmt.Sprintf("Unexpected variable where an bool was expected: %v (type %T)", value, value))
 }
 
 func AnyToInteger64(integer any) int64 {

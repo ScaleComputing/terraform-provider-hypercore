@@ -56,16 +56,20 @@ const (
 )
 
 type VM struct {
-	UUID               string
-	VMName             string
-	sourceVMUUID       string
-	cloudInit          map[string]any
-	preserveMacAddress bool
-	description        *string
-	tags               *[]string
-	vcpu               *int32
-	memory             *int64
-	powerState         *string
+	UUID                 string
+	VMName               string
+	sourceVMUUID         string
+	cloudInit            map[string]any
+	preserveMacAddress   bool
+	description          *string
+	tags                 *[]string
+	vcpu                 *int32
+	memory               *int64
+	snapshotScheduleUUID *string
+	powerState           *string
+	strictAffinity       bool
+	preferredNodeUUID    string
+	backupNodeUUID       string
 
 	_wasNiceShutdownTried  bool
 	_didNiceShutdownWork   bool
@@ -84,7 +88,11 @@ func NewVM(
 	_tags *[]string,
 	_vcpu *int32,
 	_memory *int64,
+	_snapshotScheduleUUID *string,
 	_powerState *string,
+	_strictAffinity bool,
+	_preferredNodeUUID string,
+	_backupNodeUUID string,
 ) (*VM, error) {
 	userDataB64 := base64.StdEncoding.EncodeToString([]byte(userData))
 	metaDataB64 := base64.StdEncoding.EncodeToString([]byte(metaData))
@@ -98,11 +106,15 @@ func NewVM(
 			"userData": userDataB64,
 			"metaData": metaDataB64,
 		},
-		description: _description,
-		tags:        _tags,
-		vcpu:        _vcpu,
-		memory:      _memory,
-		powerState:  _powerState,
+		description:          _description,
+		tags:                 _tags,
+		vcpu:                 _vcpu,
+		memory:               _memory,
+		snapshotScheduleUUID: _snapshotScheduleUUID,
+		powerState:           _powerState,
+		strictAffinity:       _strictAffinity,
+		preferredNodeUUID:    _preferredNodeUUID,
+		backupNodeUUID:       _backupNodeUUID,
 
 		// helpers
 		_wasNiceShutdownTried:  false,
@@ -165,7 +177,7 @@ func (vc *VM) Create(restClient RestClient, ctx context.Context) (bool, string) 
 
 func (vc *VM) SetVMParams(restClient RestClient, ctx context.Context) (bool, bool, map[string]any) {
 	vm := GetVMByName(vc.VMName, restClient, true)
-	changed, changedParams := vc.GetChangedParams(*vm)
+	changed, changedParams := vc.GetChangedParams(ctx, *vm)
 
 	if changed {
 		updatePayload := vc.BuildUpdatePayload(changedParams)
@@ -403,11 +415,28 @@ func (vc *VM) BuildUpdatePayload(changedParams map[string]bool) map[string]any {
 	if changed, ok := changedParams["vcpu"]; ok && changed {
 		updatePayload["numVCPU"] = *vc.vcpu
 	}
+	if changed, ok := changedParams["snapshotScheduleUUID"]; ok && changed {
+		updatePayload["snapshotScheduleUUID"] = *vc.snapshotScheduleUUID
+	}
+
+	affinityStrategy := map[string]any{}
+	if changed, ok := changedParams["strictAffinity"]; ok && changed {
+		affinityStrategy["strictAffinity"] = vc.strictAffinity
+	}
+	if changed, ok := changedParams["preferredNodeUUID"]; ok && changed {
+		affinityStrategy["preferredNodeUUID"] = vc.preferredNodeUUID
+	}
+	if changed, ok := changedParams["backupNodeUUID"]; ok && changed {
+		affinityStrategy["backupNodeUUID"] = vc.backupNodeUUID
+	}
+	if len(affinityStrategy) > 0 {
+		updatePayload["affinityStrategy"] = affinityStrategy
+	}
 
 	return updatePayload
 }
 
-func (vc *VM) GetChangedParams(vmFromClient map[string]any) (bool, map[string]bool) {
+func (vc *VM) GetChangedParams(ctx context.Context, vmFromClient map[string]any) (bool, map[string]bool) {
 	changedParams := map[string]bool{}
 
 	if vc.description != nil {
@@ -432,6 +461,14 @@ func (vc *VM) GetChangedParams(vmFromClient map[string]any) (bool, map[string]bo
 			changedParams["powerState"] = desiredPowerState != vmFromClient["state"]
 		}
 	}
+	if vc.snapshotScheduleUUID != nil {
+		changedParams["snapshotScheduleUUID"] = *vc.snapshotScheduleUUID != vmFromClient["snapshotScheduleUUID"]
+	}
+
+	hc3AffinityStrategy := AnyToMap(vmFromClient["affinityStrategy"])
+	changedParams["strictAffinity"] = vc.strictAffinity != hc3AffinityStrategy["strictAffinity"]
+	changedParams["preferredNodeUUID"] = vc.preferredNodeUUID != hc3AffinityStrategy["preferredNodeUUID"]
+	changedParams["backupNodeUUID"] = vc.backupNodeUUID != hc3AffinityStrategy["backupNodeUUID"]
 
 	for _, changed := range changedParams {
 		if changed {
@@ -447,6 +484,7 @@ func GetOneVM(uuid string, restClient RestClient) map[string]any {
 		url,
 		map[string]any{},
 		-1.0,
+		false,
 	)
 
 	if len(records) == 0 {
@@ -476,6 +514,7 @@ func GetVMOrFail(query map[string]any, restClient RestClient) []map[string]any {
 		"/rest/v1/VirDomain",
 		query,
 		-1.0,
+		false,
 	)
 
 	if len(records) == 0 {
@@ -490,6 +529,7 @@ func GetVM(query map[string]any, restClient RestClient) []map[string]any {
 		"/rest/v1/VirDomain",
 		query,
 		-1.0,
+		false,
 	)
 
 	if len(records) == 0 {
