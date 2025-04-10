@@ -86,21 +86,6 @@ func filterResultsRecursive(results []map[string]any, filterData map[string]any)
 	return filtered
 }
 
-// nolint:unused
-func filterMap(input map[string]any, fieldNames ...string) map[string]any {
-	output := map[string]any{}
-
-	for _, fieldName := range fieldNames {
-		if value, ok := input[fieldName]; ok {
-			if value != nil || value != "" {
-				output[fieldName] = value
-			}
-		}
-	}
-
-	return output
-}
-
 func jsonObjectToTaskTag(jsonObj any) *TaskTag {
 	var taskTag *TaskTag
 
@@ -250,7 +235,7 @@ func AnyToListOfStrings(list any) []string {
 func ReadLocalFileBinary(filePath string) ([]byte, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("Error opening file '%s': %s", filePath, err)
+		return nil, fmt.Errorf("error opening file '%s': %s", filePath, err)
 	}
 	defer file.Close()
 
@@ -335,11 +320,17 @@ func ValidateSMB(server string, username string, password string, path string) d
 	return nil
 }
 
-func ValidateHTTP(httpPath string) diag.Diagnostic {
-	if strings.HasPrefix(httpPath, "http://") || strings.HasPrefix(httpPath, "https://") {
+func ValidateHTTP(httpUri string, path string) diag.Diagnostic {
+	if !strings.HasPrefix(httpUri, "http://") && !strings.HasPrefix(httpUri, "https://") {
 		return diag.NewErrorDiagnostic(
-			"Invalid HTTP path",
-			"Invalid HTTP path. Path must start with 'http://' or 'https://'",
+			"Invalid HTTP uri",
+			"Invalid HTTP uri. Uri must start with 'http://' or 'https://'",
+		)
+	}
+	if path == "" {
+		return diag.NewErrorDiagnostic(
+			"Invalid path",
+			"Invalid path. Path parameter must be defined and start with '/'",
 		)
 	}
 

@@ -552,9 +552,10 @@ func BuildSMBImportSource(username string, password string, server string, path 
 	return source
 }
 
-func BuildHTTPImportSource(httpPath string, fileName string) map[string]any {
+func BuildHTTPImportSource(httpUri string, path string, fileName string) map[string]any {
+	pathURI := fmt.Sprintf("%s%s", httpUri, path)
 	source := map[string]any{
-		"pathURI": httpPath,
+		"pathURI": pathURI,
 	}
 
 	if fileName != "" {
@@ -589,7 +590,7 @@ func GetOneVMWithError(uuid string, restClient RestClient) (*map[string]any, err
 	)
 
 	if record == nil {
-		return nil, fmt.Errorf("VM not found - vmUUID=%s.\n", uuid)
+		return nil, fmt.Errorf("vm not found - vmUUID=%s", uuid)
 	}
 
 	return record, nil
@@ -604,7 +605,7 @@ func GetVMOrFail(query map[string]any, restClient RestClient) []map[string]any {
 	)
 
 	if len(records) == 0 {
-		panic(fmt.Errorf("No VM found: %v", query))
+		panic(fmt.Errorf("no VM found: %v", query))
 	}
 
 	return records

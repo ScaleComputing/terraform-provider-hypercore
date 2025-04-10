@@ -47,7 +47,7 @@ type HypercoreVMResourceModel struct {
 }
 
 type ImportModel struct {
-	HTTPPath types.String `tfsdk:"http_path"`
+	HTTPUri  types.String `tfsdk:"http_uri"`
 	Server   types.String `tfsdk:"server"`
 	Username types.String `tfsdk:"username"`
 	Password types.String `tfsdk:"password"`
@@ -106,11 +106,11 @@ func (r *HypercoreVMResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:            true,
 			},
 			"import": schema.ObjectAttribute{
-				MarkdownDescription: "Options for importing a VM through an SMB server. <br>" +
-					"All parameters except `file_path` are **required**",
+				MarkdownDescription: "Options for importing a VM through a SMB server or some other HTTP location. <br>" +
+					"Use server, username, password for SMB or http_uri for some other HTTP location. Paramaters path and file_name are always **required**",
 				Optional: true,
 				AttributeTypes: map[string]attr.Type{
-					"http_path": types.StringType,
+					"http_uri":  types.StringType,
 					"server":    types.StringType,
 					"username":  types.StringType,
 					"password":  types.StringType,
@@ -244,29 +244,36 @@ func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateReq
 	)
 
 	// http import
-	httpPath := data.Import.HTTPPath.ValueString()
+	httpUri := data.Import.HTTPUri.ValueString()
 
 	// smb import
 	smbServer := data.Import.Server.ValueString()
 	smbUsername := data.Import.Username.ValueString()
 	smbPassword := data.Import.Password.ValueString()
-	smbPath := data.Import.Path.ValueString()
+
+	// location
+	path := data.Import.Path.ValueString()
 	fileName := data.Import.FileName.ValueString()
 
-	isSMBImport := smbServer != "" || smbUsername != "" || smbPassword != "" || smbPath != ""
-	isHTTPImport := httpPath != ""
+	isSMBImport := smbServer != "" || smbUsername != "" || smbPassword != ""
+	isHTTPImport := httpUri != ""
 
-	importedVM := map[string]any{}
 	if isHTTPImport && !isSMBImport {
-		utils.ValidateHTTP(httpPath)
-		httpSource := utils.BuildHTTPImportSource(httpPath, fileName)
-		importedVM = vmClone.ImportVM(*r.client, httpSource, ctx)
-		tflog.Debug(ctx, fmt.Sprintf("TTRT Create - with HTTP VM import: vm_uuid=%s, vm=%v", vmClone.UUID, importedVM))
+		nameDiag := utils.ValidateHTTP(httpUri, path)
+		if nameDiag != nil {
+			resp.Diagnostics.AddError(nameDiag.Summary(), nameDiag.Detail())
+			return
+		}
+		httpSource := utils.BuildHTTPImportSource(httpUri, path, fileName)
+		vmClone.ImportVM(*r.client, httpSource, ctx)
 	} else if isSMBImport && !isHTTPImport {
-		utils.ValidateSMB(smbServer, smbUsername, smbPassword, smbPath)
-		smbSource := utils.BuildSMBImportSource(smbUsername, smbPassword, smbServer, smbPath, fileName)
-		importedVM = vmClone.ImportVM(*r.client, smbSource, ctx)
-		tflog.Debug(ctx, fmt.Sprintf("TTRT Create - with SMB VM import: vm_uuid=%s, vm=%v", vmClone.UUID, importedVM))
+		nameDiag := utils.ValidateSMB(smbServer, smbUsername, smbPassword, path)
+		if nameDiag != nil {
+			resp.Diagnostics.AddError(nameDiag.Summary(), nameDiag.Detail())
+			return
+		}
+		smbSource := utils.BuildSMBImportSource(smbUsername, smbPassword, smbServer, path, fileName)
+		vmClone.ImportVM(*r.client, smbSource, ctx)
 	} else {
 		// Cloning
 		changed, msg := vmClone.Create(*r.client, ctx)
@@ -276,7 +283,6 @@ func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateReq
 		// set: description, group, vcpu, memory, power_state
 		changed, vmWasRebooted, vmDiff := vmClone.SetVMParams(*r.client, ctx)
 		tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
-
 	}
 
 	// save into the Terraform state.

@@ -36,7 +36,7 @@ func NewVMDisk(
 	_size *float64,
 ) (*VMDisk, error) {
 	if !ALLOWED_DISK_TYPES[_type] {
-		return nil, fmt.Errorf("Disk type '%s' not allowed. Allowed types are: IDE_DISK, SCSI_DISK, VIRTIO_DISK, IDE_FLOPPY, NVRAM, VTPM\n", _type)
+		return nil, fmt.Errorf("disk type '%s' not allowed. Allowed types are: IDE_DISK, SCSI_DISK, VIRTIO_DISK, IDE_FLOPPY, NVRAM, VTPM", _type)
 	}
 
 	var byteSize *float64
@@ -108,7 +108,7 @@ func (vd *VMDisk) CreateOrUpdate(
 			desiredDiskSize := AnyToFloat64(desiredDisk["capacity"]) / 1000 / 1000 / 1000
 			if existingDiskSize > desiredDiskSize {
 				return false, false, "", fmt.Errorf(
-					"Disk of type '%s' on slot %d can only be expanded. Use a different slot or use a larger size. %v GB > %v GB\n",
+					"disk of type '%s' on slot %d can only be expanded. Use a different slot or use a larger size. %v GB > %v GB",
 					existingDiskType, existingDiskSlot, existingDiskSize, desiredDiskSize,
 				)
 			}
