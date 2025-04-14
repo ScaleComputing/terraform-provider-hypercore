@@ -38,15 +38,25 @@ type HypercoreVMResource struct {
 
 // HypercoreVMResourceModel describes the resource data model.
 type HypercoreVMResourceModel struct {
-	Group                types.String          `tfsdk:"group"`
-	Name                 types.String          `tfsdk:"name"`
-	Description          types.String          `tfsdk:"description"`
-	VCPU                 types.Int32           `tfsdk:"vcpu"`
-	Memory               types.Int64           `tfsdk:"memory"`
-	SnapshotScheduleUUID types.String          `tfsdk:"snapshot_schedule_uuid"`
-	Clone                CloneModel            `tfsdk:"clone"`
-	AffinityStrategy     AffinityStrategyModel `tfsdk:"affinity_strategy"`
-	Id                   types.String          `tfsdk:"id"`
+	Group                types.String           `tfsdk:"group"`
+	Name                 types.String           `tfsdk:"name"`
+	Description          types.String           `tfsdk:"description"`
+	VCPU                 types.Int32            `tfsdk:"vcpu"`
+	Memory               types.Int64            `tfsdk:"memory"`
+	Import               *ImportModel           `tfsdk:"import"`
+	SnapshotScheduleUUID types.String           `tfsdk:"snapshot_schedule_uuid"`
+	Clone                *CloneModel            `tfsdk:"clone"`
+	AffinityStrategy     *AffinityStrategyModel `tfsdk:"affinity_strategy"`
+	Id                   types.String           `tfsdk:"id"`
+}
+
+type ImportModel struct {
+	HTTPUri  types.String `tfsdk:"http_uri"`
+	Server   types.String `tfsdk:"server"`
+	Username types.String `tfsdk:"username"`
+	Password types.String `tfsdk:"password"`
+	Path     types.String `tfsdk:"path"`
+	FileName types.String `tfsdk:"file_name"`
 }
 
 type CloneModel struct {
@@ -98,6 +108,32 @@ func (r *HypercoreVMResource) Schema(ctx context.Context, req resource.SchemaReq
 			"snapshot_schedule_uuid": schema.StringAttribute{
 				MarkdownDescription: "UUID of the snapshot schedule to create automatic snapshots",
 				Optional:            true,
+			},
+			"import": schema.SingleNestedAttribute{
+				MarkdownDescription: "Options for importing a VM through a SMB server or some other HTTP location. <br>" +
+					"Use server, username, password for SMB or http_uri for some other HTTP location. Parameters path and file_name are always **required**",
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"http_uri": schema.StringAttribute{
+						Optional: true,
+					},
+					"server": schema.StringAttribute{
+						Optional: true,
+					},
+					"username": schema.StringAttribute{
+						Optional: true,
+					},
+					"password": schema.StringAttribute{
+						Optional:  true,
+						Sensitive: true,
+					},
+					"path": schema.StringAttribute{
+						Required: true, // Optional for now; can validate presence at runtime based on method.
+					},
+					"file_name": schema.StringAttribute{
+						Required: true,
+					},
+				},
 			},
 			"clone": schema.ObjectAttribute{
 				MarkdownDescription: "" +
@@ -166,6 +202,113 @@ func (r *HypercoreVMResource) Configure(ctx context.Context, req resource.Config
 	r.client = restClient
 }
 
+func getVMStruct(data *HypercoreVMResourceModel, vmDescription *string, vmTags *[]string) *utils.VM {
+	// Get VM structure from Utils.VM but first check if certain parameters are passed
+	sourceVMUUID := ""
+	userData := ""
+	metaData := ""
+	if data.Clone != nil {
+		sourceVMUUID = data.Clone.SourceVMUUID.ValueString()
+		userData = data.Clone.UserData.ValueString()
+		metaData = data.Clone.MetaData.ValueString()
+	}
+	vmStruct := utils.GetVMStruct(
+		data.Name.ValueString(),
+		sourceVMUUID,
+		userData,
+		metaData,
+		vmDescription,
+		vmTags,
+		data.VCPU.ValueInt32Pointer(),
+		data.Memory.ValueInt64Pointer(),
+		data.SnapshotScheduleUUID.ValueStringPointer(),
+		nil,
+		data.AffinityStrategy.StrictAffinity.ValueBool(),
+		data.AffinityStrategy.PreferredNodeUUID.ValueString(),
+		data.AffinityStrategy.BackupNodeUUID.ValueString(),
+	)
+	return vmStruct
+}
+
+func validateParameters(data *HypercoreVMResourceModel) (*string, *[]string) {
+	var tags *[]string
+	var description *string
+
+	if data.Group.ValueString() == "" {
+		tags = nil
+	} else {
+		t := []string{data.Group.ValueString()}
+		tags = &t
+	}
+
+	if data.Description.ValueString() == "" {
+		description = nil
+	} else {
+		description = data.Description.ValueStringPointer()
+	}
+	return description, tags
+}
+
+func (r *HypercoreVMResource) handleCloneLogic(data *HypercoreVMResourceModel, ctx context.Context, description *string, tags *[]string) {
+	vmNew := getVMStruct(data, description, tags)
+	changed, msg := vmNew.Clone(*r.client, ctx)
+	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
+	changed, vmWasRebooted, vmDiff := vmNew.SetVMParams(*r.client, ctx)
+	data.Id = types.StringValue(vmNew.UUID)
+	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
+}
+func (r *HypercoreVMResource) handleImportFromSMBLogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, vmNew *utils.VM, smbServer string, smbUsername string, smbPassword string, path string, fileName string) {
+	nameDiag := utils.ValidateSMB(smbServer, smbUsername, smbPassword, path)
+	if nameDiag != nil {
+		resp.Diagnostics.AddError(nameDiag.Summary(), nameDiag.Detail())
+		return
+	}
+	smbSource := utils.BuildSMBImportSource(smbUsername, smbPassword, smbServer, path, fileName)
+	vmNew.Import(*r.client, smbSource, ctx)
+	changed, vmWasRebooted, vmDiff := vmNew.SetVMParams(*r.client, ctx)
+	data.Id = types.StringValue(vmNew.UUID)
+	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
+}
+func (r *HypercoreVMResource) handleImportFromURILogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, vmNew *utils.VM, httpUri string, path string, fileName string) {
+	nameDiag := utils.ValidateHTTP(httpUri, path)
+	if nameDiag != nil {
+		resp.Diagnostics.AddError(nameDiag.Summary(), nameDiag.Detail())
+		return
+	}
+	httpSource := utils.BuildHTTPImportSource(httpUri, path, fileName)
+	vmNew.Import(*r.client, httpSource, ctx)
+	changed, vmWasRebooted, vmDiff := vmNew.SetVMParams(*r.client, ctx)
+	data.Id = types.StringValue(vmNew.UUID)
+	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
+}
+func (r *HypercoreVMResource) doCreateLogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, description *string, tags *[]string) {
+	if data.Clone != nil {
+		r.handleCloneLogic(data, ctx, description, tags)
+	} else if data.Import != nil {
+		vmNew := getVMStruct(data, description, tags)
+		// http import
+		httpUri := data.Import.HTTPUri.ValueString()
+
+		// smb import
+		smbServer := data.Import.Server.ValueString()
+		smbUsername := data.Import.Username.ValueString()
+		smbPassword := data.Import.Password.ValueString()
+
+		// location
+		path := data.Import.Path.ValueString()
+		fileName := data.Import.FileName.ValueString()
+
+		isSMBImport := smbServer != "" || smbUsername != "" || smbPassword != ""
+		isHTTPImport := httpUri != ""
+
+		if isHTTPImport && !isSMBImport {
+			r.handleImportFromURILogic(data, ctx, resp, vmNew, httpUri, path, fileName)
+		} else if isSMBImport && !isHTTPImport {
+			r.handleImportFromSMBLogic(data, ctx, resp, vmNew, smbServer, smbUsername, smbPassword, path, fileName)
+		}
+	}
+}
+
 func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Info(ctx, "TTRT HypercoreVMResource CREATE")
 	var data HypercoreVMResourceModel
@@ -190,48 +333,11 @@ func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	var tags *[]string
-	var description *string
+	// Validate parameters TODO: Add other inputs here from schema if validation is needed
+	description, tags := validateParameters(&data)
 
-	if data.Group.ValueString() == "" {
-		tags = nil
-	} else {
-		tags = &[]string{data.Group.ValueString()}
-	}
-
-	if data.Description.ValueString() == "" {
-		description = nil
-	} else {
-		description = data.Description.ValueStringPointer()
-	}
-
-	tflog.Info(ctx, fmt.Sprintf("TTRT Create: name=%s, source_uuid=%s", data.Name.ValueString(), data.Clone.SourceVMUUID.ValueString()))
-
-	vmClone, _ := utils.NewVM(
-		data.Name.ValueString(),
-		data.Clone.SourceVMUUID.ValueString(),
-		data.Clone.UserData.ValueString(),
-		data.Clone.MetaData.ValueString(),
-		description,
-		tags,
-		data.VCPU.ValueInt32Pointer(),
-		data.Memory.ValueInt64Pointer(),
-		data.SnapshotScheduleUUID.ValueStringPointer(),
-		nil,
-		data.AffinityStrategy.StrictAffinity.ValueBool(),
-		data.AffinityStrategy.PreferredNodeUUID.ValueString(),
-		data.AffinityStrategy.BackupNodeUUID.ValueString(),
-	)
-	changed, msg := vmClone.Create(*r.client, ctx)
-	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
-
-	// General parametrization
-	// set: description, group, vcpu, memory, power_state
-	changed, vmWasRebooted, vmDiff := vmClone.SetVMParams(*r.client, ctx)
-	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
-
-	// save into the Terraform state.
-	data.Id = types.StringValue(vmClone.UUID)
+	// Right now handles import or clone TODO: Add other VM create options here
+	r.doCreateLogic(&data, ctx, resp, description, tags)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log

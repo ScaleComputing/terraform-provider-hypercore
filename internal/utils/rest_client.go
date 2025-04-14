@@ -60,7 +60,7 @@ func (rc *RestClient) GetAuthHeader() map[string]string {
 func (rc *RestClient) ToJson(response *http.Response) any {
 	respBytes, err := io.ReadAll(response.Body)
 	if err != nil {
-		panic(fmt.Errorf("Failed to read response body: %s", err.Error()))
+		panic(fmt.Errorf("failed to read response body: %s", err.Error()))
 	}
 
 	var respJson any
@@ -80,18 +80,18 @@ func (rc *RestClient) ToJsonObjectList(response *http.Response) []map[string]any
 			if obj, ok := item.(map[string]any); ok {
 				result = append(result, obj)
 			} else {
-				panic(fmt.Errorf("Unexpected item in response list: %v", item))
+				panic(fmt.Errorf("unexpected item in response list: %v", item))
 			}
 		}
 		return result
 	}
-	panic(fmt.Errorf("Expected a JSON list of objects, go: %v", respJson))
+	panic(fmt.Errorf("expected a JSON list of objects, go: %v", respJson))
 }
 
 func (rc *RestClient) ToString(response *http.Response) string {
 	respBytes, err := io.ReadAll(response.Body)
 	if err != nil {
-		panic(fmt.Errorf("Failed to read response body: %s", err.Error()))
+		panic(fmt.Errorf("failed to read response body: %s", err.Error()))
 	}
 	return string(respBytes)
 }
@@ -103,7 +103,7 @@ func (rc *RestClient) Request(method string, endpoint string, body map[string]an
 	if body != nil {
 		jsonBody, err = json.Marshal(body)
 		if err != nil {
-			panic(fmt.Errorf("Failed to marshal JSON body: %s", err.Error()))
+			panic(fmt.Errorf("failed to marshal JSON body: %s", err.Error()))
 		}
 	}
 
@@ -113,7 +113,7 @@ func (rc *RestClient) Request(method string, endpoint string, body map[string]an
 		bytes.NewBuffer(jsonBody),
 	)
 	if err != nil {
-		panic(fmt.Errorf("Invalid request: %s", err.Error()))
+		panic(fmt.Errorf("invalid request: %s", err.Error()))
 	}
 
 	req.Header.Set("Accept", "application/json")
@@ -141,7 +141,7 @@ func (rc *RestClient) RequestBinary(
 		bytes.NewBuffer(binaryData),
 	)
 	if err != nil {
-		panic(fmt.Errorf("Invalid request: %s", err.Error()))
+		panic(fmt.Errorf("invalid request: %s", err.Error()))
 	}
 
 	req.Header.Set("Accept", "application/json")
@@ -162,7 +162,7 @@ func (rc *RestClient) RequestWithList(method string, endpoint string, body []map
 	if body != nil {
 		jsonBody, err = json.Marshal(body)
 		if err != nil {
-			panic(fmt.Errorf("Failed to marshal JSON body: %s", err.Error()))
+			panic(fmt.Errorf("failed to marshal JSON body: %s", err.Error()))
 		}
 	}
 
@@ -172,7 +172,7 @@ func (rc *RestClient) RequestWithList(method string, endpoint string, body []map
 		bytes.NewBuffer(jsonBody),
 	)
 	if err != nil {
-		panic(fmt.Errorf("Invalid request: %s", err.Error()))
+		panic(fmt.Errorf("invalid request: %s", err.Error()))
 	}
 
 	req.Header.Set("Accept", "application/json")
@@ -199,12 +199,12 @@ func (rc *RestClient) Login() {
 
 	resp, err := rc.HttpClient.Do(req)
 	if err != nil {
-		panic(fmt.Errorf("Couldn't authenticate: %s", err.Error()))
+		panic(fmt.Errorf("couldn't authenticate: %s", err.Error()))
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		panic(fmt.Errorf("Authentication failed with status code: %d", resp.StatusCode))
+		panic(fmt.Errorf("authentication failed with status code: %d", resp.StatusCode))
 	}
 
 	if respJson, ok := rc.ToJson(resp).(map[string]any); ok {
@@ -212,7 +212,7 @@ func (rc *RestClient) Login() {
 			"Cookie": fmt.Sprintf("sessionID=%s", respJson["sessionID"]),
 		}
 	} else {
-		panic(fmt.Errorf("Session ID not found in response"))
+		panic(fmt.Errorf("session ID not found in response"))
 	}
 }
 
@@ -233,12 +233,12 @@ func (rc *RestClient) ListRecords(endpoint string, query map[string]any, timeout
 
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(fmt.Errorf("Error making a request: %s", err.Error()))
+		panic(fmt.Errorf("error making a request: %s", err.Error()))
 	}
 	defer resp.Body.Close()
 
 	if !(resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent) {
-		panic(fmt.Errorf("Unexpected response: %d - %v", resp.StatusCode, rc.ToString(resp)))
+		panic(fmt.Errorf("unexpected response: %d - %v", resp.StatusCode, rc.ToString(resp)))
 	}
 
 	records := rc.ToJsonObjectList(resp)
@@ -302,9 +302,9 @@ func (rc *RestClient) CreateRecord(endpoint string, payload map[string]any, time
 			if respErr, ok := respJsonMap["error"]; ok {
 				return nil, resp.StatusCode, fmt.Errorf("%s", AnyToString(respErr))
 			}
-			panic(fmt.Errorf("Unexpected response body: %v", respJson))
+			panic(fmt.Errorf("unexpected response body: %v", respJson))
 		}
-		panic(fmt.Errorf("Error making a request: Maybe the arguments passed to were incorrectly formatted: %v - response: %v", payload, string(respByte)))
+		panic(fmt.Errorf("error making a request: Maybe the arguments passed to were incorrectly formatted: %v - response: %v", payload, string(respByte)))
 	}
 
 	if _, ok := AnyToMap(respJson)["taskTag"]; !ok {
@@ -340,9 +340,9 @@ func (rc *RestClient) CreateRecordWithList(endpoint string, payload []map[string
 	if resp.StatusCode == 400 {
 		respByte, ok := respJson.([]byte)
 		if !ok { // this check is needed because of conversion from any to []byte
-			panic(fmt.Errorf("Unexpected response body: %v", respJson))
+			panic(fmt.Errorf("unexpected response body: %v", respJson))
 		}
-		panic(fmt.Errorf("Error making a request: Maybe the arguments passed were incorrectly formatted: %v - response: %v", payload, string(respByte)))
+		panic(fmt.Errorf("error making a request: Maybe the arguments passed were incorrectly formatted: %v - response: %v", payload, string(respByte)))
 	}
 
 	if _, ok := AnyToMap(respJson)["taskTag"]; !ok {
@@ -370,7 +370,7 @@ func (rc *RestClient) UpdateRecord(endpoint string, payload map[string]any, time
 
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(fmt.Errorf("Error making a request: %s", err.Error()))
+		panic(fmt.Errorf("error making a request: %s", err.Error()))
 	}
 	defer resp.Body.Close()
 
@@ -378,9 +378,9 @@ func (rc *RestClient) UpdateRecord(endpoint string, payload map[string]any, time
 	if resp.StatusCode == 400 {
 		respByte, ok := respJson.([]byte)
 		if !ok { // this check is needed because of conversion from any to []byte
-			panic(fmt.Errorf("Unexpected response body: %v", respJson))
+			panic(fmt.Errorf("unexpected response body: %v", respJson))
 		}
-		panic(fmt.Errorf("Error making a request: Maybe the arguments passed were incorrectly formatted: %v - response: %v", payload, string(respByte)))
+		panic(fmt.Errorf("error making a request: Maybe the arguments passed were incorrectly formatted: %v - response: %v", payload, string(respByte)))
 	}
 
 	if _, ok := AnyToMap(respJson)["taskTag"]; !ok {
@@ -408,7 +408,7 @@ func (rc *RestClient) PutRecord(endpoint string, payload map[string]any, timeout
 
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(fmt.Errorf("Error making a request: %s", err.Error()))
+		panic(fmt.Errorf("error making a request: %s", err.Error()))
 	}
 	defer resp.Body.Close()
 
@@ -416,9 +416,9 @@ func (rc *RestClient) PutRecord(endpoint string, payload map[string]any, timeout
 	if resp.StatusCode == 400 {
 		respByte, ok := respJson.([]byte)
 		if !ok { // this check is needed because of conversion from any to []byte
-			panic(fmt.Errorf("Unexpected response body: %v", respJson))
+			panic(fmt.Errorf("unexpected response body: %v", respJson))
 		}
-		panic(fmt.Errorf("Error making a request: Maybe the arguments passed were incorrectly formatted: %v - response: %v", payload, string(respByte)))
+		panic(fmt.Errorf("error making a request: Maybe the arguments passed were incorrectly formatted: %v - response: %v", payload, string(respByte)))
 	}
 
 	if _, ok := AnyToMap(respJson)["taskTag"]; !ok {
@@ -447,7 +447,7 @@ func (rc *RestClient) PutBinaryRecord(endpoint string, binaryData []byte, conten
 
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(fmt.Errorf("Error making a request: %s", err.Error()))
+		panic(fmt.Errorf("error making a request: %s", err.Error()))
 	}
 	defer resp.Body.Close()
 
@@ -455,9 +455,9 @@ func (rc *RestClient) PutBinaryRecord(endpoint string, binaryData []byte, conten
 	if resp.StatusCode == 400 {
 		respByte, ok := respJson.([]byte)
 		if !ok { // this check is needed because of conversion from any to []byte
-			panic(fmt.Errorf("Unexpected response body: %v", respJson))
+			panic(fmt.Errorf("unexpected response body: %v", respJson))
 		}
-		panic(fmt.Errorf("Error making a request: Maybe the arguments passed were incorrectly formatted: %v - response: %v", binaryData, string(respByte)))
+		panic(fmt.Errorf("error making a request: Maybe the arguments passed were incorrectly formatted: %v - response: %v", binaryData, string(respByte)))
 	}
 
 	if _, ok := AnyToMap(respJson)["taskTag"]; !ok {
@@ -486,12 +486,12 @@ func (rc *RestClient) PutBinaryRecordWithoutTaskTag(endpoint string, binaryData 
 
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(fmt.Errorf("Error making a request: %s", err.Error()))
+		panic(fmt.Errorf("error making a request: %s", err.Error()))
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		panic(fmt.Errorf("Error making a request: got response status code %v", resp.StatusCode))
+		panic(fmt.Errorf("error making a request: got response status code %v", resp.StatusCode))
 	}
 
 	return resp.StatusCode, nil
@@ -514,7 +514,7 @@ func (rc *RestClient) DeleteRecord(endpoint string, timeout float64, ctx context
 
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(fmt.Errorf("Error making a request: %s", err.Error()))
+		panic(fmt.Errorf("error making a request: %s", err.Error()))
 	}
 	defer resp.Body.Close()
 

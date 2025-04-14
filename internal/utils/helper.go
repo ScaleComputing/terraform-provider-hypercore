@@ -12,6 +12,9 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
+
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 )
 
 func isSuperset(superset map[string]any, candidate map[string]any) bool {
@@ -81,21 +84,6 @@ func filterResultsRecursive(results []map[string]any, filterData map[string]any)
 	}
 
 	return filtered
-}
-
-// nolint:unused
-func filterMap(input map[string]any, fieldNames ...string) map[string]any {
-	output := map[string]any{}
-
-	for _, fieldName := range fieldNames {
-		if value, ok := input[fieldName]; ok {
-			if value != nil || value != "" {
-				output[fieldName] = value
-			}
-		}
-	}
-
-	return output
 }
 
 func jsonObjectToTaskTag(jsonObj any) *TaskTag {
@@ -247,7 +235,7 @@ func AnyToListOfStrings(list any) []string {
 func ReadLocalFileBinary(filePath string) ([]byte, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("Error opening file '%s': %s", filePath, err)
+		return nil, fmt.Errorf("error opening file '%s': %s", filePath, err)
 	}
 	defer file.Close()
 
@@ -302,4 +290,49 @@ func GetFileSize(sourceFilePath string) int64 {
 		panic(fmt.Errorf("unable to get file info for %s: %v", sourceFilePath, err))
 	}
 	return fileInfo.Size()
+}
+
+func ValidateSMB(server string, username string, password string, path string) diag.Diagnostic {
+	if server == "" {
+		return diag.NewErrorDiagnostic(
+			"Missing 'server' parameter",
+			"For using SMB, you must specify the 'server' parameter",
+		)
+	}
+	if username == "" {
+		return diag.NewErrorDiagnostic(
+			"Missing 'username' parameter",
+			"For using SMB, you must specify the 'username' parameter",
+		)
+	}
+	if password == "" {
+		return diag.NewErrorDiagnostic(
+			"Missing 'password' parameter",
+			"For using SMB, you must specify the 'password' parameter",
+		)
+	}
+	if path == "" {
+		return diag.NewErrorDiagnostic(
+			"Missing 'path' parameter",
+			"For using SMB, you must specify the 'path' parameter",
+		)
+	}
+	return nil
+}
+
+func ValidateHTTP(httpUri string, path string) diag.Diagnostic {
+	if !strings.HasPrefix(httpUri, "http://") && !strings.HasPrefix(httpUri, "https://") {
+		return diag.NewErrorDiagnostic(
+			"Invalid HTTP uri",
+			"Invalid HTTP uri. Uri must start with 'http://' or 'https://'",
+		)
+	}
+	if path == "" {
+		return diag.NewErrorDiagnostic(
+			"Invalid path",
+			"Invalid path. Path parameter must be defined and start with '/'",
+		)
+	}
+
+	return nil
 }

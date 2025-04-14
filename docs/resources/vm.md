@@ -45,6 +45,23 @@ resource "hypercore_vm" "myvm" {
   }
 }
 
+resource "hypercore_vm" "import-from-smb" {
+  group       = "my-group"
+  name        = "imported-vm"
+  description = "some description"
+
+  vcpu   = 4
+  memory = 4096 # MiB
+
+  import = {
+    server    = "10.5.11.39"
+    username  = ";administrator"
+    password  = "***"
+    path      = "/cidata"
+    file_name = "example-template.xml"
+  }
+}
+
 output "vm_uuid" {
   value = hypercore_vm.myvm.id
 }
@@ -63,6 +80,7 @@ output "vm_uuid" {
 - `clone` (Object) Clone options if the VM is being created as a clone. The `source_vm_uuid` is the UUID of the VM used for cloning, <br>`user_data` and `meta_data` are used for the cloud init data. (see [below for nested schema](#nestedatt--clone))
 - `description` (String) Description of this VM
 - `group` (String) Group/tag to create this VM in
+- `import` (Attributes) Options for importing a VM through a SMB server or some other HTTP location. <br>Use server, username, password for SMB or http_uri for some other HTTP location. Parameters path and file_name are always **required** (see [below for nested schema](#nestedatt--import))
 - `memory` (Number) Memory (RAM) size in `MiB`: If the cloned VM was already created <br>and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)
 - `snapshot_schedule_uuid` (String) UUID of the snapshot schedule to create automatic snapshots
 - `vcpu` (Number) Number of CPUs on this VM. If the cloned VM was already created and it's <br>`VCPU` was modified, the cloned VM will be rebooted (either gracefully or forcefully)
@@ -89,3 +107,19 @@ Optional:
 - `meta_data` (String)
 - `source_vm_uuid` (String)
 - `user_data` (String)
+
+
+<a id="nestedatt--import"></a>
+### Nested Schema for `import`
+
+Required:
+
+- `file_name` (String)
+- `path` (String)
+
+Optional:
+
+- `http_uri` (String)
+- `password` (String, Sensitive)
+- `server` (String)
+- `username` (String)
