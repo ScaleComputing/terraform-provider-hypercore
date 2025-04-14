@@ -499,6 +499,23 @@ func (vc *VM) BuildImportTemplate() map[string]any {
 
 	return importTemplate
 }
+func BuildImportSource(username string, password string, server string, path string, fileName string, httpUri string, isSMB bool) map[string]any {
+	pathURI := ""
+	if isSMB {
+		pathURI = fmt.Sprintf("smb://%s:%s@%s%s", username, password, server, path)
+	} else {
+		pathURI = fmt.Sprintf("%s%s", httpUri, path)
+	}
+
+	source := map[string]any{
+		"pathURI": pathURI,
+	}
+	if fileName != "" {
+		source["definitionFileName"] = fileName
+	}
+
+	return source
+}
 
 func (vc *VM) GetChangedParams(ctx context.Context, vmFromClient map[string]any) (bool, map[string]bool) {
 	changedParams := map[string]bool{}
@@ -539,24 +556,6 @@ func (vc *VM) GetChangedParams(ctx context.Context, vmFromClient map[string]any)
 		}
 	}
 	return false, changedParams
-}
-
-func BuildImportSource(username string, password string, server string, path string, fileName string, httpUri string, isSMB bool) map[string]any {
-	pathURI := ""
-	if isSMB {
-		pathURI = fmt.Sprintf("smb://%s:%s@%s%s", username, password, server, path)
-	} else {
-		pathURI = fmt.Sprintf("%s%s", httpUri, path)
-	}
-
-	source := map[string]any{
-		"pathURI": pathURI,
-	}
-	if fileName != "" {
-		source["definitionFileName"] = fileName
-	}
-
-	return source
 }
 
 func GetOneVM(uuid string, restClient RestClient) map[string]any {

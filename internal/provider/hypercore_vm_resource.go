@@ -128,7 +128,7 @@ func (r *HypercoreVMResource) Schema(ctx context.Context, req resource.SchemaReq
 						Sensitive: true,
 					},
 					"path": schema.StringAttribute{
-						Required: true, // Optional for now; can validate presence at runtime based on method.
+						Required: true,
 					},
 					"file_name": schema.StringAttribute{
 						Required: true,
@@ -203,10 +203,8 @@ func (r *HypercoreVMResource) Configure(ctx context.Context, req resource.Config
 }
 
 func getVMStruct(data *HypercoreVMResourceModel, vmDescription *string, vmTags *[]string) *utils.VM {
-	// Get VM structure from Utils.VM but first check if certain parameters are passed
-	sourceVMUUID := ""
-	userData := ""
-	metaData := ""
+	// Gets VM structure from Utils.VM, sends parameters based on which VM create logic is being called
+	sourceVMUUID, userData, metaData := "", "", ""
 	if data.Clone != nil {
 		sourceVMUUID = data.Clone.SourceVMUUID.ValueString()
 		userData = data.Clone.UserData.ValueString()
@@ -249,11 +247,11 @@ func validateParameters(data *HypercoreVMResourceModel) (*string, *[]string) {
 	return description, tags
 }
 func isHTTPImport(data *HypercoreVMResourceModel) bool {
+	// Check if HTTP URI is being used for VM import
 	httpUri := data.Import.HTTPUri.ValueString()
 	return httpUri != ""
 }
 func isSMBImport(data *HypercoreVMResourceModel) bool {
-	// smb import parameters
 	smbServer := data.Import.Server.ValueString()
 	smbUsername := data.Import.Username.ValueString()
 	smbPassword := data.Import.Password.ValueString()
@@ -264,44 +262,45 @@ func isSMBImport(data *HypercoreVMResourceModel) bool {
 func (r *HypercoreVMResource) handleCloneLogic(data *HypercoreVMResourceModel, ctx context.Context, vmNew *utils.VM) {
 	changed, msg := vmNew.Clone(*r.client, ctx)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
+	// Clone will retain setting from original VM so we call SetVMParams to change those settings based on user input before we save state
 	changed, vmWasRebooted, vmDiff := vmNew.SetVMParams(*r.client, ctx)
 	data.Id = types.StringValue(vmNew.UUID)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
 }
 func (r *HypercoreVMResource) handleImportFromSMBLogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, vmNew *utils.VM, path string, fileName string) {
-	smbServer := data.Import.Server.ValueString()
-	smbUsername := data.Import.Username.ValueString()
-	smbPassword := data.Import.Password.ValueString()
-	nameDiag := utils.ValidateSMB(smbServer, smbUsername, smbPassword, path)
-	if nameDiag != nil {
-		resp.Diagnostics.AddError(nameDiag.Summary(), nameDiag.Detail())
+	smbServer, smbUsername, smbPassword := data.Import.Server.ValueString(), data.Import.Username.ValueString(), data.Import.Password.ValueString()
+	errorDiagnostic := utils.ValidateSMB(smbServer, smbUsername, smbPassword)
+	if errorDiagnostic != nil {
+		resp.Diagnostics.AddError(errorDiagnostic.Summary(), errorDiagnostic.Detail())
 		return
 	}
 	smbSource := utils.BuildImportSource(smbUsername, smbPassword, smbServer, path, fileName, "", true)
 	vmNew.Import(*r.client, smbSource, ctx)
+	// Import will retain setting from original VM so we call SetVMParams to change those settings based on user input before we save state
 	changed, vmWasRebooted, vmDiff := vmNew.SetVMParams(*r.client, ctx)
 	data.Id = types.StringValue(vmNew.UUID)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
 }
 func (r *HypercoreVMResource) handleImportFromURILogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, vmNew *utils.VM, path string, fileName string) {
 	httpUri := data.Import.HTTPUri.ValueString()
-	nameDiag := utils.ValidateHTTP(httpUri, path)
-	if nameDiag != nil {
-		resp.Diagnostics.AddError(nameDiag.Summary(), nameDiag.Detail())
+	errorDiagnostic := utils.ValidateHTTP(httpUri, path)
+	if errorDiagnostic != nil {
+		resp.Diagnostics.AddError(errorDiagnostic.Summary(), errorDiagnostic.Detail())
 		return
 	}
 	httpSource := utils.BuildImportSource("", "", "", path, fileName, httpUri, false)
 	vmNew.Import(*r.client, httpSource, ctx)
+	// Import will retain setting from original VM so we call SetVMParams to change those settings based on user input before we save state
 	changed, vmWasRebooted, vmDiff := vmNew.SetVMParams(*r.client, ctx)
 	data.Id = types.StringValue(vmNew.UUID)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
 }
 func (r *HypercoreVMResource) doCreateLogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, description *string, tags *[]string) {
 	vmNew := getVMStruct(data, description, tags)
+	// Chose which VM create logic we're going with (clone or import)
 	if data.Clone != nil {
 		r.handleCloneLogic(data, ctx, vmNew)
 	} else if data.Import != nil {
-		// location
 		path := data.Import.Path.ValueString()
 		fileName := data.Import.FileName.ValueString()
 		if isHTTPImport(data) && !isSMBImport(data) {
@@ -315,13 +314,9 @@ func (r *HypercoreVMResource) doCreateLogic(data *HypercoreVMResourceModel, ctx 
 func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Info(ctx, "TTRT HypercoreVMResource CREATE")
 	var data HypercoreVMResourceModel
-	// var readData HypercoreVMResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-	// resp.State.Get(ctx, &readData)
-	//
-	// tflog.Debug(ctx, fmt.Sprintf("STATE IS: %v\n", readData.Disks))
 
 	if r.client == nil {
 		resp.Diagnostics.AddError(

@@ -292,7 +292,7 @@ func GetFileSize(sourceFilePath string) int64 {
 	return fileInfo.Size()
 }
 
-func ValidateSMB(server string, username string, password string, path string) diag.Diagnostic {
+func ValidateSMB(server string, username string, password string) diag.Diagnostic {
 	if server == "" {
 		return diag.NewErrorDiagnostic(
 			"Missing 'server' parameter",
@@ -309,12 +309,6 @@ func ValidateSMB(server string, username string, password string, path string) d
 		return diag.NewErrorDiagnostic(
 			"Missing 'password' parameter",
 			"For using SMB, you must specify the 'password' parameter",
-		)
-	}
-	if path == "" {
-		return diag.NewErrorDiagnostic(
-			"Missing 'path' parameter",
-			"For using SMB, you must specify the 'path' parameter",
 		)
 	}
 	return nil
