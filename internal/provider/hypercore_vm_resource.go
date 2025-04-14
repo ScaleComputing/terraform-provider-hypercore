@@ -38,16 +38,16 @@ type HypercoreVMResource struct {
 
 // HypercoreVMResourceModel describes the resource data model.
 type HypercoreVMResourceModel struct {
-	Group                types.String           `tfsdk:"group"`
-	Name                 types.String           `tfsdk:"name"`
-	Description          types.String           `tfsdk:"description"`
-	VCPU                 types.Int32            `tfsdk:"vcpu"`
-	Memory               types.Int64            `tfsdk:"memory"`
-	Import               *ImportModel           `tfsdk:"import"`
-	SnapshotScheduleUUID types.String           `tfsdk:"snapshot_schedule_uuid"`
-	Clone                *CloneModel            `tfsdk:"clone"`
-	AffinityStrategy     *AffinityStrategyModel `tfsdk:"affinity_strategy"`
-	Id                   types.String           `tfsdk:"id"`
+	Group                types.String          `tfsdk:"group"`
+	Name                 types.String          `tfsdk:"name"`
+	Description          types.String          `tfsdk:"description"`
+	VCPU                 types.Int32           `tfsdk:"vcpu"`
+	Memory               types.Int64           `tfsdk:"memory"`
+	Import               *ImportModel          `tfsdk:"import"`
+	SnapshotScheduleUUID types.String          `tfsdk:"snapshot_schedule_uuid"`
+	Clone                *CloneModel           `tfsdk:"clone"`
+	AffinityStrategy     AffinityStrategyModel `tfsdk:"affinity_strategy"`
+	Id                   types.String          `tfsdk:"id"`
 }
 
 type ImportModel struct {

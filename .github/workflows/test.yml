@@ -121,7 +121,7 @@ jobs:
           sh -c 'echo sub-shell HC_HOST=$HC_HOST'
           set -a
           . ./internal/provider/tests/acceptance/setup/env.txt
-          go test -v -cover -coverpkg=github.com/hashicorp/terraform-provider-hypercore/internal/provider ./internal/provider/tests/acceptance/ -run '^TestAccHypercoreVMResource$'
+          go test -v -cover -coverpkg=github.com/hashicorp/terraform-provider-hypercore/internal/provider ./internal/provider/tests/acceptance/
         timeout-minutes: 10
       - name: Cleanup Acceptance Test Environment
         if: always()
