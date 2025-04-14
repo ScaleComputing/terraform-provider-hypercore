@@ -248,63 +248,66 @@ func validateParameters(data *HypercoreVMResourceModel) (*string, *[]string) {
 	}
 	return description, tags
 }
+func isHTTPImport(data *HypercoreVMResourceModel) bool {
+	httpUri := data.Import.HTTPUri.ValueString()
+	return httpUri != ""
+}
+func isSMBImport(data *HypercoreVMResourceModel) bool {
+	// smb import parameters
+	smbServer := data.Import.Server.ValueString()
+	smbUsername := data.Import.Username.ValueString()
+	smbPassword := data.Import.Password.ValueString()
 
-func (r *HypercoreVMResource) handleCloneLogic(data *HypercoreVMResourceModel, ctx context.Context, description *string, tags *[]string) {
-	vmNew := getVMStruct(data, description, tags)
+	return smbServer != "" || smbUsername != "" || smbPassword != ""
+}
+
+func (r *HypercoreVMResource) handleCloneLogic(data *HypercoreVMResourceModel, ctx context.Context, vmNew *utils.VM) {
 	changed, msg := vmNew.Clone(*r.client, ctx)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
 	changed, vmWasRebooted, vmDiff := vmNew.SetVMParams(*r.client, ctx)
 	data.Id = types.StringValue(vmNew.UUID)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
 }
-func (r *HypercoreVMResource) handleImportFromSMBLogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, vmNew *utils.VM, smbServer string, smbUsername string, smbPassword string, path string, fileName string) {
+func (r *HypercoreVMResource) handleImportFromSMBLogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, vmNew *utils.VM, path string, fileName string) {
+	smbServer := data.Import.Server.ValueString()
+	smbUsername := data.Import.Username.ValueString()
+	smbPassword := data.Import.Password.ValueString()
 	nameDiag := utils.ValidateSMB(smbServer, smbUsername, smbPassword, path)
 	if nameDiag != nil {
 		resp.Diagnostics.AddError(nameDiag.Summary(), nameDiag.Detail())
 		return
 	}
-	smbSource := utils.BuildSMBImportSource(smbUsername, smbPassword, smbServer, path, fileName)
+	smbSource := utils.BuildImportSource(smbUsername, smbPassword, smbServer, path, fileName, "", true)
 	vmNew.Import(*r.client, smbSource, ctx)
 	changed, vmWasRebooted, vmDiff := vmNew.SetVMParams(*r.client, ctx)
 	data.Id = types.StringValue(vmNew.UUID)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
 }
-func (r *HypercoreVMResource) handleImportFromURILogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, vmNew *utils.VM, httpUri string, path string, fileName string) {
+func (r *HypercoreVMResource) handleImportFromURILogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, vmNew *utils.VM, path string, fileName string) {
+	httpUri := data.Import.HTTPUri.ValueString()
 	nameDiag := utils.ValidateHTTP(httpUri, path)
 	if nameDiag != nil {
 		resp.Diagnostics.AddError(nameDiag.Summary(), nameDiag.Detail())
 		return
 	}
-	httpSource := utils.BuildHTTPImportSource(httpUri, path, fileName)
+	httpSource := utils.BuildImportSource("", "", "", path, fileName, httpUri, false)
 	vmNew.Import(*r.client, httpSource, ctx)
 	changed, vmWasRebooted, vmDiff := vmNew.SetVMParams(*r.client, ctx)
 	data.Id = types.StringValue(vmNew.UUID)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
 }
 func (r *HypercoreVMResource) doCreateLogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, description *string, tags *[]string) {
+	vmNew := getVMStruct(data, description, tags)
 	if data.Clone != nil {
-		r.handleCloneLogic(data, ctx, description, tags)
+		r.handleCloneLogic(data, ctx, vmNew)
 	} else if data.Import != nil {
-		vmNew := getVMStruct(data, description, tags)
-		// http import
-		httpUri := data.Import.HTTPUri.ValueString()
-
-		// smb import
-		smbServer := data.Import.Server.ValueString()
-		smbUsername := data.Import.Username.ValueString()
-		smbPassword := data.Import.Password.ValueString()
-
 		// location
 		path := data.Import.Path.ValueString()
 		fileName := data.Import.FileName.ValueString()
-
-		isSMBImport := smbServer != "" || smbUsername != "" || smbPassword != ""
-		isHTTPImport := httpUri != ""
-
-		if isHTTPImport && !isSMBImport {
-			r.handleImportFromURILogic(data, ctx, resp, vmNew, httpUri, path, fileName)
-		} else if isSMBImport && !isHTTPImport {
-			r.handleImportFromSMBLogic(data, ctx, resp, vmNew, smbServer, smbUsername, smbPassword, path, fileName)
+		if isHTTPImport(data) && !isSMBImport(data) {
+			r.handleImportFromURILogic(data, ctx, resp, vmNew, path, fileName)
+		} else if isSMBImport(data) && !isHTTPImport(data) {
+			r.handleImportFromSMBLogic(data, ctx, resp, vmNew, path, fileName)
 		}
 	}
 }

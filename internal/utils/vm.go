@@ -189,6 +189,7 @@ func (vc *VM) SendImportRequest(restClient RestClient, source map[string]any) *T
 		payload,
 		-1,
 	)
+	//panic(fmt.Sprintf("neki neki: %d, %v", statusCode, err))
 	return taskTag
 }
 func (vc *VM) Import(restClient RestClient, source map[string]any, ctx context.Context) map[string]any {
@@ -540,25 +541,17 @@ func (vc *VM) GetChangedParams(ctx context.Context, vmFromClient map[string]any)
 	return false, changedParams
 }
 
-func BuildSMBImportSource(username string, password string, server string, path string, fileName string) map[string]any {
-	pathURI := fmt.Sprintf("smb://%s:%s@%s%s", username, password, server, path)
+func BuildImportSource(username string, password string, server string, path string, fileName string, httpUri string, isSMB bool) map[string]any {
+	var pathURI = ""
+	if isSMB {
+		pathURI = fmt.Sprintf("smb://%s:%s@%s%s", username, password, server, path)
+	} else {
+		pathURI = fmt.Sprintf("%s%s", httpUri, path)
+	}
 
 	source := map[string]any{
 		"pathURI": pathURI,
 	}
-	if fileName != "" {
-		source["definitionFileName"] = fileName
-	}
-
-	return source
-}
-
-func BuildHTTPImportSource(httpUri string, path string, fileName string) map[string]any {
-	pathURI := fmt.Sprintf("%s%s", httpUri, path)
-	source := map[string]any{
-		"pathURI": pathURI,
-	}
-
 	if fileName != "" {
 		source["definitionFileName"] = fileName
 	}
