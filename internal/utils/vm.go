@@ -542,7 +542,7 @@ func (vc *VM) GetChangedParams(ctx context.Context, vmFromClient map[string]any)
 }
 
 func BuildImportSource(username string, password string, server string, path string, fileName string, httpUri string, isSMB bool) map[string]any {
-	var pathURI = ""
+	pathURI := ""
 	if isSMB {
 		pathURI = fmt.Sprintf("smb://%s:%s@%s%s", username, password, server, path)
 	} else {
