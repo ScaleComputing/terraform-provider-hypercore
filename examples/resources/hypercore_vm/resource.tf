@@ -30,6 +30,23 @@ resource "hypercore_vm" "myvm" {
   }
 }
 
+resource "hypercore_vm" "import-from-smb" {
+  group       = "my-group"
+  name        = "imported-vm"
+  description = "some description"
+
+  vcpu   = 4
+  memory = 4096 # MiB
+
+  import = {
+    server    = "10.5.11.39"
+    username  = ";administrator"
+    password  = "***"
+    path      = "/cidata"
+    file_name = "example-template.xml"
+  }
+}
+
 output "vm_uuid" {
   value = hypercore_vm.myvm.id
 }

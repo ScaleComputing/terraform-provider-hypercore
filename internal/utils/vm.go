@@ -79,7 +79,7 @@ type VM struct {
 	_wasResetTried         bool
 }
 
-func NewVM(
+func GetVMStruct(
 	_VMName string,
 	_sourceVMUUID string,
 	userData string,
@@ -93,11 +93,11 @@ func NewVM(
 	_strictAffinity bool,
 	_preferredNodeUUID string,
 	_backupNodeUUID string,
-) (*VM, error) {
+) *VM {
 	userDataB64 := base64.StdEncoding.EncodeToString([]byte(userData))
 	metaDataB64 := base64.StdEncoding.EncodeToString([]byte(metaData))
 
-	vmClone := &VM{
+	vmNew := &VM{
 		UUID:               "",
 		VMName:             _VMName,
 		sourceVMUUID:       _sourceVMUUID,
@@ -125,10 +125,10 @@ func NewVM(
 		_wasResetTried:         false,
 	}
 
-	return vmClone, nil
+	return vmNew
 }
 
-func (vc *VM) Clone(restClient RestClient, sourceVM map[string]any) *TaskTag {
+func (vc *VM) SendCloneRequest(restClient RestClient, sourceVM map[string]any) *TaskTag {
 	// Clone payload
 	clonePayload := map[string]any{
 		"template": map[string]any{
@@ -145,8 +145,7 @@ func (vc *VM) Clone(restClient RestClient, sourceVM map[string]any) *TaskTag {
 
 	return taskTag
 }
-
-func (vc *VM) Create(restClient RestClient, ctx context.Context) (bool, string) {
+func (vc *VM) Clone(restClient RestClient, ctx context.Context) (bool, string) {
 	vm := GetVM(map[string]any{"name": vc.VMName}, restClient)
 
 	if len(vm) > 0 {
@@ -161,7 +160,7 @@ func (vc *VM) Create(restClient RestClient, ctx context.Context) (bool, string) 
 	sourceVMName, _ := sourceVM["name"].(string)
 
 	// Clone payload
-	task := vc.Clone(restClient, sourceVM)
+	task := vc.SendCloneRequest(restClient, sourceVM)
 	task.WaitTask(restClient, ctx)
 	taskStatus := task.GetStatus(restClient)
 
@@ -173,6 +172,34 @@ func (vc *VM) Create(restClient RestClient, ctx context.Context) (bool, string) 
 	}
 
 	panic(fmt.Sprintf("There was a problem during cloning of %s %s, cloning failed.", sourceVMName, vc.sourceVMUUID))
+}
+
+func (vc *VM) SendImportRequest(restClient RestClient, source map[string]any) *TaskTag {
+	payload := map[string]any{
+		"source": source,
+	}
+
+	importTemplate := vc.BuildImportTemplate()
+	if len(importTemplate) > 0 {
+		payload["template"] = importTemplate
+	}
+
+	taskTag, _, _ := restClient.CreateRecord(
+		"/rest/v1/VirDomain/import",
+		payload,
+		-1,
+	)
+	//panic(fmt.Sprintf("neki neki: %d, %v", statusCode, err))
+	return taskTag
+}
+func (vc *VM) Import(restClient RestClient, source map[string]any, ctx context.Context) map[string]any {
+	task := vc.SendImportRequest(restClient, source)
+	task.WaitTask(restClient, ctx)
+	vmUUID := task.CreatedUUID
+	vm := GetOneVM(vmUUID, restClient)
+
+	vc.UUID = vmUUID
+	return vm
 }
 
 func (vc *VM) SetVMParams(restClient RestClient, ctx context.Context) (bool, bool, map[string]any) {
@@ -436,9 +463,62 @@ func (vc *VM) BuildUpdatePayload(changedParams map[string]bool) map[string]any {
 	return updatePayload
 }
 
+func (vc *VM) BuildImportTemplate() map[string]any {
+	importTemplate := map[string]any{}
+
+	if vc.description != nil {
+		importTemplate["description"] = *vc.description
+	}
+	if vc.tags != nil {
+		importTemplate["tags"] = tagsListToCommaString(*vc.tags)
+	}
+	if vc.memory != nil {
+		vcMemoryBytes := *vc.memory * 1024 * 1024 // MB to B
+		importTemplate["mem"] = vcMemoryBytes
+	}
+	if vc.vcpu != nil {
+		importTemplate["numVCPU"] = *vc.vcpu
+	}
+	if vc.VMName != "" {
+		importTemplate["name"] = vc.VMName
+	}
+
+	affinityStrategy := map[string]any{
+		"strictAffinity": vc.strictAffinity,
+	}
+
+	if vc.preferredNodeUUID != "" {
+		affinityStrategy["preferredNodeUUID"] = vc.preferredNodeUUID
+	}
+
+	if vc.backupNodeUUID != "" {
+		affinityStrategy["backupNodeUUID"] = vc.backupNodeUUID
+	}
+
+	importTemplate["affinityStrategy"] = affinityStrategy
+
+	return importTemplate
+}
+func BuildImportSource(username string, password string, server string, path string, fileName string, httpUri string, isSMB bool) map[string]any {
+	pathURI := ""
+	if isSMB {
+		pathURI = fmt.Sprintf("smb://%s:%s@%s%s", username, password, server, path)
+	} else {
+		pathURI = fmt.Sprintf("%s%s", httpUri, path)
+	}
+
+	source := map[string]any{
+		"pathURI": pathURI,
+	}
+	if fileName != "" {
+		source["definitionFileName"] = fileName
+	}
+
+	return source
+}
+
 func (vc *VM) GetChangedParams(ctx context.Context, vmFromClient map[string]any) (bool, map[string]bool) {
 	changedParams := map[string]bool{}
-
 	if vc.description != nil {
 		changedParams["description"] = *vc.description != vmFromClient["description"]
 	}
@@ -450,7 +530,7 @@ func (vc *VM) GetChangedParams(ctx context.Context, vmFromClient map[string]any)
 		changedParams["memory"] = vcMemoryBytes != vmFromClient["mem"]
 	}
 	if vc.vcpu != nil {
-		changedParams["vcpu"] = *vc.memory != vmFromClient["numVCPU"]
+		changedParams["vcpu"] = *vc.vcpu != vmFromClient["numVCPU"]
 	}
 	if vc.powerState != nil {
 		requestedPowerAction := *vc.powerState
@@ -503,7 +583,7 @@ func GetOneVMWithError(uuid string, restClient RestClient) (*map[string]any, err
 	)
 
 	if record == nil {
-		return nil, fmt.Errorf("VM not found - vmUUID=%s.\n", uuid)
+		return nil, fmt.Errorf("vm not found - vmUUID=%s", uuid)
 	}
 
 	return record, nil
@@ -518,7 +598,7 @@ func GetVMOrFail(query map[string]any, restClient RestClient) []map[string]any {
 	)
 
 	if len(records) == 0 {
-		panic(fmt.Errorf("No VM found: %v", query))
+		panic(fmt.Errorf("no VM found: %v", query))
 	}
 
 	return records
