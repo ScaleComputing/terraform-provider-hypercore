@@ -167,6 +167,8 @@ func (r *HypercoreVMResource) Configure(ctx context.Context, req resource.Config
 }
 
 func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMResource CREATE")
 	var data HypercoreVMResourceModel
 	// var readData HypercoreVMResourceModel
@@ -242,6 +244,8 @@ func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateReq
 }
 
 func (r *HypercoreVMResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMResource READ")
 	var data HypercoreVMResourceModel
 	// Read Terraform prior state data into the model
@@ -302,6 +306,8 @@ func (r *HypercoreVMResource) Read(ctx context.Context, req resource.ReadRequest
 }
 
 func (r *HypercoreVMResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMResource UPDATE")
 	var data_state HypercoreVMResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
@@ -377,6 +383,8 @@ func (r *HypercoreVMResource) Update(ctx context.Context, req resource.UpdateReq
 }
 
 func (r *HypercoreVMResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMResource DELETE")
 	var data HypercoreVMResourceModel
 

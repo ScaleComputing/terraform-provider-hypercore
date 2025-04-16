@@ -94,6 +94,8 @@ func (r *HypercoreVMPowerStateResource) Configure(ctx context.Context, req resou
 }
 
 func (r *HypercoreVMPowerStateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMPowerStateResource CREATE")
 	var data HypercoreVMPowerStateResourceModel
 
@@ -167,6 +169,8 @@ func (r *HypercoreVMPowerStateResource) Create(ctx context.Context, req resource
 }
 
 func (r *HypercoreVMPowerStateResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMPowerStateResource READ")
 	var data HypercoreVMPowerStateResourceModel
 	// Read Terraform prior state data into the model
@@ -200,6 +204,8 @@ func (r *HypercoreVMPowerStateResource) Read(ctx context.Context, req resource.R
 }
 
 func (r *HypercoreVMPowerStateResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMPowerStateResource UPDATE")
 	var data_state HypercoreVMPowerStateResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
@@ -276,6 +282,8 @@ func (r *HypercoreVMPowerStateResource) Update(ctx context.Context, req resource
 }
 
 func (r *HypercoreVMPowerStateResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMPowerStateResource DELETE")
 	var data HypercoreVMPowerStateResourceModel
 
@@ -298,6 +306,8 @@ func (r *HypercoreVMPowerStateResource) Delete(ctx context.Context, req resource
 }
 
 func (r *HypercoreVMPowerStateResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMPowerStateResource IMPORT_STATE")
 
 	vmUUID := req.ID

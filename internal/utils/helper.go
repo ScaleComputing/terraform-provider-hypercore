@@ -5,6 +5,7 @@ package utils
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,8 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 )
 
 func isSuperset(superset map[string]any, candidate map[string]any) bool {
@@ -302,4 +305,11 @@ func GetFileSize(sourceFilePath string) int64 {
 		panic(fmt.Errorf("unable to get file info for %s: %v", sourceFilePath, err))
 	}
 	return fileInfo.Size()
+}
+
+func RecoverDiagnostics(ctx context.Context, diags *diag.Diagnostics) {
+	if r := recover(); r != nil {
+		err := fmt.Errorf("Terraform provider got an unexpected error during execution: %v", r)
+		*diags = append(*diags, diag.NewErrorDiagnostic("Unexpected error", err.Error()))
+	}
 }

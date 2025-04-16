@@ -115,6 +115,8 @@ func (d *hypercoreRemoteClusterConnectionDataSource) Configure(_ context.Context
 
 // Read refreshes the Terraform state with the latest data.
 func (d *hypercoreRemoteClusterConnectionDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	var conf hypercoreRemoteClusterConnectionsDataSourceModel
 	req.Config.Get(ctx, &conf)
 
