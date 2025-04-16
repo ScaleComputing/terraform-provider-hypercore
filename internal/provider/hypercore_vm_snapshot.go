@@ -96,6 +96,8 @@ func (r *HypercoreVMSnapshotResource) Configure(ctx context.Context, req resourc
 }
 
 func (r *HypercoreVMSnapshotResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMSnapshotResource CREATE")
 	var data HypercoreVMSnapshotResourceModel
 
@@ -160,6 +162,8 @@ func (r *HypercoreVMSnapshotResource) Create(ctx context.Context, req resource.C
 }
 
 func (r *HypercoreVMSnapshotResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMSnapshotResource READ")
 	var data HypercoreVMSnapshotResourceModel
 	// Read Terraform prior state data into the model
@@ -217,6 +221,8 @@ func (r *HypercoreVMSnapshotResource) Update(ctx context.Context, req resource.U
 }
 
 func (r *HypercoreVMSnapshotResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMSnapshotResource DELETE")
 	var data HypercoreVMSnapshotResourceModel
 
@@ -246,6 +252,8 @@ func (r *HypercoreVMSnapshotResource) Delete(ctx context.Context, req resource.D
 }
 
 func (r *HypercoreVMSnapshotResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMSnapshotResource IMPORT_STATE")
 
 	snapUUID := req.ID

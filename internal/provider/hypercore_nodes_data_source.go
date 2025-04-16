@@ -104,6 +104,8 @@ func (d *hypercoreNodesDataSource) Configure(_ context.Context, req datasource.C
 
 // Read refreshes the Terraform state with the latest data.
 func (d *hypercoreNodesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	var conf hypercoreNodesDataSourceModel
 	req.Config.Get(ctx, &conf)
 	// use float64, because this is the type of loaded json data

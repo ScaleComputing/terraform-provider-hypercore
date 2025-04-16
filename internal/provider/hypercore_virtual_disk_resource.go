@@ -90,6 +90,8 @@ func (r *HypercoreVirtualDiskResource) Configure(ctx context.Context, req resour
 }
 
 func (r *HypercoreVirtualDiskResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVirtualDiskResource CREATE")
 	var data HypercoreVirtualDiskResourceModel
 
@@ -138,6 +140,8 @@ func (r *HypercoreVirtualDiskResource) Create(ctx context.Context, req resource.
 }
 
 func (r *HypercoreVirtualDiskResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVirtualDiskResource READ")
 	var data HypercoreVirtualDiskResourceModel
 	// Read Terraform prior state data into the model
@@ -170,6 +174,8 @@ func (r *HypercoreVirtualDiskResource) Read(ctx context.Context, req resource.Re
 }
 
 func (r *HypercoreVirtualDiskResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVirtualDiskResource UPDATE")
 	var data_state HypercoreVirtualDiskResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
@@ -207,6 +213,8 @@ func (r *HypercoreVirtualDiskResource) Update(ctx context.Context, req resource.
 }
 
 func (r *HypercoreVirtualDiskResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVirtualDiskResource DELETE")
 	var data HypercoreVirtualDiskResourceModel
 
@@ -236,6 +244,8 @@ func (r *HypercoreVirtualDiskResource) Delete(ctx context.Context, req resource.
 }
 
 func (r *HypercoreVirtualDiskResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVirtualDiskResource IMPORT_STATE")
 
 	vdUUID := req.ID
