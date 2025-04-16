@@ -128,6 +128,15 @@ func GetVMStruct(
 	return vmNew
 }
 
+func (vc *VM) SendFromScratchRequest(restClient RestClient) *TaskTag {
+
+}
+func (vc *VM) FromScratch(restClient RestClient, ctx context.Context) (bool, string) {
+	task := vc.SendFromScratchRequest(restClient)
+	task.WaitTask(restClient, ctx)
+	taskStatus := task.GetStatus(restClient)
+}
+
 func (vc *VM) SendCloneRequest(restClient RestClient, sourceVM map[string]any) *TaskTag {
 	// Clone payload
 	clonePayload := map[string]any{

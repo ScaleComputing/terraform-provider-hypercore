@@ -260,7 +260,7 @@ func isSMBImport(data *HypercoreVMResourceModel) bool {
 }
 
 func (r *HypercoreVMResource) handleCreateFromScratchLogic(data *HypercoreVMResourceModel, ctx context.Context, vmNew *utils.VM) {
-	changed, msg := vmNew.Clone(*r.client, ctx)
+	changed, msg := vmNew.FromScratch(*r.client, ctx)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
 	data.Id = types.StringValue(vmNew.UUID)
 }
