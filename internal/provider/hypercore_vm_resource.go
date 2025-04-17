@@ -442,10 +442,10 @@ func (r *HypercoreVMResource) Update(ctx context.Context, req resource.UpdateReq
 
 	updatePayload := map[string]any{}
 	if data_state.Name != data.Name {
-		updatePayload["name"] = data.Name.String()
+		updatePayload["name"] = data.Name.ValueString()
 	}
 	if data_state.Description != data.Description {
-		updatePayload["description"] = data.Description.String()
+		updatePayload["description"] = data.Description.ValueString()
 	}
 	// if changed, ok := changedParams["tags"]; ok && changed {
 	// 	updatePayload["tags"] = tagsListToCommaString(*vc.tags)
