@@ -287,6 +287,17 @@ func (r *HypercoreVMPowerStateResource) Delete(ctx context.Context, req resource
 	}
 
 	// Extra implementation not needed
+	// We use this to ensure VM is shutdown, before it is deleted.
+	// After VM is shutdown, disks can be deleted.
+	// Code assumes there is no reason to remove hypercore_vm_power_state resource from Terraform plan,
+	// while keeping hypercore_vm resource.
+	restClient := *r.client
+	vm_uuid := data.VmUUID.ValueString()
+	err := ShutdownVM(ctx, vm_uuid, &restClient)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to shutdown VM before, got error: %s", err))
+		return
+	}
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.

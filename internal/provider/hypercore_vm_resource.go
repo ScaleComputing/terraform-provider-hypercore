@@ -501,9 +501,9 @@ func (r *HypercoreVMResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	restClient := *r.client
 	vm_uuid := data.Id.ValueString()
-	err := shutdownVM(ctx, vm_uuid, &restClient)
+	err := ShutdownVM(ctx, vm_uuid, &restClient)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete shutdown VM, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to shutdown VM, got error: %s", err))
 		return
 	}
 
@@ -520,7 +520,7 @@ func (r *HypercoreVMResource) ImportState(ctx context.Context, req resource.Impo
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func shutdownVM(ctx context.Context, vmUUID string, restClient *utils.RestClient) diag.Diagnostic {
+func ShutdownVM(ctx context.Context, vmUUID string, restClient *utils.RestClient) diag.Diagnostic {
 	currentState, err := utils.GetVMPowerState(vmUUID, *restClient)
 	if err != nil {
 		return err
