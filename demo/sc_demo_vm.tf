@@ -64,7 +64,7 @@ resource "hypercore_nic" "vlan_all" {
 
 resource "hypercore_vm_power_state" "demo_vm" {
   vm_uuid = hypercore_vm.demo_vm.id
-  state   = "SHUTOFF" # available states are: SHUTOFF, RUNNING, PAUSED
+  state   = "RUNNING" # available states are: SHUTOFF, RUNNING, PAUSED
   depends_on = [
     hypercore_disk.os,
     hypercore_disk.iso,
