@@ -17,7 +17,7 @@ locals {
   vm_name = "my-vm"
 }
 
-data "hypercore_vm" "myvm" {
+data "hypercore_vms" "myvm" {
   name = local.vm_name
 }
 
@@ -56,7 +56,7 @@ output "uploaded_vd_EXISTING" {
 }
 
 resource "hypercore_disk" "os" {
-  vm_uuid                = data.hypercore_vm.myvm.vms.0.uuid
+  vm_uuid                = data.hypercore_vms.myvm.vms.0.uuid
   type                   = "VIRTIO_DISK"
   size                   = 3.4 # GB
   source_virtual_disk_id = hypercore_virtual_disk.vd_import_existing.id

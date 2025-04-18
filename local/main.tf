@@ -16,7 +16,7 @@ locals {
 
 provider "hypercore" {}
 
-data "hypercore_vm" "no-such-vm" {
+data "hypercore_vms" "no-such-vm" {
   name = "no-such-vm"
 }
 

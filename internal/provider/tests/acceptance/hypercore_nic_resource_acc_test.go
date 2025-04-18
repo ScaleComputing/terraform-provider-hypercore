@@ -28,18 +28,18 @@ func TestAccHypercoreNicResource(t *testing.T) {
 
 func testAccHypercoreSourceVMRConfig() string {
 	return fmt.Sprintf(`
-data "hypercore_vm" "nicvm" {
+data "hypercore_vms" "nicvm" {
   name = %[1]q
 }
 
 resource "hypercore_nic" "test" {
-  vm_uuid = data.hypercore_vm.nicvm.vms.0.uuid
+  vm_uuid = data.hypercore_vms.nicvm.vms.0.uuid
   vlan    = 11
   type    = "VIRTIO"
 }
 
 output "vm_id" {
-  value = data.hypercore_vm.nicvm.vms.0.uuid
+  value = data.hypercore_vms.nicvm.vms.0.uuid
 }
 `, source_vm_name)
 }

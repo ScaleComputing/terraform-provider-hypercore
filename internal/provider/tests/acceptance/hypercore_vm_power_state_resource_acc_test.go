@@ -27,12 +27,12 @@ func TestAccHypercorePowerStateResource(t *testing.T) {
 
 func testAccHypercorePowerStateResourceConfig() string {
 	return fmt.Sprintf(`
-data "hypercore_vm" "integrationvm" {
+data "hypercore_vms" "integrationvm" {
   name = %[1]q
 }
 
 resource "hypercore_vm_power_state" "power_state_test" {
-  vm_uuid = data.hypercore_vm.integrationvm.vms.0.uuid
+  vm_uuid = data.hypercore_vms.integrationvm.vms.0.uuid
   state   = "RUNNING"
 }
 `, source_vm_name)

@@ -18,21 +18,21 @@ locals {
   another_vm_name = "example-vm-two"
 }
 
-data "hypercore_vm" "example-vm-one" {
+data "hypercore_vms" "example-vm-one" {
   name = local.vm_name
 }
 
-data "hypercore_vm" "example-vm-two" {
+data "hypercore_vms" "example-vm-two" {
   name = local.another_vm_name
 }
 
 resource "hypercore_vm_snapshot" "snapshot" {
-  vm_uuid = data.hypercore_vm.example-vm-one.vms.0.uuid
+  vm_uuid = data.hypercore_vms.example-vm-one.vms.0.uuid
   label   = "my-snapshot"
 }
 
 resource "hypercore_vm_snapshot" "imported-snapshot" {
-  vm_uuid = data.hypercore_vm.example-vm-two.vms.0.uuid
+  vm_uuid = data.hypercore_vms.example-vm-two.vms.0.uuid
 }
 
 import {

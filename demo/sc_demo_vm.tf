@@ -10,7 +10,7 @@ resource "hypercore_vm" "demo_vm" {
   vcpu        = 4
   memory      = 4096  # MiB
   clone = {
-    source_vm_uuid = data.hypercore_vm.template_vm.vms.0.uuid
+    source_vm_uuid = data.hypercore_vms.template_vm.vms.0.uuid
     meta_data = templatefile("assets/meta-data.ubuntu-22.04.yml.tftpl", {
       name = local.vm_name,
     })

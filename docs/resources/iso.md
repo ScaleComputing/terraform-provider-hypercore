@@ -17,7 +17,7 @@ locals {
   vm_name = "myvm"
 }
 
-data "hypercore_vm" "isovm" {
+data "hypercore_vms" "isovm" {
   name = local.vm_name
 }
 

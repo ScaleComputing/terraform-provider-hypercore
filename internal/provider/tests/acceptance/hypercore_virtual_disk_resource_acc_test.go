@@ -28,12 +28,12 @@ func TestAccHypercoreVirtualDiskResource(t *testing.T) {
 
 func testAccHypercoreVirtualDiskResourceConfig() string {
 	return fmt.Sprintf(`
-data "hypercore_vm" "integrationvm" {
+data "hypercore_vms" "integrationvm" {
   name = %[1]q
 }
 
 resource "hypercore_disk" "attach_vd_test" {
-  vm_uuid                = data.hypercore_vm.integrationvm.vms.0.uuid
+  vm_uuid                = data.hypercore_vms.integrationvm.vms.0.uuid
   type                   = "VIRTIO_DISK"
   size                   = 3.4
   source_virtual_disk_id = %[2]q

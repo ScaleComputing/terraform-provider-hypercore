@@ -21,17 +21,17 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ datasource.DataSource              = &hypercoreVMDataSource{}
-	_ datasource.DataSourceWithConfigure = &hypercoreVMDataSource{}
+	_ datasource.DataSource              = &hypercoreVMsDataSource{}
+	_ datasource.DataSourceWithConfigure = &hypercoreVMsDataSource{}
 )
 
-// NewHypercoreVMDataSource is a helper function to simplify the provider implementation.
-func NewHypercoreVMDataSource() datasource.DataSource {
-	return &hypercoreVMDataSource{}
+// NewHypercoreVMsDataSource is a helper function to simplify the provider implementation.
+func NewHypercoreVMsDataSource() datasource.DataSource {
+	return &hypercoreVMsDataSource{}
 }
 
-// hypercoreVMDataSource is the data source implementation.
-type hypercoreVMDataSource struct {
+// hypercoreVMsDataSource is the data source implementation.
+type hypercoreVMsDataSource struct {
 	client *utils.RestClient
 }
 
@@ -64,12 +64,12 @@ type HypercoreDiskModel struct {
 }
 
 // Metadata returns the data source type name.
-func (d *hypercoreVMDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_vm"
+func (d *hypercoreVMsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_vms"
 }
 
 // Schema defines the schema for the data source.
-func (d *hypercoreVMDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *hypercoreVMsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -149,7 +149,7 @@ func (d *hypercoreVMDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 }
 
 // Configure adds the provider configured client to the data source.
-func (d *hypercoreVMDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *hypercoreVMsDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Add a nil check when handling ProviderData because Terraform
 	// sets that data after it calls the ConfigureProvider RPC.
 	if req.ProviderData == nil {
@@ -170,7 +170,7 @@ func (d *hypercoreVMDataSource) Configure(_ context.Context, req datasource.Conf
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *hypercoreVMDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *hypercoreVMsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var conf hypercoreVMsDataSourceModel
 	req.Config.Get(ctx, &conf)
 	filter_name := conf.FilterName.ValueString()

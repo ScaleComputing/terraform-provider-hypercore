@@ -18,11 +18,11 @@ locals {
   another_vm_name = "example-vm-two"
 }
 
-data "hypercore_vm" "example-vm-one" {
+data "hypercore_vms" "example-vm-one" {
   name = local.vm_name
 }
 
-data "hypercore_vm" "example-vm-two" {
+data "hypercore_vms" "example-vm-two" {
   name = local.another_vm_name
 }
 

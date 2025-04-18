@@ -28,18 +28,18 @@ func TestAccHypercoreDiskResource(t *testing.T) {
 
 func testAccHypercoreDiskResourceConfig() string {
 	return fmt.Sprintf(`
-data "hypercore_vm" "diskvm" {
+data "hypercore_vms" "diskvm" {
   name = %[1]q
 }
 
 resource "hypercore_disk" "test" {
-  vm_uuid = data.hypercore_vm.diskvm.vms.0.uuid
+  vm_uuid = data.hypercore_vms.diskvm.vms.0.uuid
   type    = "IDE_DISK"
   size    = 3
 }
 
 output "vm_id" {
-  value = data.hypercore_vm.diskvm.vms.0.uuid
+  value = data.hypercore_vms.diskvm.vms.0.uuid
 }
 `, source_vm_name)
 }
