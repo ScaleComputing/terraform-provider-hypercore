@@ -138,8 +138,15 @@ func (r *HypercoreISOResource) Create(ctx context.Context, req resource.CreateRe
 
 	// Create
 	tflog.Info(ctx, fmt.Sprintf("TTRT Create: name=%s", data.Name.ValueString()))
-	isoUUID, iso := utils.CreateISO(*r.client, isoName, false, isoBinaryData, ctx)
+	isoUUID, iso, errorObj := utils.CreateISO(*r.client, isoName, false, isoBinaryData, ctx)
 	tflog.Info(ctx, fmt.Sprintf("TTRT Created: name=%s, iso_uuid=%s, iso=%v", data.Name.ValueString(), isoUUID, iso))
+	if iso == nil {
+		// If ISO with such name already exists and errorObj='{"error":"An internal error occurred"}' is returned.
+		// Add extra hint.
+		hint := "hint - check if ISO with this name already exists"
+		resp.Diagnostics.AddError("Failed to create ISO", fmt.Sprintf("Failed to create ISO with name %s, %s, error %v.", data.Name.ValueString(), hint, errorObj))
+		return
+	}
 
 	// 2. Upload ISO file
 	fileSize := len(isoBinaryData)
