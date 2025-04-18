@@ -5,7 +5,7 @@ resource "hypercore_vm_replication" "testtf-replication" {
   vm_uuid = hypercore_vm.demo_vm.id
   label   = "testtf-demo_vm-replication"
 
-  connection_uuid =  data.hypercore_remote_cluster_connection.clusters_all.remote_clusters.0.uuid
+  connection_uuid =  data.hypercore_remote_cluster_connections.clusters_all.remote_clusters.0.uuid
   enable          = true
 
   # If testing with replication localhost - added the connection to itself

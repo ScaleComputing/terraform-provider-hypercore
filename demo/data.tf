@@ -15,6 +15,6 @@ data "hypercore_nodes" "node_1" {
 #   peer_id = 1
 # }
 
-data "hypercore_remote_cluster_connection" "clusters_all" {
+data "hypercore_remote_cluster_connections" "clusters_all" {
   # remote_cluster_name = "cluster-a"
 }
