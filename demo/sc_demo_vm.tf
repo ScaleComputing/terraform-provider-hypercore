@@ -28,9 +28,9 @@ resource "hypercore_vm" "demo_vm" {
   # If preferred_node fails, run VM on any other node.
   affinity_strategy = {
     strict_affinity = true
-    preferred_node_uuid = data.hypercore_node.node_1.nodes.0.uuid
+    preferred_node_uuid = data.hypercore_nodes.node_1.nodes.0.uuid
     backup_node_uuid = ""
-    # backup_node_uuid = data.hypercore_node.node_2.id
+    # backup_node_uuid = data.hypercore_nodes.node_2.id
   }
 }
 

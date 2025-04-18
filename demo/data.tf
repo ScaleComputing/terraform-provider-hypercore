@@ -6,7 +6,7 @@ data "hypercore_vms" "template_vm" {
 }
 
 # The first node in cluster (id is 1-based index)
-data "hypercore_node" "node_1" {
+data "hypercore_nodes" "node_1" {
   peer_id = 1
 }
 # data "hypercore_node" "node_2" {
