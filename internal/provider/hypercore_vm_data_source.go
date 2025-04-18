@@ -185,7 +185,17 @@ func (d *hypercoreVMDataSource) Read(ctx context.Context, req datasource.ReadReq
 		-1.0,
 		false,
 	)
-	tflog.Info(ctx, fmt.Sprintf("TTRT: filter_name=%s vm_count=%d\n", filter_name, len(hc3_vms)))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT: filter_name=%s vm_count=%d\n", filter_name, len(hc3_vms)))
+	if filter_name != "" {
+		if len(hc3_vms) == 0 {
+			resp.Diagnostics.AddError("VM not found", fmt.Sprintf("No VM with name %s found.", filter_name))
+			return
+		}
+		if len(hc3_vms) > 1 {
+			resp.Diagnostics.AddError("Multiple VMs found", fmt.Sprintf("Multiple VMs with name %s found.", filter_name))
+			return
+		}
+	}
 
 	var state hypercoreVMsDataSourceModel
 	state.FilterName = types.StringValue(filter_name)
@@ -245,7 +255,7 @@ func (d *hypercoreVMDataSource) Read(ctx context.Context, req datasource.ReadReq
 		}
 		state.Vms = append(state.Vms, hypercoreVMState)
 	}
-	tflog.Info(ctx, fmt.Sprintf("TTRT: filter_name=%s name=%s\n", filter_name, state.Vms[0].Name.String()))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT: filter_name=%s name=%s\n", filter_name, state.Vms[0].Name.String()))
 
 	// Set state
 	diags := resp.State.Set(ctx, &state)
