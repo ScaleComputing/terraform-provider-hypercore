@@ -21,17 +21,17 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ datasource.DataSource              = &hypercoreVMDataSource{}
-	_ datasource.DataSourceWithConfigure = &hypercoreVMDataSource{}
+	_ datasource.DataSource              = &hypercoreVMsDataSource{}
+	_ datasource.DataSourceWithConfigure = &hypercoreVMsDataSource{}
 )
 
-// NewHypercoreVMDataSource is a helper function to simplify the provider implementation.
-func NewHypercoreVMDataSource() datasource.DataSource {
-	return &hypercoreVMDataSource{}
+// NewHypercoreVMsDataSource is a helper function to simplify the provider implementation.
+func NewHypercoreVMsDataSource() datasource.DataSource {
+	return &hypercoreVMsDataSource{}
 }
 
-// hypercoreVMDataSource is the data source implementation.
-type hypercoreVMDataSource struct {
+// hypercoreVMsDataSource is the data source implementation.
+type hypercoreVMsDataSource struct {
 	client *utils.RestClient
 }
 
@@ -64,12 +64,12 @@ type HypercoreDiskModel struct {
 }
 
 // Metadata returns the data source type name.
-func (d *hypercoreVMDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_vm"
+func (d *hypercoreVMsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_vms"
 }
 
 // Schema defines the schema for the data source.
-func (d *hypercoreVMDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *hypercoreVMsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -149,7 +149,7 @@ func (d *hypercoreVMDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 }
 
 // Configure adds the provider configured client to the data source.
-func (d *hypercoreVMDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *hypercoreVMsDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Add a nil check when handling ProviderData because Terraform
 	// sets that data after it calls the ConfigureProvider RPC.
 	if req.ProviderData == nil {
@@ -170,7 +170,7 @@ func (d *hypercoreVMDataSource) Configure(_ context.Context, req datasource.Conf
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *hypercoreVMDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *hypercoreVMsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var conf hypercoreVMsDataSourceModel
 	req.Config.Get(ctx, &conf)
 	filter_name := conf.FilterName.ValueString()
@@ -185,7 +185,17 @@ func (d *hypercoreVMDataSource) Read(ctx context.Context, req datasource.ReadReq
 		-1.0,
 		false,
 	)
-	tflog.Info(ctx, fmt.Sprintf("TTRT: filter_name=%s vm_count=%d\n", filter_name, len(hc3_vms)))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT: filter_name=%s vm_count=%d\n", filter_name, len(hc3_vms)))
+	if filter_name != "" {
+		if len(hc3_vms) == 0 {
+			resp.Diagnostics.AddError("VM not found", fmt.Sprintf("No VM with name %s found.", filter_name))
+			return
+		}
+		if len(hc3_vms) > 1 {
+			resp.Diagnostics.AddError("Multiple VMs found", fmt.Sprintf("Multiple VMs with name %s found.", filter_name))
+			return
+		}
+	}
 
 	var state hypercoreVMsDataSourceModel
 	state.FilterName = types.StringValue(filter_name)
@@ -245,7 +255,7 @@ func (d *hypercoreVMDataSource) Read(ctx context.Context, req datasource.ReadReq
 		}
 		state.Vms = append(state.Vms, hypercoreVMState)
 	}
-	tflog.Info(ctx, fmt.Sprintf("TTRT: filter_name=%s name=%s\n", filter_name, state.Vms[0].Name.String()))
+	tflog.Debug(ctx, fmt.Sprintf("TTRT: filter_name=%s name=%s\n", filter_name, state.Vms[0].Name.String()))
 
 	// Set state
 	diags := resp.State.Set(ctx, &state)

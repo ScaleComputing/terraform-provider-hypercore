@@ -19,7 +19,7 @@ locals {
   vm_name           = "my-vm"
 }
 
-data "hypercore_vm" "clone_source_vm" {
+data "hypercore_vms" "clone_source_vm" {
   name = "source_vm"
 }
 
@@ -30,10 +30,10 @@ resource "hypercore_vm" "myvm" {
 
   vcpu                   = 4
   memory                 = 4096 # MiB
-  snapshot_schedule_uuid = data.hypercore_vm.clone_source_vm.vms.0.snapshot_schedule_uuid
+  snapshot_schedule_uuid = data.hypercore_vms.clone_source_vm.vms.0.snapshot_schedule_uuid
 
   clone = {
-    source_vm_uuid = data.hypercore_vm.clone_source_vm.vms.0.uuid
+    source_vm_uuid = data.hypercore_vms.clone_source_vm.vms.0.uuid
     meta_data = templatefile(local.vm_meta_data_tmpl, {
       name = local.vm_name,
     })

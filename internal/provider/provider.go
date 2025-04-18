@@ -179,9 +179,9 @@ func (p *HypercoreProvider) Resources(ctx context.Context) []func() resource.Res
 
 func (p *HypercoreProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewHypercoreVMDataSource,
-		NewHypercoreNodeDataSource,
-		NewHypercoreRemoteClusterConnectionDataSource,
+		NewHypercoreVMsDataSource,
+		NewHypercoreNodesDataSource,
+		NewHypercoreRemoteClusterConnectionsDataSource,
 	}
 }
 

@@ -18,11 +18,11 @@ locals {
   empty_vm     = "example-empty-vm"
 }
 
-data "hypercore_vm" "diskvm" {
+data "hypercore_vms" "diskvm" {
   name = local.populated_vm
 }
 
-data "hypercore_vm" "empty" {
+data "hypercore_vms" "empty" {
   name = local.empty_vm
 }
 
@@ -31,13 +31,13 @@ resource "hypercore_virtual_disk" "vd_import_os" {
 }
 
 resource "hypercore_nic" "example_nic" {
-  vm_uuid = data.hypercore_vm.empty.vms.0.uuid
+  vm_uuid = data.hypercore_vms.empty.vms.0.uuid
   vlan    = 11
   type    = "VIRTIO"
 }
 
 resource "hypercore_disk" "os" {
-  vm_uuid                = data.hypercore_vm.empty.vms.0.uuid
+  vm_uuid                = data.hypercore_vms.empty.vms.0.uuid
   type                   = "VIRTIO_DISK"
   size                   = 42.0
   source_virtual_disk_id = hypercore_virtual_disk.vd_import_os.id
@@ -51,7 +51,7 @@ import {
 }
 
 resource "hypercore_disk" "another_disk" {
-  vm_uuid = data.hypercore_vm.empty.vms.0.uuid
+  vm_uuid = data.hypercore_vms.empty.vms.0.uuid
   type    = "IDE_DISK"
   size    = 3.14
 
@@ -60,7 +60,7 @@ resource "hypercore_disk" "another_disk" {
 
 # On a VM with no disks at all. Disks were created and attached here
 resource "hypercore_vm_boot_order" "testtf_created_boot_order" {
-  vm_uuid = data.hypercore_vm.empty.vms.0.uuid
+  vm_uuid = data.hypercore_vms.empty.vms.0.uuid
   boot_devices = [ # must be provided in the wanted boot order
     hypercore_disk.os.id,
     hypercore_nic.example_nic.id,
@@ -76,7 +76,7 @@ resource "hypercore_vm_boot_order" "testtf_created_boot_order" {
 
 # On a VM with already existing boot order and now modified
 resource "hypercore_vm_boot_order" "testtf_imported_boot_order" {
-  vm_uuid = data.hypercore_vm.diskvm.vms.0.uuid
+  vm_uuid = data.hypercore_vms.diskvm.vms.0.uuid
   boot_devices = [
     "c801157d-d454-4842-88ea-d8461e9b802f",
     "ce837222-e4da-40b5-9d12-abdc5f6f73ae",
@@ -86,7 +86,7 @@ resource "hypercore_vm_boot_order" "testtf_imported_boot_order" {
 
 import {
   to = hypercore_vm_boot_order.testtf_imported_boot_order
-  id = data.hypercore_vm.diskvm.vms.0.uuid
+  id = data.hypercore_vms.diskvm.vms.0.uuid
 }
 ```
 

@@ -18,16 +18,16 @@ locals {
   another_vm_name = "example-vm-two"
 }
 
-data "hypercore_vm" "example-vm" {
+data "hypercore_vms" "example-vm" {
   name = local.vm_name
 }
 
-data "hypercore_vm" "example-vm-two" {
+data "hypercore_vms" "example-vm-two" {
   name = local.another_vm_name
 }
 
 resource "hypercore_vm_replication" "example-replication" {
-  vm_uuid = data.hypercore_vm.vm-repl.vms.0.uuid
+  vm_uuid = data.hypercore_vms.vm-repl.vms.0.uuid
   label   = "my-example-replication"
 
   connection_uuid = "6ab8c456-85af-4c97-8cb7-76246552b1e6" # remote connection UUID
@@ -35,7 +35,7 @@ resource "hypercore_vm_replication" "example-replication" {
 }
 
 resource "hypercore_vm_replication" "example-replication-imported" {
-  vm_uuid = data.hypercore_vm.example-vm-two.vms.0.uuid
+  vm_uuid = data.hypercore_vms.example-vm-two.vms.0.uuid
 }
 
 import {

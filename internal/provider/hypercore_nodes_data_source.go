@@ -19,17 +19,17 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ datasource.DataSource              = &hypercoreNodeDataSource{}
-	_ datasource.DataSourceWithConfigure = &hypercoreNodeDataSource{}
+	_ datasource.DataSource              = &hypercoreNodesDataSource{}
+	_ datasource.DataSourceWithConfigure = &hypercoreNodesDataSource{}
 )
 
 // NewHypercoreNodeDataSource is a helper function to simplify the provider implementation.
-func NewHypercoreNodeDataSource() datasource.DataSource {
-	return &hypercoreNodeDataSource{}
+func NewHypercoreNodesDataSource() datasource.DataSource {
+	return &hypercoreNodesDataSource{}
 }
 
-// hypercoreNodeDataSource is the data source implementation.
-type hypercoreNodeDataSource struct {
+// hypercoreNodesDataSource is the data source implementation.
+type hypercoreNodesDataSource struct {
 	client *utils.RestClient
 }
 
@@ -48,12 +48,12 @@ type hypercoreNodeModel struct {
 }
 
 // Metadata returns the data source type name.
-func (d *hypercoreNodeDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_node"
+func (d *hypercoreNodesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_nodes"
 }
 
 // Schema defines the schema for the data source.
-func (d *hypercoreNodeDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *hypercoreNodesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"peer_id": schema.Int64Attribute{
@@ -83,7 +83,7 @@ func (d *hypercoreNodeDataSource) Schema(_ context.Context, _ datasource.SchemaR
 }
 
 // Configure adds the provider configured client to the data source.
-func (d *hypercoreNodeDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *hypercoreNodesDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Add a nil check when handling ProviderData because Terraform
 	// sets that data after it calls the ConfigureProvider RPC.
 	if req.ProviderData == nil {
@@ -103,7 +103,7 @@ func (d *hypercoreNodeDataSource) Configure(_ context.Context, req datasource.Co
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *hypercoreNodeDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *hypercoreNodesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var conf hypercoreNodesDataSourceModel
 	req.Config.Get(ctx, &conf)
 	// use float64, because this is the type of loaded json data

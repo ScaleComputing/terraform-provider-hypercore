@@ -29,12 +29,12 @@ func TestAccHypercoreBootOrderResource(t *testing.T) {
 
 func testAccHypercoreBootOrderResourceConfig() string {
 	return fmt.Sprintf(`
-data "hypercore_vm" "bootvm" {
+data "hypercore_vms" "bootvm" {
   name = %[1]q
 }
 
 resource "hypercore_vm_boot_order" "test" {
-  vm_uuid = data.hypercore_vm.bootvm.vms.0.uuid
+  vm_uuid = data.hypercore_vms.bootvm.vms.0.uuid
   boot_devices = [
     %[2]q,
 	%[3]q,

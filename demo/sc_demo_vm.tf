@@ -10,7 +10,7 @@ resource "hypercore_vm" "demo_vm" {
   vcpu        = 4
   memory      = 4096  # MiB
   clone = {
-    source_vm_uuid = data.hypercore_vm.template_vm.vms.0.uuid
+    source_vm_uuid = data.hypercore_vms.template_vm.vms.0.uuid
     meta_data = templatefile("assets/meta-data.ubuntu-22.04.yml.tftpl", {
       name = local.vm_name,
     })
@@ -28,9 +28,9 @@ resource "hypercore_vm" "demo_vm" {
   # If preferred_node fails, run VM on any other node.
   affinity_strategy = {
     strict_affinity = true
-    preferred_node_uuid = data.hypercore_node.node_1.nodes.0.uuid
+    preferred_node_uuid = data.hypercore_nodes.node_1.nodes.0.uuid
     backup_node_uuid = ""
-    # backup_node_uuid = data.hypercore_node.node_2.id
+    # backup_node_uuid = data.hypercore_nodes.node_2.id
   }
 }
 
