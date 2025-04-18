@@ -204,7 +204,9 @@ func (rc *RestClient) Login() {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		panic(fmt.Errorf("authentication failed with status code: %d", resp.StatusCode))
+		respBytes, _ := io.ReadAll(resp.Body)
+		respStr := string(respBytes)
+		panic(fmt.Errorf("authentication failed with HTTP status code: %d, body: %v", resp.StatusCode, respStr))
 	}
 
 	if respJson, ok := rc.ToJson(resp).(map[string]any); ok {

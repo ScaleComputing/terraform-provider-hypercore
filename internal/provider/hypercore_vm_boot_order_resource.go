@@ -90,6 +90,8 @@ func (r *HypercoreVMBootOrderResource) Configure(ctx context.Context, req resour
 }
 
 func (r *HypercoreVMBootOrderResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMBootOrderResource CREATE")
 	var data HypercoreVMBootOrderResourceModel
 
@@ -139,6 +141,8 @@ func (r *HypercoreVMBootOrderResource) Create(ctx context.Context, req resource.
 }
 
 func (r *HypercoreVMBootOrderResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMBootOrderResource READ")
 	var data HypercoreVMBootOrderResourceModel
 	// Read Terraform prior state data into the model
@@ -184,6 +188,8 @@ func (r *HypercoreVMBootOrderResource) Read(ctx context.Context, req resource.Re
 }
 
 func (r *HypercoreVMBootOrderResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMBootOrderResource UPDATE")
 	var data_state HypercoreVMBootOrderResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
@@ -228,6 +234,8 @@ func (r *HypercoreVMBootOrderResource) Update(ctx context.Context, req resource.
 }
 
 func (r *HypercoreVMBootOrderResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMBootOrderResource DELETE")
 	var data HypercoreVMBootOrderResourceModel
 
@@ -250,6 +258,8 @@ func (r *HypercoreVMBootOrderResource) Delete(ctx context.Context, req resource.
 }
 
 func (r *HypercoreVMBootOrderResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMBootOrderResource IMPORT_STATE")
 
 	vmUUID := req.ID

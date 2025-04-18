@@ -110,6 +110,8 @@ func (r *HypercoreDiskResource) Configure(ctx context.Context, req resource.Conf
 }
 
 func (r *HypercoreDiskResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreDiskResource CREATE")
 	var data HypercoreDiskResourceModel
 	// var readData HypercoreDiskResourceModel
@@ -221,6 +223,8 @@ func (r *HypercoreDiskResource) Create(ctx context.Context, req resource.CreateR
 }
 
 func (r *HypercoreDiskResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreDiskResource READ")
 	var data HypercoreDiskResourceModel
 	// Read Terraform prior state data into the model
@@ -257,6 +261,8 @@ func (r *HypercoreDiskResource) Read(ctx context.Context, req resource.ReadReque
 }
 
 func (r *HypercoreDiskResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreDiskResource UPDATE")
 	var data_state HypercoreDiskResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
@@ -350,6 +356,8 @@ func (r *HypercoreDiskResource) Update(ctx context.Context, req resource.UpdateR
 }
 
 func (r *HypercoreDiskResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreDiskResource DELETE")
 	var data HypercoreDiskResourceModel
 
@@ -379,6 +387,8 @@ func (r *HypercoreDiskResource) Delete(ctx context.Context, req resource.DeleteR
 }
 
 func (r *HypercoreDiskResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreDiskResource IMPORT_STATE")
 	idParts := strings.Split(req.ID, ":")
 	if len(idParts) != 3 {

@@ -156,6 +156,8 @@ func (r *HypercoreVMSnapshotScheduleResource) Configure(ctx context.Context, req
 }
 
 func (r *HypercoreVMSnapshotScheduleResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMSnapshotScheduleResource CREATE")
 	var data HypercoreVMSnapshotScheduleResourceModel
 
@@ -262,6 +264,8 @@ func (r *HypercoreVMSnapshotScheduleResource) Create(ctx context.Context, req re
 }
 
 func (r *HypercoreVMSnapshotScheduleResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMSnapshotScheduleResource READ")
 	var data HypercoreVMSnapshotScheduleResourceModel
 	// Read Terraform prior state data into the model
@@ -330,6 +334,8 @@ func (r *HypercoreVMSnapshotScheduleResource) Read(ctx context.Context, req reso
 }
 
 func (r *HypercoreVMSnapshotScheduleResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMSnapshotScheduleResource UPDATE")
 	var data_state HypercoreVMSnapshotScheduleResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
@@ -441,6 +447,8 @@ func (r *HypercoreVMSnapshotScheduleResource) Update(ctx context.Context, req re
 }
 
 func (r *HypercoreVMSnapshotScheduleResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMSnapshotScheduleResource DELETE")
 	var data HypercoreVMSnapshotScheduleResourceModel
 
@@ -471,6 +479,7 @@ func (r *HypercoreVMSnapshotScheduleResource) Delete(ctx context.Context, req re
 
 func (r *HypercoreVMSnapshotScheduleResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	// NOTE: Do we need import state or would it be better to have a data source instead?
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
 
 	tflog.Info(ctx, "TTRT HypercoreVMSnapshotScheduleResource IMPORT_STATE")
 

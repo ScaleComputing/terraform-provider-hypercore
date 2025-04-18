@@ -64,21 +64,24 @@ func CreateISO(
 	readyForInsert bool,
 	binaryData []byte,
 	ctx context.Context,
-) (string, map[string]any) {
+) (string, map[string]any, error) {
 	payload := map[string]any{
 		"name":           name,
 		"size":           len(binaryData),
 		"readyForInsert": readyForInsert,
 	}
-	taskTag, _, _ := restClient.CreateRecord(
+	taskTag, _, errorObj := restClient.CreateRecord(
 		"/rest/v1/ISO",
 		payload,
 		-1,
 	)
+	if taskTag == nil || taskTag.CreatedUUID == "" {
+		return "", nil, errorObj
+	}
 	taskTag.WaitTask(restClient, ctx)
 	isoUUID := taskTag.CreatedUUID
 	iso := GetISOByUUID(restClient, isoUUID)
-	return isoUUID, *iso
+	return isoUUID, *iso, nil
 }
 
 func GetISOByUUID(

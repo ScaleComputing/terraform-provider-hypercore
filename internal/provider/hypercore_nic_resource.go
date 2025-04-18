@@ -96,6 +96,8 @@ func (r *HypercoreNicResource) Configure(ctx context.Context, req resource.Confi
 }
 
 func (r *HypercoreNicResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreNicResource CREATE")
 	var data HypercoreNicResourceModel
 	// var readData HypercoreNicResourceModel
@@ -136,6 +138,8 @@ func (r *HypercoreNicResource) Create(ctx context.Context, req resource.CreateRe
 }
 
 func (r *HypercoreNicResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreNicResource READ")
 	var data HypercoreNicResourceModel
 	// Read Terraform prior state data into the model
@@ -172,6 +176,8 @@ func (r *HypercoreNicResource) Read(ctx context.Context, req resource.ReadReques
 }
 
 func (r *HypercoreNicResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreNicResource UPDATE")
 	var data_state HypercoreNicResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
@@ -219,6 +225,8 @@ func (r *HypercoreNicResource) Update(ctx context.Context, req resource.UpdateRe
 }
 
 func (r *HypercoreNicResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreNicResource DELETE")
 	var data HypercoreNicResourceModel
 
@@ -248,6 +256,8 @@ func (r *HypercoreNicResource) Delete(ctx context.Context, req resource.DeleteRe
 }
 
 func (r *HypercoreNicResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreNicResource IMPORT_STATE")
 	idParts := strings.Split(req.ID, ":")
 	if len(idParts) != 3 {

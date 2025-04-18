@@ -74,6 +74,8 @@ func (p *HypercoreProvider) Schema(ctx context.Context, req provider.SchemaReque
 }
 
 func (p *HypercoreProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	scHost := os.Getenv("HC_HOST")
 	scUsername := os.Getenv("HC_USERNAME")
 	scPassword := os.Getenv("HC_PASSWORD")

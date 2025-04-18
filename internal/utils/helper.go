@@ -5,6 +5,7 @@ package utils
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -329,4 +330,11 @@ func ValidateHTTP(httpUri string, path string) diag.Diagnostic {
 	}
 
 	return nil
+}
+
+func RecoverDiagnostics(ctx context.Context, diags *diag.Diagnostics) {
+	if r := recover(); r != nil {
+		err := fmt.Errorf("Terraform provider got an unexpected error during execution: %v", r)
+		*diags = append(*diags, diag.NewErrorDiagnostic("Unexpected error", err.Error()))
+	}
 }
