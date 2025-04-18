@@ -23,19 +23,20 @@ data "hypercore_vm" "src_empty" {
 resource "hypercore_vm" "vm_on" {
   group       = "testtf"
   name        = local.vm_name
-  description = "VM to be removed"
+  description = "VM created from scratch"
   vcpu        = 1
   memory      = 1234  # MiB
-  clone = {
-    source_vm_uuid = data.hypercore_vm.src_empty.vms.0.uuid
-    meta_data = ""
-    user_data = ""
-  }
+
+  # clone = {
+  #   source_vm_uuid = data.hypercore_vm.src_empty.vms.0.uuid
+  #   meta_data = ""
+  #   user_data = ""
+  # }
 }
 
 resource "hypercore_vm_power_state" "vm_on" {
   vm_uuid = hypercore_vm.vm_on.id
-  state = "RUNNING"
+  state = "SHUTOFF"  // RUNNING SHUTOFF
 }
 
 output "vm_on_uuid" {

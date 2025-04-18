@@ -128,6 +128,41 @@ func GetVMStruct(
 	return vmNew
 }
 
+func (vc *VM) SendFromScratchRequest(restClient RestClient) *TaskTag {
+	vmPayload := map[string]any{
+		"dom": map[string]any{
+			"name":          vc.VMName,
+			"cloudInitData": vc.cloudInit,
+		},
+		"options": map[string]any{
+			// 	"machineTypeKeyword": vc.machineTypeKeyword,
+		},
+	}
+	taskTag, _, _ := restClient.CreateRecord(
+		"/rest/v1/VirDomain",
+		vmPayload,
+		-1,
+	)
+	return taskTag
+}
+
+func (vc *VM) FromScratch(restClient RestClient, ctx context.Context) (bool, string) {
+	task := vc.SendFromScratchRequest(restClient)
+	task.WaitTask(restClient, ctx)
+	taskStatus := task.GetStatus(restClient)
+
+	if taskStatus == nil {
+		panic("There was a problem during VM create.")
+	}
+
+	if state, ok := (*taskStatus)["state"]; ok && state == "COMPLETE" {
+		vc.UUID = task.CreatedUUID
+		return true, fmt.Sprintf("Virtual machine create complete to - %s.", vc.VMName)
+	}
+
+	panic("There was a problem during VM create.")
+}
+
 func (vc *VM) SendCloneRequest(restClient RestClient, sourceVM map[string]any) *TaskTag {
 	// Clone payload
 	clonePayload := map[string]any{

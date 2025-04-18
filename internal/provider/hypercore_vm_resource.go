@@ -259,6 +259,12 @@ func isSMBImport(data *HypercoreVMResourceModel) bool {
 	return smbServer != "" || smbUsername != "" || smbPassword != ""
 }
 
+func (r *HypercoreVMResource) handleCreateFromScratchLogic(data *HypercoreVMResourceModel, ctx context.Context, vmNew *utils.VM) {
+	changed, msg := vmNew.FromScratch(*r.client, ctx)
+	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
+	vmNew.SetVMParams(*r.client, ctx)
+	data.Id = types.StringValue(vmNew.UUID)
+}
 func (r *HypercoreVMResource) handleCloneLogic(data *HypercoreVMResourceModel, ctx context.Context, vmNew *utils.VM) {
 	changed, msg := vmNew.Clone(*r.client, ctx)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Message: %s\n", changed, msg))
@@ -297,7 +303,7 @@ func (r *HypercoreVMResource) handleImportFromURILogic(data *HypercoreVMResource
 }
 func (r *HypercoreVMResource) doCreateLogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, description *string, tags *[]string) {
 	vmNew := getVMStruct(data, description, tags)
-	// Chose which VM create logic we're going with (clone or import)
+	// Chose which VM create logic we're going with (clone, import, from scratch)
 	if data.Clone != nil {
 		r.handleCloneLogic(data, ctx, vmNew)
 	} else if data.Import != nil {
@@ -308,6 +314,8 @@ func (r *HypercoreVMResource) doCreateLogic(data *HypercoreVMResourceModel, ctx 
 		} else if isSMBImport(data) && !isHTTPImport(data) {
 			r.handleImportFromSMBLogic(data, ctx, resp, vmNew, path, fileName)
 		}
+	} else {
+		r.handleCreateFromScratchLogic(data, ctx, vmNew)
 	}
 }
 
@@ -434,10 +442,10 @@ func (r *HypercoreVMResource) Update(ctx context.Context, req resource.UpdateReq
 
 	updatePayload := map[string]any{}
 	if data_state.Name != data.Name {
-		updatePayload["name"] = data.Name.String()
+		updatePayload["name"] = data.Name.ValueString()
 	}
 	if data_state.Description != data.Description {
-		updatePayload["description"] = data.Description.String()
+		updatePayload["description"] = data.Description.ValueString()
 	}
 	// if changed, ok := changedParams["tags"]; ok && changed {
 	// 	updatePayload["tags"] = tagsListToCommaString(*vc.tags)
