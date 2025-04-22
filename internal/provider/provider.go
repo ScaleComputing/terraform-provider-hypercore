@@ -46,6 +46,7 @@ func (p *HypercoreProvider) Metadata(ctx context.Context, req provider.MetadataR
 
 func (p *HypercoreProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "Terraform Provider for [Scale Computing](https://www.scalecomputing.com/) [HyperCore](https://www.scalecomputing.com/sc-hypercore) product.",
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
 				MarkdownDescription: "Hypercore Computing host URI; can also be set with `HC_HOST` environment variable.",

@@ -7,7 +7,7 @@ description: |-
   A running VM might need to shutdown to apply required changes.
   In this case first a nice ACPI shutdown is tried.
   If the VM does not stop, a force shutdown is tried.
-  In both cases provider wait up to HC_VM_SHUTDOWN_TIMEOUT seconds for VM to shutdown.
+  In both cases the provider waits up to HC_VM_SHUTDOWN_TIMEOUT seconds for the VM to shutdown.
   HC_VM_SHUTDOWN_TIMEOUT dafault value is 300 seconds.
   HC_VM_SHUTDOWN_TIMEOUT can be changed via environ.
   The provider will currently try to shutdown VM only before VM delete.
@@ -20,7 +20,7 @@ HypercoreVM resource to create a VM from a template VM
 A running VM might need to shutdown to apply required changes.
 In this case first a nice ACPI shutdown is tried.
 If the VM does not stop, a force shutdown is tried.
-In both cases provider wait up to HC_VM_SHUTDOWN_TIMEOUT seconds for VM to shutdown.
+In both cases the provider waits up to HC_VM_SHUTDOWN_TIMEOUT seconds for the VM to shutdown.
 HC_VM_SHUTDOWN_TIMEOUT dafault value is 300 seconds.
 HC_VM_SHUTDOWN_TIMEOUT can be changed via environ.
 

@@ -3,12 +3,12 @@
 page_title: "hypercore Provider"
 subcategory: ""
 description: |-
-  
+  Terraform Provider for Scale Computing https://www.scalecomputing.com/ HyperCore https://www.scalecomputing.com/sc-hypercore product.
 ---
 
 # hypercore Provider
 
-
+Terraform Provider for [Scale Computing](https://www.scalecomputing.com/) [HyperCore](https://www.scalecomputing.com/sc-hypercore) product.
 
 ## Example Usage
 

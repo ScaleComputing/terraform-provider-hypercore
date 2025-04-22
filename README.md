@@ -1,4 +1,7 @@
 # Terraform Provider HyperCore
+
+This is Terraform Provider for [Scale Computing](https://www.scalecomputing.com/) [HyperCore](https://www.scalecomputing.com/sc-hypercore) product.
+
 ## Requirements
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
