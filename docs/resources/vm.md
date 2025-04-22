@@ -35,6 +35,15 @@ locals {
   vm_name           = "my-vm"
 }
 
+resource "hypercore_vm" "empty-vm" {
+  group       = "my-group"
+  name        = "empty-vm"
+  description = "some description"
+
+  vcpu   = 4
+  memory = 4096 # MiB
+}
+
 data "hypercore_vms" "clone_source_vm" {
   name = "source_vm"
 }
