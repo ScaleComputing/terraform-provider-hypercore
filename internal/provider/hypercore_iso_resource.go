@@ -92,6 +92,8 @@ func (r *HypercoreISOResource) Configure(ctx context.Context, req resource.Confi
 }
 
 func (r *HypercoreISOResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreNicResource CREATE")
 	var data HypercoreISOResourceModel
 
@@ -138,8 +140,15 @@ func (r *HypercoreISOResource) Create(ctx context.Context, req resource.CreateRe
 
 	// Create
 	tflog.Info(ctx, fmt.Sprintf("TTRT Create: name=%s", data.Name.ValueString()))
-	isoUUID, iso := utils.CreateISO(*r.client, isoName, false, isoBinaryData, ctx)
+	isoUUID, iso, errorObj := utils.CreateISO(*r.client, isoName, false, isoBinaryData, ctx)
 	tflog.Info(ctx, fmt.Sprintf("TTRT Created: name=%s, iso_uuid=%s, iso=%v", data.Name.ValueString(), isoUUID, iso))
+	if iso == nil {
+		// If ISO with such name already exists and errorObj='{"error":"An internal error occurred"}' is returned.
+		// Add extra hint.
+		hint := "hint - check if ISO with this name already exists"
+		resp.Diagnostics.AddError("Failed to create ISO", fmt.Sprintf("Failed to create ISO with name %s, %s, error %v.", data.Name.ValueString(), hint, errorObj))
+		return
+	}
 
 	// 2. Upload ISO file
 	fileSize := len(isoBinaryData)
@@ -174,6 +183,8 @@ func (r *HypercoreISOResource) Create(ctx context.Context, req resource.CreateRe
 }
 
 func (r *HypercoreISOResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreISOResource READ")
 	var data HypercoreISOResourceModel
 	// Read Terraform prior state data into the model
@@ -207,6 +218,8 @@ func (r *HypercoreISOResource) Read(ctx context.Context, req resource.ReadReques
 }
 
 func (r *HypercoreISOResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreISOResource UPDATE")
 	var data_state HypercoreISOResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
@@ -250,6 +263,8 @@ func (r *HypercoreISOResource) Update(ctx context.Context, req resource.UpdateRe
 }
 
 func (r *HypercoreISOResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreISOResource DELETE")
 	var data HypercoreISOResourceModel
 
@@ -279,6 +294,8 @@ func (r *HypercoreISOResource) Delete(ctx context.Context, req resource.DeleteRe
 }
 
 func (r *HypercoreISOResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreISOResource IMPORT_STATE")
 
 	vdUUID := req.ID

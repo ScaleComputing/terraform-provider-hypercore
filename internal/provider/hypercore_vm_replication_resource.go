@@ -119,6 +119,8 @@ func (r *HypercoreVMReplicationResource) Configure(ctx context.Context, req reso
 }
 
 func (r *HypercoreVMReplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMReplicationResource CREATE")
 	var data HypercoreVMReplicationResourceModel
 
@@ -188,6 +190,8 @@ func (r *HypercoreVMReplicationResource) Create(ctx context.Context, req resourc
 }
 
 func (r *HypercoreVMReplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMReplicationResource READ")
 	var data HypercoreVMReplicationResourceModel
 	// Read Terraform prior state data into the model
@@ -226,6 +230,8 @@ func (r *HypercoreVMReplicationResource) Read(ctx context.Context, req resource.
 }
 
 func (r *HypercoreVMReplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMReplicationResource UPDATE")
 	var data_state HypercoreVMReplicationResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data_state)...)
@@ -279,6 +285,8 @@ func (r *HypercoreVMReplicationResource) Update(ctx context.Context, req resourc
 }
 
 func (r *HypercoreVMReplicationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMReplicationResource DELETE")
 	var data HypercoreVMReplicationResourceModel
 
@@ -301,6 +309,8 @@ func (r *HypercoreVMReplicationResource) Delete(ctx context.Context, req resourc
 }
 
 func (r *HypercoreVMReplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	tflog.Info(ctx, "TTRT HypercoreVMReplicationResource IMPORT_STATE")
 
 	replicationUUID := req.ID

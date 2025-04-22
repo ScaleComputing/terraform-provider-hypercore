@@ -171,6 +171,8 @@ func (d *hypercoreVMsDataSource) Configure(_ context.Context, req datasource.Con
 
 // Read refreshes the Terraform state with the latest data.
 func (d *hypercoreVMsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	defer utils.RecoverDiagnostics(ctx, &resp.Diagnostics)
+
 	var conf hypercoreVMsDataSourceModel
 	req.Config.Get(ctx, &conf)
 	filter_name := conf.FilterName.ValueString()
