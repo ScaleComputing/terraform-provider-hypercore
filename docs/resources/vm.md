@@ -4,11 +4,27 @@ page_title: "hypercore_vm Resource - hypercore"
 subcategory: ""
 description: |-
   HypercoreVM resource to create a VM from a template VM
+  A running VM might need to shutdown to apply required changes.
+  In this case first a nice ACPI shutdown is tried.
+  If the VM does not stop, a force shutdown is tried.
+  In both cases the provider waits up to HC_VM_SHUTDOWN_TIMEOUT seconds for the VM to shutdown.
+  HC_VM_SHUTDOWN_TIMEOUT dafault value is 300 seconds.
+  HC_VM_SHUTDOWN_TIMEOUT can be changed via environ.
+  The provider will currently try to shutdown VM only before VM delete.
 ---
 
 # hypercore_vm (Resource)
 
 HypercoreVM resource to create a VM from a template VM
+
+A running VM might need to shutdown to apply required changes.
+In this case first a nice ACPI shutdown is tried.
+If the VM does not stop, a force shutdown is tried.
+In both cases the provider waits up to HC_VM_SHUTDOWN_TIMEOUT seconds for the VM to shutdown.
+HC_VM_SHUTDOWN_TIMEOUT dafault value is 300 seconds.
+HC_VM_SHUTDOWN_TIMEOUT can be changed via environ.
+
+The provider will currently try to shutdown VM only before VM delete.
 
 ## Example Usage
 
@@ -17,6 +33,15 @@ locals {
   vm_meta_data_tmpl = "./assets/meta-data.ubuntu-22.04.yml.tftpl"
   vm_user_data_tmpl = "./assets/user-data.ubuntu-22.04.yml.tftpl"
   vm_name           = "my-vm"
+}
+
+resource "hypercore_vm" "empty-vm" {
+  group       = "my-group"
+  name        = "empty-vm"
+  description = "some description"
+
+  vcpu   = 4
+  memory = 4096 # MiB
 }
 
 data "hypercore_vms" "clone_source_vm" {

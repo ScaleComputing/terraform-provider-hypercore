@@ -78,7 +78,16 @@ func (r *HypercoreVMResource) Metadata(ctx context.Context, req resource.Metadat
 func (r *HypercoreVMResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "HypercoreVM resource to create a VM from a template VM",
+		MarkdownDescription: `HypercoreVM resource to create a VM from a template VM
+
+A running VM might need to shutdown to apply required changes.
+In this case first a nice ACPI shutdown is tried.
+If the VM does not stop, a force shutdown is tried.
+In both cases the provider waits up to HC_VM_SHUTDOWN_TIMEOUT seconds for the VM to shutdown.
+HC_VM_SHUTDOWN_TIMEOUT dafault value is 300 seconds.
+HC_VM_SHUTDOWN_TIMEOUT can be changed via environ.
+
+The provider will currently try to shutdown VM only before VM delete.`,
 
 		Attributes: map[string]schema.Attribute{
 			"group": schema.StringAttribute{
