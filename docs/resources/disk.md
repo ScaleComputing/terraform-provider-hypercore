@@ -3,12 +3,12 @@
 page_title: "hypercore_disk Resource - hypercore"
 subcategory: ""
 description: |-
-  Hypercore disk resource to manage VM disks. To use this resource, it's recommended to set the environment variable TF_CLI_ARGS_apply="-parallelism=1" or pass the -parallelism parameter to the terraform apply.
+  Hypercore disk resource to manage VM disks. To use this resource, it's recommended to set the environment variable TF_CLI_ARGS_apply="-parallelism=1" or pass the -parallelism parameter to the terraform apply. Removing disk from a running VM is (often) not possible. In this case it is required to shutdown the VM before disk removal.
 ---
 
 # hypercore_disk (Resource)
 
-Hypercore disk resource to manage VM disks. <br><br>To use this resource, it's recommended to set the environment variable `TF_CLI_ARGS_apply="-parallelism=1"` or pass the `-parallelism` parameter to the `terraform apply`.
+Hypercore disk resource to manage VM disks. <br><br>To use this resource, it's recommended to set the environment variable `TF_CLI_ARGS_apply="-parallelism=1"` or pass the `-parallelism` parameter to the `terraform apply`.<br><br> Removing disk from a running VM is (often) not possible. In this case it is required to shutdown the VM before disk removal.
 
 ## Example Usage
 

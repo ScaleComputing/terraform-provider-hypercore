@@ -51,7 +51,9 @@ func (r *HypercoreDiskResource) Schema(ctx context.Context, req resource.SchemaR
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "" +
 			"Hypercore disk resource to manage VM disks. <br><br>" +
-			"To use this resource, it's recommended to set the environment variable `TF_CLI_ARGS_apply=\"-parallelism=1\"` or pass the `-parallelism` parameter to the `terraform apply`.",
+			"To use this resource, it's recommended to set the environment variable `TF_CLI_ARGS_apply=\"-parallelism=1\"` or pass the `-parallelism` parameter to the `terraform apply`." +
+			"<br><br> Removing disk from a running VM is (often) not possible. In this case it is required to shutdown the VM before disk removal." +
+			"",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
