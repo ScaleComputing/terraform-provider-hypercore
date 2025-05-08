@@ -22,13 +22,12 @@ Add needed variables/secrets to github project:
   HC_PASSWORD=todo
   ```
 
-TEMP: create VM named `testtf-src`.
-
 Prior to running acceptance tests we need to setup:
   1. Virtual machine
-    a. has one disk
+    a. has one disk, type VIRTIO, size 1.2 GB
     b. has one nic
     c. boot order is configured as [disk, nic]
   2. Virtual disk (as standalone not attached to the testing VM)
   3. Add names and UUIDs to the env.txt file in /tests/acceptance/setup directory
+    - There are multiple env-*.txt files, for different test HyperCore clusters.
   4. Virtual machine needs to be powered off
