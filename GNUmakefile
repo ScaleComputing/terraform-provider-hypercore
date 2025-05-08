@@ -54,6 +54,7 @@ test:  ## run unit tests
 	go test -v -cover -timeout=120s -parallel=10 ./...
 
 testacc:  ## acceptance tests
+	set -a; . ./internal/provider/tests/acceptance/setup/env.txt; set +a; \
 	TF_ACC=1 go test -v -cover -count=1 -timeout 120m ./...
 
 .PHONY: help all local_provider fmt lint test testacc build install generate force_reinit_local apply_with_logs run
