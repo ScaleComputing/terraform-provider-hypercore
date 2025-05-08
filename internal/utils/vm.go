@@ -65,7 +65,7 @@ type VM struct {
 	tags                 *[]string
 	vcpu                 *int32
 	memory               *int64
-	snapshotScheduleUUID *string
+	snapshotScheduleUUID string
 	powerState           *string
 	strictAffinity       bool
 	preferredNodeUUID    string
@@ -88,7 +88,7 @@ func GetVMStruct(
 	_tags *[]string,
 	_vcpu *int32,
 	_memory *int64,
-	_snapshotScheduleUUID *string,
+	_snapshotScheduleUUID string,
 	_powerState *string,
 	_strictAffinity bool,
 	_preferredNodeUUID string,
@@ -478,7 +478,7 @@ func (vc *VM) BuildUpdatePayload(changedParams map[string]bool) map[string]any {
 		updatePayload["numVCPU"] = *vc.vcpu
 	}
 	if changed, ok := changedParams["snapshotScheduleUUID"]; ok && changed {
-		updatePayload["snapshotScheduleUUID"] = *vc.snapshotScheduleUUID
+		updatePayload["snapshotScheduleUUID"] = vc.snapshotScheduleUUID
 	}
 
 	affinityStrategy := map[string]any{}
@@ -576,9 +576,7 @@ func (vc *VM) GetChangedParams(ctx context.Context, vmFromClient map[string]any)
 			changedParams["powerState"] = desiredPowerState != vmFromClient["state"]
 		}
 	}
-	if vc.snapshotScheduleUUID != nil {
-		changedParams["snapshotScheduleUUID"] = *vc.snapshotScheduleUUID != vmFromClient["snapshotScheduleUUID"]
-	}
+	changedParams["snapshotScheduleUUID"] = vc.snapshotScheduleUUID != vmFromClient["snapshotScheduleUUID"]
 
 	hc3AffinityStrategy := AnyToMap(vmFromClient["affinityStrategy"])
 	changedParams["strictAffinity"] = vc.strictAffinity != hc3AffinityStrategy["strictAffinity"]
