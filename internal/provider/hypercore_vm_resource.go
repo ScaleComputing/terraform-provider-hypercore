@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -117,6 +118,8 @@ The provider will currently try to shutdown VM only before VM delete.`,
 			"snapshot_schedule_uuid": schema.StringAttribute{
 				MarkdownDescription: "UUID of the snapshot schedule to create automatic snapshots",
 				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(""),
 			},
 			"import": schema.SingleNestedAttribute{
 				MarkdownDescription: "Options for importing a VM through a SMB server or some other HTTP location. <br>" +
@@ -228,7 +231,7 @@ func getVMStruct(data *HypercoreVMResourceModel, vmDescription *string, vmTags *
 		vmTags,
 		data.VCPU.ValueInt32Pointer(),
 		data.Memory.ValueInt64Pointer(),
-		data.SnapshotScheduleUUID.ValueStringPointer(),
+		data.SnapshotScheduleUUID.ValueString(),
 		nil,
 		data.AffinityStrategy.StrictAffinity.ValueBool(),
 		data.AffinityStrategy.PreferredNodeUUID.ValueString(),
