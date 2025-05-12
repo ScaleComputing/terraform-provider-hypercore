@@ -5,7 +5,7 @@ locals {
 }
 
 resource "hypercore_vm" "empty-vm" {
-  group       = "my-group"
+  tags        = ["my-group"]
   name        = "empty-vm"
   description = "some description"
 
@@ -18,7 +18,7 @@ data "hypercore_vms" "clone_source_vm" {
 }
 
 resource "hypercore_vm" "myvm" {
-  group       = "my-group"
+  tags        = ["my-group"]
   name        = local.vm_name
   description = "some description"
 
@@ -40,7 +40,7 @@ resource "hypercore_vm" "myvm" {
 }
 
 resource "hypercore_vm" "import-from-smb" {
-  group       = "my-group"
+  tags        = ["my-group"]
   name        = "imported-vm"
   description = "some description"
 

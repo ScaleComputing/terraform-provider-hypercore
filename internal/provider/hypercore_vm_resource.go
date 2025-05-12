@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -39,7 +40,7 @@ type HypercoreVMResource struct {
 
 // HypercoreVMResourceModel describes the resource data model.
 type HypercoreVMResourceModel struct {
-	Group                types.String          `tfsdk:"group"`
+	Tags                 types.List            `tfsdk:"tags"`
 	Name                 types.String          `tfsdk:"name"`
 	Description          types.String          `tfsdk:"description"`
 	VCPU                 types.Int32           `tfsdk:"vcpu"`
@@ -91,8 +92,9 @@ HC_VM_SHUTDOWN_TIMEOUT can be changed via environ.
 The provider will currently try to shutdown VM only before VM delete.`,
 
 		Attributes: map[string]schema.Attribute{
-			"group": schema.StringAttribute{
-				MarkdownDescription: "Group/tag to create this VM in",
+			"tags": schema.ListAttribute{
+				ElementType:         types.StringType,
+				MarkdownDescription: "List of tags to create this VM in",
 				Optional:            true,
 			},
 			"name": schema.StringAttribute{
@@ -240,23 +242,20 @@ func getVMStruct(data *HypercoreVMResourceModel, vmDescription *string, vmTags *
 	return vmStruct
 }
 
-func validateParameters(data *HypercoreVMResourceModel) (*string, *[]string) {
+func validateParameters(data *HypercoreVMResourceModel, ctx context.Context) (*string, *[]string, diag.Diagnostics) {
 	var tags *[]string
 	var description *string
 
-	if data.Group.ValueString() == "" {
-		tags = nil
-	} else {
-		t := []string{data.Group.ValueString()}
-		tags = &t
-	}
+	tflog.Debug(ctx, "TTRT Loading tags")
+	diags := data.Tags.ElementsAs(ctx, &tags, false)
+	tflog.Debug(ctx, fmt.Sprintf("TTRT Tags: %v", tags))
 
 	if data.Description.ValueString() == "" {
 		description = nil
 	} else {
 		description = data.Description.ValueStringPointer()
 	}
-	return description, tags
+	return description, tags, diags
 }
 func isHTTPImport(data *HypercoreVMResourceModel) bool {
 	// Check if HTTP URI is being used for VM import
@@ -285,6 +284,7 @@ func (r *HypercoreVMResource) handleCloneLogic(data *HypercoreVMResourceModel, c
 	data.Id = types.StringValue(vmNew.UUID)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
 }
+
 func (r *HypercoreVMResource) handleImportFromSMBLogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, vmNew *utils.VM, path string, fileName string) {
 	smbServer, smbUsername, smbPassword := data.Import.Server.ValueString(), data.Import.Username.ValueString(), data.Import.Password.ValueString()
 	errorDiagnostic := utils.ValidateSMB(smbServer, smbUsername, smbPassword)
@@ -299,6 +299,7 @@ func (r *HypercoreVMResource) handleImportFromSMBLogic(data *HypercoreVMResource
 	data.Id = types.StringValue(vmNew.UUID)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
 }
+
 func (r *HypercoreVMResource) handleImportFromURILogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, vmNew *utils.VM, path string, fileName string) {
 	httpUri := data.Import.HTTPUri.ValueString()
 	errorDiagnostic := utils.ValidateHTTP(httpUri, path)
@@ -313,6 +314,7 @@ func (r *HypercoreVMResource) handleImportFromURILogic(data *HypercoreVMResource
 	data.Id = types.StringValue(vmNew.UUID)
 	tflog.Info(ctx, fmt.Sprintf("Changed: %t, Was VM Rebooted: %t, Diff: %v", changed, vmWasRebooted, vmDiff))
 }
+
 func (r *HypercoreVMResource) doCreateLogic(data *HypercoreVMResourceModel, ctx context.Context, resp *resource.CreateResponse, description *string, tags *[]string) {
 	vmNew := getVMStruct(data, description, tags)
 	// Chose which VM create logic we're going with (clone, import, from scratch)
@@ -354,7 +356,11 @@ func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	// Validate parameters TODO: Add other inputs here from schema if validation is needed
-	description, tags := validateParameters(&data)
+	description, tags, diags := validateParameters(&data, ctx)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags.Errors()...)
+		return
+	}
 
 	// Right now handles import or clone TODO: Add other VM create options here
 	r.doCreateLogic(&data, ctx, resp, description, tags)
@@ -398,7 +404,23 @@ func (r *HypercoreVMResource) Read(ctx context.Context, req resource.ReadRequest
 
 	data.Name = types.StringValue(utils.AnyToString(hc3_vm["name"]))
 	data.Description = types.StringValue(utils.AnyToString(hc3_vm["description"]))
-	// data.Group TODO - replace "group" string with "tags" list of strings
+
+	// Read tags from the hc3 api
+	//     - hc3Tags = "tag1,tag2,..."
+	//     - tfTags = hc3Tags -> ["tag1", "tag2", ...]
+	hc3Tags := utils.AnyToString(hc3_vm["tags"])
+	goTagsList := strings.Split(hc3Tags, ",")
+	tfTagsValues := make([]attr.Value, len(goTagsList))
+	for i, tag := range goTagsList {
+		tfTagsValues[i] = types.StringValue(tag)
+	}
+
+	var diags diag.Diagnostics
+	data.Tags, diags = types.ListValue(types.StringType, tfTagsValues)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags.Errors()...)
+		return
+	}
 
 	// NOTE: power state not needed here anymore because of the hypercore_vm_power_state resource
 	// hc3_power_state := utils.AnyToString(hc3_vm["state"])
@@ -494,7 +516,16 @@ func (r *HypercoreVMResource) Update(ctx context.Context, req resource.UpdateReq
 		updatePayload["affinityStrategy"] = affinityStrategy
 	}
 
-	taskTag, _ := restClient.UpdateRecord( /**/
+	// update tags: ["tag1", "tag2", ...] -> "tag1,tag2,..."
+	var tagsList []string
+	diags := data.Tags.ElementsAs(ctx, &tagsList, false)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags.Errors()...)
+		return
+	}
+	updatePayload["tags"] = utils.TagsListToCommaString(tagsList)
+
+	taskTag, _ := restClient.UpdateRecord(
 		fmt.Sprintf("/rest/v1/VirDomain/%s", vm_uuid),
 		updatePayload,
 		-1,
