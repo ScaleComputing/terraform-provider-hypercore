@@ -20,6 +20,7 @@ func TestAccHypercoreDiskResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("hypercore_disk.test", "size", "3"),
 					resource.TestCheckResourceAttr("hypercore_disk.test", "type", "IDE_DISK"),
+					resource.TestCheckResourceAttr("hypercore_disk.test", "flash_priority", "4"), // should default to 4 if not specified in resource config
 				),
 			},
 		},

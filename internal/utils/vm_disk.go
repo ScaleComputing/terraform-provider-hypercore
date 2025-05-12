@@ -21,6 +21,36 @@ var ALLOWED_DISK_TYPES = map[string]bool{
 	"IDE_CDROM":   true,
 }
 
+var FROM_HUMAN_PRIORITY_FACTOR = map[int64]int64{
+	0:  0,
+	1:  1,
+	2:  2,
+	3:  4,
+	4:  8,
+	5:  16,
+	6:  32,
+	7:  64,
+	8:  128,
+	9:  256,
+	10: 1024,
+	11: 10240,
+}
+
+var TO_HUMAN_PRIORITY_FACTOR = map[int64]int64{
+	0:     0,
+	1:     1,
+	2:     2,
+	4:     3,
+	8:     4,
+	16:    5,
+	32:    6,
+	64:    7,
+	128:   8,
+	256:   9,
+	1024:  10,
+	10240: 11,
+}
+
 type VMDisk struct {
 	Label string
 	UUID  string // known after creation
@@ -311,11 +341,22 @@ func CreateDisk(
 	return diskUUID, *disk
 }
 
+func ValidateDiskFlashPriority(diskFlashPriority int64) diag.Diagnostic {
+	if diskFlashPriority < 0 || diskFlashPriority > 11 {
+		return diag.NewErrorDiagnostic(
+			"Invalid disk flash priority",
+			fmt.Sprintf("Disk flash priority '%v' is invalid. Flash priority must be a positive number between (including) 0 and 11.", diskFlashPriority),
+		)
+	}
+
+	return nil
+}
+
 func ValidateDiskType(diskType string, isoUUID string) diag.Diagnostic {
 	if !ALLOWED_DISK_TYPES[diskType] {
 		return diag.NewErrorDiagnostic(
 			"Invalid disk type",
-			fmt.Sprintf("Disk type '%s' not allowed. Allowed types are: IDE_DISK, SCSI_DISK, VIRTIO_DISK, IDE_FLOPPY, NVRAM, VTPM", diskType),
+			fmt.Sprintf("Disk type '%s' not allowed. Allowed types are: IDE_DISK, IDE_CDROM, SCSI_DISK, VIRTIO_DISK, IDE_FLOPPY, NVRAM, VTPM", diskType),
 		)
 	}
 	if isoUUID != "" && diskType != "IDE_CDROM" {

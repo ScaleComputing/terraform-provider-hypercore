@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -36,6 +38,7 @@ type HypercoreDiskResourceModel struct {
 	Id                  types.String  `tfsdk:"id"`
 	VmUUID              types.String  `tfsdk:"vm_uuid"`
 	Slot                types.Int64   `tfsdk:"slot"`
+	FlashPriority       types.Int64   `tfsdk:"flash_priority"`
 	Type                types.String  `tfsdk:"type"`
 	Size                types.Float64 `tfsdk:"size"`
 	SourceVirtualDiskID types.String  `tfsdk:"source_virtual_disk_id"`
@@ -70,8 +73,17 @@ func (r *HypercoreDiskResource) Schema(ctx context.Context, req resource.SchemaR
 				MarkdownDescription: "Disk slot number. Will not do anything if the disk already exists, since HC3 doesn't change disk slots to existing disks.",
 				Computed:            true,
 			},
+			"flash_priority": schema.Int64Attribute{
+				MarkdownDescription: "SSD tiering priority factor for block placement. If not provided, it will default to `4`, unless imported, in which case the disk's current flash priority will be taken into account and can then be modified. This can be any **positive** value between (including) `0` and `11`.",
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(4),
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
+			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "Disk type. Can be: `IDE_DISK`, `SCSI_DISK`, `VIRTIO_DISK`, `IDE_FLOPPY`, `NVRAM`, `VTPM`",
+				MarkdownDescription: "Disk type. Can be: `IDE_DISK`, `IDE_CDROM`, `SCSI_DISK`, `VIRTIO_DISK`, `IDE_FLOPPY`, `NVRAM`, `VTPM`",
 				Optional:            true,
 			},
 			"size": schema.Float64Attribute{
@@ -83,7 +95,7 @@ func (r *HypercoreDiskResource) Schema(ctx context.Context, req resource.SchemaR
 				Optional:            true,
 			},
 			"iso_uuid": schema.StringAttribute{
-				MarkdownDescription: "ISO UUID we want to attach to the disk, only available with disk type IDE_CDROM.",
+				MarkdownDescription: "ISO UUID we want to attach to the disk, only available with disk type `IDE_CDROM`.",
 				Optional:            true,
 			},
 		},
@@ -151,11 +163,17 @@ func (r *HypercoreDiskResource) Create(ctx context.Context, req resource.CreateR
 		resp.Diagnostics.AddError(diagISOAttach.Summary(), diagISOAttach.Detail())
 		return
 	}
+	diagFlashPriority := utils.ValidateDiskFlashPriority(data.FlashPriority.ValueInt64())
+	if diagFlashPriority != nil {
+		resp.Diagnostics.AddError(diagFlashPriority.Summary(), diagFlashPriority.Detail())
+		return
+	}
 
 	createPayload := map[string]any{
-		"virDomainUUID": data.VmUUID.ValueString(),
-		"type":          data.Type.ValueString(),
-		"capacity":      data.Size.ValueFloat64() * 1000 * 1000 * 1000, // GB to B
+		"virDomainUUID":         data.VmUUID.ValueString(),
+		"type":                  data.Type.ValueString(),
+		"capacity":              data.Size.ValueFloat64() * 1000 * 1000 * 1000, // GB to B
+		"tieringPriorityFactor": utils.FROM_HUMAN_PRIORITY_FACTOR[data.FlashPriority.ValueInt64()],
 	}
 	if isAttachingISO {
 		createPayload["path"] = (*iso)["path"]
@@ -177,9 +195,10 @@ func (r *HypercoreDiskResource) Create(ctx context.Context, req resource.CreateR
 				"readOnly":         false,
 			},
 			"template": map[string]any{
-				"virDomainUUID": data.VmUUID.ValueString(),
-				"type":          data.Type.ValueString(),
-				"capacity":      originalVDSizeBytes,
+				"virDomainUUID":         data.VmUUID.ValueString(),
+				"type":                  data.Type.ValueString(),
+				"capacity":              originalVDSizeBytes,
+				"tieringPriorityFactor": utils.FROM_HUMAN_PRIORITY_FACTOR[data.FlashPriority.ValueInt64()],
 			},
 		}
 
@@ -258,6 +277,10 @@ func (r *HypercoreDiskResource) Read(ctx context.Context, req resource.ReadReque
 	data.Slot = types.Int64Value(utils.AnyToInteger64(disk["slot"]))
 	data.Size = types.Float64Value(utils.AnyToFloat64(disk["capacity"]) / 1000 / 1000 / 1000)
 
+	hc3PriorityFactor := utils.AnyToInteger64(disk["tieringPriorityFactor"])
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreDiskResource: hc3PriorityFactor = %v\n", hc3PriorityFactor))
+	data.FlashPriority = types.Int64Value(utils.TO_HUMAN_PRIORITY_FACTOR[hc3PriorityFactor])
+
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -312,7 +335,7 @@ func (r *HypercoreDiskResource) Update(ctx context.Context, req resource.UpdateR
 	}
 
 	// Validate the type
-	diagDiskType := utils.ValidateDiskType(data.Type.ValueString(), data.IsoUUID.String())
+	diagDiskType := utils.ValidateDiskType(data.Type.ValueString(), data.IsoUUID.ValueString())
 	if diagDiskType != nil {
 		resp.Diagnostics.AddError(diagDiskType.Summary(), diagDiskType.Detail())
 		return
@@ -322,13 +345,19 @@ func (r *HypercoreDiskResource) Update(ctx context.Context, req resource.UpdateR
 		resp.Diagnostics.AddError(diagISOAttach.Summary(), diagISOAttach.Detail())
 		return
 	}
+	diagFlashPriority := utils.ValidateDiskFlashPriority(data.FlashPriority.ValueInt64())
+	if diagFlashPriority != nil {
+		resp.Diagnostics.AddError(diagFlashPriority.Summary(), diagFlashPriority.Detail())
+		return
+	}
 
 	isDetachingISO := oldHc3Disk["path"] != "" && data.IsoUUID.ValueString() == "" && data.Type.ValueString() == "IDE_CDROM"
 
 	updatePayload := map[string]any{
-		"virDomainUUID": vmUUID,
-		"type":          data.Type.ValueString(),
-		"capacity":      data.Size.ValueFloat64() * 1000 * 1000 * 1000, // GB to B
+		"virDomainUUID":         vmUUID,
+		"type":                  data.Type.ValueString(),
+		"capacity":              data.Size.ValueFloat64() * 1000 * 1000 * 1000, // GB to B
+		"tieringPriorityFactor": utils.FROM_HUMAN_PRIORITY_FACTOR[data.FlashPriority.ValueInt64()],
 	}
 	if isAttachingISO {
 		updatePayload["path"] = (*iso)["path"]
@@ -410,11 +439,14 @@ func (r *HypercoreDiskResource) ImportState(ctx context.Context, req resource.Im
 
 	var diskUUID string
 	var size float64
+	var flashPriority int64
 	for _, disk := range hc3Disks {
 		if utils.AnyToInteger64(disk["slot"]) == slot &&
 			utils.AnyToString(disk["type"]) == diskType {
 			diskUUID = utils.AnyToString(disk["uuid"])
 			size = utils.AnyToFloat64(disk["capacity"]) / 1000 / 1000 / 1000 // hc3 has B, so convert to GB
+			flashPriority = utils.AnyToInteger64(disk["tieringPriorityFactor"])
+			tflog.Debug(ctx, fmt.Sprintf("TTRT HUMAN FLASH PRIORITY = %v", flashPriority))
 			break
 		}
 	}
@@ -428,5 +460,6 @@ func (r *HypercoreDiskResource) ImportState(ctx context.Context, req resource.Im
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("vm_uuid"), vmUUID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"), diskType)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("slot"), slot)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("flash_priority"), flashPriority)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("size"), size)...)
 }
