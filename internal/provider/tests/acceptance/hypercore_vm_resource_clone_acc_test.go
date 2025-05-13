@@ -23,7 +23,9 @@ func TestAccHypercoreVMResourceClone(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("hypercore_vm.test", "description", "testtf-vm-description"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "memory", "4096"),
-					resource.TestCheckResourceAttr("hypercore_vm.test", "group", "testtf"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.#", "2"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.0", "testtf-tag-1"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.1", "testtf-tag-2"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "clone.meta_data", ""),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "clone.user_data", ""),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "clone.source_vm_uuid", source_vm_uuid),
@@ -69,7 +71,9 @@ func TestAccHypercoreVMResourceClone(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("hypercore_vm.test", "name", "testtf-vm"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "description", "testtf-vm-description"),
-					resource.TestCheckResourceAttr("hypercore_vm.test", "group", "testtf"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.#", "2"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.0", "testtf-tag-1"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.1", "testtf-tag-2"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "vcpu", "4"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "memory", "4096"),
 					// resource.TestCheckResourceAttr("hypercore_vm.test", "power_state", requested_power_state),
@@ -108,7 +112,10 @@ func testAccHypercoreVMResourceCloneConfig(vm_name string) string {
 	return fmt.Sprintf(`
 resource "hypercore_vm" "test" {
   name = %[1]q
-  group = "testtf"
+  tags = [
+    "testtf-tag-1",
+    "testtf-tag-2",
+  ]
   vcpu = 4
   memory = 4096
   description = "testtf-vm-description"

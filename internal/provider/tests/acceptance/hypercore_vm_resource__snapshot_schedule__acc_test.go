@@ -21,7 +21,8 @@ func TestAccHypercoreVMResourceSnapshotSchedule(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("hypercore_vm.test", "description", "testtf-vm-description"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "memory", "4096"),
-					resource.TestCheckResourceAttr("hypercore_vm.test", "group", "testtf"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.0", "testtf"),
 					resource.TestCheckNoResourceAttr("hypercore_vm.test", "clone"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "name", "testtf-vm"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "vcpu", "4"),
@@ -62,7 +63,8 @@ func TestAccHypercoreVMResourceSnapshotSchedule(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("hypercore_vm.test", "name", "testtf-vm"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "description", "testtf-vm-description"),
-					resource.TestCheckResourceAttr("hypercore_vm.test", "group", "testtf"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.1", "testtf"),
 					resource.TestCheckNoResourceAttr("hypercore_vm.test", "clone"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "vcpu", "4"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "memory", "4096"),
@@ -92,7 +94,7 @@ func testConfig_NoSnapshotScheduleUUID(vm_name string) string {
 	return fmt.Sprintf(`
 resource "hypercore_vm" "test" {
   name = %[1]q
-  group = "testtf"
+  tags = ["testtf"]
   vcpu = 4
   memory = 4096
   description = "testtf-vm-description"

@@ -21,7 +21,8 @@ func TestAccHypercoreVMResourceImport(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("hypercore_vm.test", "description", "imported-vm"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "memory", "4096"),
-					resource.TestCheckResourceAttr("hypercore_vm.test", "group", "Xlabintegrationtest"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.0", "Xlabintegrationtest"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "name", "imported_vm_integration"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "vcpu", "4"),
 				),
@@ -34,7 +35,7 @@ func testAccHypercoreVMResourceImportConfig(vm_name string) string {
 	return fmt.Sprintf(`
 resource "hypercore_vm" "test" {
   name = %[1]q
-  group = "Xlabintegrationtest"
+  tags = ["Xlabintegrationtest"]
   vcpu = 4
   memory = 4096
   description = "imported-vm"

@@ -468,7 +468,7 @@ func (vc *VM) BuildUpdatePayload(changedParams map[string]bool) map[string]any {
 		updatePayload["description"] = *vc.description
 	}
 	if changed, ok := changedParams["tags"]; ok && changed {
-		updatePayload["tags"] = tagsListToCommaString(*vc.tags)
+		updatePayload["tags"] = TagsListToCommaString(*vc.tags)
 	}
 	if changed, ok := changedParams["memory"]; ok && changed {
 		vcMemoryBytes := *vc.memory * 1024 * 1024 // MB to B
@@ -505,7 +505,7 @@ func (vc *VM) BuildImportTemplate() map[string]any {
 		importTemplate["description"] = *vc.description
 	}
 	if vc.tags != nil {
-		importTemplate["tags"] = tagsListToCommaString(*vc.tags)
+		importTemplate["tags"] = TagsListToCommaString(*vc.tags)
 	}
 	if vc.memory != nil {
 		vcMemoryBytes := *vc.memory * 1024 * 1024 // MB to B

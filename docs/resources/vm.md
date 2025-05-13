@@ -36,7 +36,7 @@ locals {
 }
 
 resource "hypercore_vm" "empty-vm" {
-  group       = "my-group"
+  tags        = ["my-group"]
   name        = "empty-vm"
   description = "some description"
 
@@ -49,7 +49,7 @@ data "hypercore_vms" "clone_source_vm" {
 }
 
 resource "hypercore_vm" "myvm" {
-  group       = "my-group"
+  tags        = ["my-group"]
   name        = local.vm_name
   description = "some description"
 
@@ -71,7 +71,7 @@ resource "hypercore_vm" "myvm" {
 }
 
 resource "hypercore_vm" "import-from-smb" {
-  group       = "my-group"
+  tags        = ["my-group"]
   name        = "imported-vm"
   description = "some description"
 
@@ -104,10 +104,10 @@ output "vm_uuid" {
 - `affinity_strategy` (Object) VM node affinity. (see [below for nested schema](#nestedatt--affinity_strategy))
 - `clone` (Object) Clone options if the VM is being created as a clone. The `source_vm_uuid` is the UUID of the VM used for cloning, <br>`user_data` and `meta_data` are used for the cloud init data. (see [below for nested schema](#nestedatt--clone))
 - `description` (String) Description of this VM
-- `group` (String) Group/tag to create this VM in
 - `import` (Attributes) Options for importing a VM through a SMB server or some other HTTP location. <br>Use server, username, password for SMB or http_uri for some other HTTP location. Parameters path and file_name are always **required** (see [below for nested schema](#nestedatt--import))
 - `memory` (Number) Memory (RAM) size in `MiB`: If the cloned VM was already created <br>and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)
 - `snapshot_schedule_uuid` (String) UUID of the snapshot schedule to create automatic snapshots
+- `tags` (List of String) List of tags to create this VM in
 - `vcpu` (Number) Number of CPUs on this VM. If the cloned VM was already created and it's <br>`VCPU` was modified, the cloned VM will be rebooted (either gracefully or forcefully)
 
 ### Read-Only

@@ -106,7 +106,7 @@ func jsonObjectToTaskTag(jsonObj any) *TaskTag {
 	return taskTag
 }
 
-func tagsListToCommaString(tags []string) string {
+func TagsListToCommaString(tags []string) string {
 	tagsHyp := ""
 	for _, tag := range tags {
 		tagsHyp += tag + ","

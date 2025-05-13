@@ -10,38 +10,26 @@ terraform {
 }
 
 locals {
-  vm_name = "testtf-remove-running"
-  src_vm_name = "testtf-src-empty"
+  vm_name     = "testtf-ana-tags-2"
+  src_vm_name = "ana"
 }
 
 provider "hypercore" {}
 
-data "hypercore_vms" "no-such-vm" {
-  name = "no-such-vm"
+data "hypercore_vms" "src_empty" {
+  name = local.src_vm_name
 }
 
-# resource "hypercore_vm" "vm_on" {
-#   group       = "testtf"
-#   name        = local.vm_name
-#   description = "VM created from scratch"
-#   vcpu        = 1
-#   memory      = 1234  # MiB
+resource "hypercore_vm" "vm_on" {
+  tags        = ["ana-tftag2"]
+  name        = local.vm_name
+  description = "VM created from scratch"
+  vcpu        = 1
+  memory      = 1234 # MiB
 
-#   # clone = {
-#   #   source_vm_uuid = data.hypercore_vm.src_empty.vms.0.uuid
-#   #   meta_data = ""
-#   #   user_data = ""
-#   # }
-# }
-
-# resource "hypercore_vm_power_state" "vm_on" {
-#   vm_uuid = hypercore_vm.vm_on.id
-#   state = "SHUTOFF"  // RUNNING SHUTOFF
-# }
-
-# output "vm_on_uuid" {
-#   value = hypercore_vm.vm_on.id
-# }
-# output "power_state" {
-#   value = hypercore_vm_power_state.vm_on.state
-# }
+  clone = {
+    source_vm_uuid = data.hypercore_vms.src_empty.vms.0.uuid
+    meta_data      = ""
+    user_data      = ""
+  }
+}
