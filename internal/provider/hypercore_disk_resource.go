@@ -173,7 +173,7 @@ func (r *HypercoreDiskResource) Create(ctx context.Context, req resource.CreateR
 		originalVDSizeBytes := utils.AnyToInteger64((*sourceVirtualDiskHC3)["capacityBytes"])
 		attachPayload := map[string]any{
 			"options": map[string]any{
-				"regenerateDiskID": true,
+				"regenerateDiskID": false,
 				"readOnly":         false,
 			},
 			"template": map[string]any{
