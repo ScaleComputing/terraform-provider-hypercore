@@ -125,6 +125,7 @@ resource "hypercore_vm" "test" {
 	source_vm_uuid = %[2]q
 	user_data = ""
 	meta_data = ""
+	preserve_mac_address = false
   }
 }
 `, vm_name, source_vm_uuid, requested_power_state)
