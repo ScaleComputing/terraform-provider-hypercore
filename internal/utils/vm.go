@@ -174,18 +174,24 @@ func (vmNew *VM) SendCloneRequest(restClient RestClient, sourceVM map[string]any
 	// User wants to preserve net devices from the source VM
 	if vmNew.preserveMacAddress {
 		netDevicesNewVM := []map[string]any{}
-		// Loop through each network device in source VM
-		if sourceVM["netDevs"] != nil {
-			for _, netDeviceSourceVM := range sourceVM["netDevs"].([]any) {
-				device := netDeviceSourceVM.(map[string]any)
-				netDevicesNewVM = append(netDevicesNewVM, map[string]any{
-					"type":       device["type"],
-					"macAddress": device["macAddress"],
-					"vlan":       device["vlan"],
-				})
+
+		if sourceNetDevs, ok := sourceVM["netDevs"].([]any); ok {
+			for _, netDeviceSource := range sourceNetDevs {
+				// Safely assert that each item is a map
+				if device, ok := netDeviceSource.(map[string]any); ok {
+					netDevicesNewVM = append(netDevicesNewVM, map[string]any{
+						"type":       device["type"],
+						"macAddress": device["macAddress"],
+						"vlan":       device["vlan"],
+					})
+				}
 			}
 		}
-		clonePayload["template"].(map[string]any)["netDevs"] = netDevicesNewVM
+
+		// Safely assert the "template" field is a map
+		if tmpl, ok := clonePayload["template"].(map[string]any); ok {
+			tmpl["netDevs"] = netDevicesNewVM
+		}
 	}
 	taskTag, _, _ := restClient.CreateRecord(
 		fmt.Sprintf("/rest/v1/VirDomain/%s/clone", sourceVM["uuid"]),

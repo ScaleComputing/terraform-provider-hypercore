@@ -130,6 +130,7 @@ Optional:
 Optional:
 
 - `meta_data` (String)
+- `preserve_mac_address` (Boolean)
 - `source_vm_uuid` (String)
 - `user_data` (String)
 
