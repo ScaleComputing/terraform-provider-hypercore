@@ -84,6 +84,7 @@ func GetVMStruct(
 	_sourceVMUUID string,
 	userData string,
 	metaData string,
+	preserveMacAddress bool,
 	_description *string,
 	_tags *[]string,
 	_vcpu *int32,
@@ -101,7 +102,7 @@ func GetVMStruct(
 		UUID:               "",
 		VMName:             _VMName,
 		sourceVMUUID:       _sourceVMUUID,
-		preserveMacAddress: false,
+		preserveMacAddress: preserveMacAddress,
 		cloudInit: map[string]any{
 			"userData": userDataB64,
 			"metaData": metaDataB64,
@@ -146,8 +147,8 @@ func (vc *VM) SendFromScratchRequest(restClient RestClient) *TaskTag {
 	return taskTag
 }
 
-func (vc *VM) FromScratch(restClient RestClient, ctx context.Context) (bool, string) {
-	task := vc.SendFromScratchRequest(restClient)
+func (vmNew *VM) FromScratch(restClient RestClient, ctx context.Context) (bool, string) {
+	task := vmNew.SendFromScratchRequest(restClient)
 	task.WaitTask(restClient, ctx)
 	taskStatus := task.GetStatus(restClient)
 
@@ -156,22 +157,36 @@ func (vc *VM) FromScratch(restClient RestClient, ctx context.Context) (bool, str
 	}
 
 	if state, ok := (*taskStatus)["state"]; ok && state == "COMPLETE" {
-		vc.UUID = task.CreatedUUID
-		return true, fmt.Sprintf("Virtual machine create complete to - %s.", vc.VMName)
+		vmNew.UUID = task.CreatedUUID
+		return true, fmt.Sprintf("Virtual machine create complete to - %s.", vmNew.VMName)
 	}
 
 	panic("There was a problem during VM create.")
 }
 
-func (vc *VM) SendCloneRequest(restClient RestClient, sourceVM map[string]any) *TaskTag {
-	// Clone payload
+func (vmNew *VM) SendCloneRequest(restClient RestClient, sourceVM map[string]any) *TaskTag {
 	clonePayload := map[string]any{
 		"template": map[string]any{
-			"name":          vc.VMName,
-			"cloudInitData": vc.cloudInit,
+			"name":          vmNew.VMName,
+			"cloudInitData": vmNew.cloudInit,
 		},
 	}
-
+	// User wants to preserve net devices from the source VM
+	if vmNew.preserveMacAddress {
+		netDevicesNewVM := []map[string]any{}
+		// Loop through each network device in source VM
+		if sourceVM["netDevs"] != nil {
+			for _, netDeviceSourceVM := range sourceVM["netDevs"].([]any) {
+				device := netDeviceSourceVM.(map[string]any)
+				netDevicesNewVM = append(netDevicesNewVM, map[string]any{
+					"type":       device["type"],
+					"macAddress": device["macAddress"],
+					"vlan":       device["vlan"],
+				})
+			}
+		}
+		clonePayload["template"].(map[string]any)["netDevs"] = netDevicesNewVM
+	}
 	taskTag, _, _ := restClient.CreateRecord(
 		fmt.Sprintf("/rest/v1/VirDomain/%s/clone", sourceVM["uuid"]),
 		clonePayload,
@@ -180,33 +195,33 @@ func (vc *VM) SendCloneRequest(restClient RestClient, sourceVM map[string]any) *
 
 	return taskTag
 }
-func (vc *VM) Clone(restClient RestClient, ctx context.Context) (bool, string) {
-	vm := GetVM(map[string]any{"name": vc.VMName}, restClient)
+func (vmNew *VM) Clone(restClient RestClient, ctx context.Context) (bool, string) {
+	vm := GetVM(map[string]any{"name": vmNew.VMName}, restClient)
 
 	if len(vm) > 0 {
-		vc.UUID = AnyToString(vm[0]["uuid"])
-		return false, fmt.Sprintf("Virtual machine %s already exists.", vc.VMName)
+		vmNew.UUID = AnyToString(vm[0]["uuid"])
+		return false, fmt.Sprintf("Virtual machine %s already exists.", vmNew.VMName)
 	}
 
 	sourceVM := GetOneVM(
-		vc.sourceVMUUID,
+		vmNew.sourceVMUUID,
 		restClient,
 	)
 	sourceVMName, _ := sourceVM["name"].(string)
 
 	// Clone payload
-	task := vc.SendCloneRequest(restClient, sourceVM)
+	task := vmNew.SendCloneRequest(restClient, sourceVM)
 	task.WaitTask(restClient, ctx)
 	taskStatus := task.GetStatus(restClient)
 
 	if taskStatus != nil {
 		if state, ok := (*taskStatus)["state"]; ok && state == "COMPLETE" {
-			vc.UUID = task.CreatedUUID
-			return true, fmt.Sprintf("Virtual machine - %s %s - cloning complete to - %s.", sourceVMName, vc.sourceVMUUID, vc.VMName)
+			vmNew.UUID = task.CreatedUUID
+			return true, fmt.Sprintf("Virtual machine - %s %s - cloning complete to - %s.", sourceVMName, vmNew.sourceVMUUID, vmNew.VMName)
 		}
 	}
 
-	panic(fmt.Sprintf("There was a problem during cloning of %s %s, cloning failed.", sourceVMName, vc.sourceVMUUID))
+	panic(fmt.Sprintf("There was a problem during cloning of %s %s, cloning failed.", sourceVMName, vmNew.sourceVMUUID))
 }
 
 func (vc *VM) SendImportRequest(restClient RestClient, source map[string]any) *TaskTag {
