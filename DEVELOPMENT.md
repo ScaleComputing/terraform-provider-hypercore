@@ -24,8 +24,9 @@ Add needed variables/secrets to github project:
 
 Prior to running acceptance tests we need to setup:
   1. Virtual machine
+    a. name integration-test-vm
     a. has one disk, type VIRTIO, size 1.2 GB
-    b. has one nic
+    b. has one nic, type INTEL_E1000, vlan 10, MAC 7C:4C:58:12:34:56
     c. boot order is configured as [disk, nic]
   2. Virtual disk (as standalone not attached to the testing VM)
   3. Add names and UUIDs to the env.txt file in /tests/acceptance/setup directory
