@@ -55,6 +55,10 @@ import {
 - `vlan` (Number) NIC VLAN.
 - `vm_uuid` (String) VM UUID.
 
+### Optional
+
+- `mac_address` (String) NIC MAC address.
+
 ### Read-Only
 
 - `id` (String) NIC identifier
