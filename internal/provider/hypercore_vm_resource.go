@@ -62,9 +62,10 @@ type ImportModel struct {
 }
 
 type CloneModel struct {
-	SourceVMUUID types.String `tfsdk:"source_vm_uuid"`
-	UserData     types.String `tfsdk:"user_data"`
-	MetaData     types.String `tfsdk:"meta_data"`
+	SourceVMUUID       types.String `tfsdk:"source_vm_uuid"`
+	UserData           types.String `tfsdk:"user_data"`
+	MetaData           types.String `tfsdk:"meta_data"`
+	PreserveMacAddress types.Bool   `tfsdk:"preserve_mac_address"`
 }
 
 type AffinityStrategyModel struct {
@@ -155,9 +156,10 @@ The provider will currently try to shutdown VM only before VM delete.`,
 					"`user_data` and `meta_data` are used for the cloud init data.",
 				Optional: true,
 				AttributeTypes: map[string]attr.Type{
-					"source_vm_uuid": types.StringType,
-					"user_data":      types.StringType,
-					"meta_data":      types.StringType,
+					"source_vm_uuid":       types.StringType,
+					"user_data":            types.StringType,
+					"meta_data":            types.StringType,
+					"preserve_mac_address": types.BoolType,
 				},
 			},
 			"affinity_strategy": schema.ObjectAttribute{
@@ -219,16 +221,19 @@ func (r *HypercoreVMResource) Configure(ctx context.Context, req resource.Config
 func getVMStruct(data *HypercoreVMResourceModel, vmDescription *string, vmTags *[]string) *utils.VM {
 	// Gets VM structure from Utils.VM, sends parameters based on which VM create logic is being called
 	sourceVMUUID, userData, metaData := "", "", ""
+	preserveMacAddress := false
 	if data.Clone != nil {
 		sourceVMUUID = data.Clone.SourceVMUUID.ValueString()
 		userData = data.Clone.UserData.ValueString()
 		metaData = data.Clone.MetaData.ValueString()
+		preserveMacAddress = data.Clone.PreserveMacAddress.ValueBool()
 	}
 	vmStruct := utils.GetVMStruct(
 		data.Name.ValueString(),
 		sourceVMUUID,
 		userData,
 		metaData,
+		preserveMacAddress,
 		vmDescription,
 		vmTags,
 		data.VCPU.ValueInt32Pointer(),
