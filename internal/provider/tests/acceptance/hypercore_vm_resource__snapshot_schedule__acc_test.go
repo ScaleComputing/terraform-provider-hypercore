@@ -64,7 +64,7 @@ func TestAccHypercoreVMResourceSnapshotSchedule(t *testing.T) {
 					resource.TestCheckResourceAttr("hypercore_vm.test", "name", "testtf-vm"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "description", "testtf-vm-description"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.#", "1"),
-					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.1", "testtf"),
+					resource.TestCheckResourceAttr("hypercore_vm.test", "tags.0", "testtf"),
 					resource.TestCheckNoResourceAttr("hypercore_vm.test", "clone"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "vcpu", "4"),
 					resource.TestCheckResourceAttr("hypercore_vm.test", "memory", "4096"),
