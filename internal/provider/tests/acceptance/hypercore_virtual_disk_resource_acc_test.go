@@ -20,6 +20,7 @@ func TestAccHypercoreVirtualDiskResource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("hypercore_disk.attach_vd_test", "size", "3.4"),
 					resource.TestCheckResourceAttr("hypercore_disk.attach_vd_test", "type", "VIRTIO_DISK"),
+					resource.TestCheckResourceAttr("hypercore_disk.attach_vd_test", "flash_priority", "4"),
 				),
 			},
 		},

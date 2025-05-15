@@ -25,12 +25,15 @@ resource "hypercore_disk" "disk_cloned" {
   vm_uuid = data.hypercore_vms.diskvm.vms.0.uuid
   type    = "VIRTIO_DISK"
   size    = 47.2
+  # flash_priority will be fetched from the HC3 API and it will
+  # be set to that unless specifically specified otherwise
 }
 
 resource "hypercore_disk" "disk_newly_created" {
-  vm_uuid = data.hypercore_vms.diskvm.vms.0.uuid
-  type    = "IDE_DISK"
-  size    = 3.0
+  vm_uuid        = data.hypercore_vms.diskvm.vms.0.uuid
+  type           = "IDE_DISK"
+  size           = 3.0
+  flash_priority = 5 # defaults to 4 if not provided
 }
 
 output "diskvm_uuid" {
@@ -55,10 +58,11 @@ import {
 
 ### Optional
 
-- `iso_uuid` (String) ISO UUID we want to attach to the disk, only available with disk type IDE_CDROM.
+- `flash_priority` (Number) SSD tiering priority factor for block placement. If not provided, it will default to `4`, unless imported, in which case the disk's current flash priority will be taken into account and can then be modified. This can be any **positive** value between (including) `0` and `11`.
+- `iso_uuid` (String) ISO UUID we want to attach to the disk, only available with disk type `IDE_CDROM`.
 - `size` (Number) Disk size in `GB`. Must be larger than the current size of the disk if specified.
 - `source_virtual_disk_id` (String) UUID of the virtual disk to use to clone and attach to the VM.
-- `type` (String) Disk type. Can be: `IDE_DISK`, `SCSI_DISK`, `VIRTIO_DISK`, `IDE_FLOPPY`, `NVRAM`, `VTPM`
+- `type` (String) Disk type. Can be: `IDE_DISK`, `IDE_CDROM`, `SCSI_DISK`, `VIRTIO_DISK`, `IDE_FLOPPY`, `NVRAM`, `VTPM`
 
 ### Read-Only
 

@@ -10,26 +10,31 @@ terraform {
 }
 
 locals {
-  vm_name     = "testtf-ana-tags-2"
-  src_vm_name = "ana"
+  vm_name = "testtf-ana-tags"
 }
 
 provider "hypercore" {}
 
-data "hypercore_vms" "src_empty" {
-  name = local.src_vm_name
+data "hypercore_vms" "testtf-ana-tags" {
+  name = "testtf-ana-tags"
 }
 
-resource "hypercore_vm" "vm_on" {
-  tags        = ["ana-tftag2"]
-  name        = local.vm_name
-  description = "VM created from scratch"
-  vcpu        = 1
-  memory      = 1234 # MiB
+resource "hypercore_disk" "disk_newly_created" {
+  vm_uuid        = data.hypercore_vms.testtf-ana-tags.vms.0.uuid
+  type           = "IDE_DISK"
+  size           = 3.0
+  flash_priority = 3
+}
 
-  clone = {
-    source_vm_uuid = data.hypercore_vms.src_empty.vms.0.uuid
-    meta_data      = ""
-    user_data      = ""
-  }
+resource "hypercore_disk" "disk_cloned" {
+  vm_uuid = data.hypercore_vms.testtf-ana-tags.vms.0.uuid
+  type    = "IDE_DISK"
+  size    = 3.0
+
+  depends_on = [hypercore_disk.disk_newly_created]
+}
+
+import {
+  to = hypercore_disk.disk_cloned
+  id = format("%s:%s:%d", data.hypercore_vms.testtf-ana-tags.vms.0.uuid, "IDE_DISK", 0)
 }
