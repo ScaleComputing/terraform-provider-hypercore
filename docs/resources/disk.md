@@ -26,7 +26,7 @@ resource "hypercore_disk" "disk_cloned" {
   type    = "VIRTIO_DISK"
   size    = 47.2
   # flash_priority will be fetched from the HC3 API and it will
-  # be set to that unless speicifically specified otherwise
+  # be set to that unless specifically specified otherwise
 }
 
 resource "hypercore_disk" "disk_newly_created" {
