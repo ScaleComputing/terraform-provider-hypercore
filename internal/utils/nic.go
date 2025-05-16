@@ -17,12 +17,16 @@ func CreateNic(
 	vmUUID string,
 	nic_type string,
 	vlan int64,
+	macAddress string,
 	ctx context.Context,
 ) (string, map[string]any) {
 	payload := map[string]any{
 		"virDomainUUID": vmUUID,
 		"type":          nic_type,
 		"vlan":          vlan,
+	}
+	if macAddress != "" {
+		payload["macAddress"] = macAddress
 	}
 	taskTag, _, _ := restClient.CreateRecord(
 		"/rest/v1/VirDomainNetDevice",
