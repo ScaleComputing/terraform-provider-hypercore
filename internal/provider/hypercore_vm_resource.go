@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -41,16 +41,16 @@ type HypercoreVMResource struct {
 
 // HypercoreVMResourceModel describes the resource data model.
 type HypercoreVMResourceModel struct {
-	Tags                 types.List            `tfsdk:"tags"`
-	Name                 types.String          `tfsdk:"name"`
-	Description          types.String          `tfsdk:"description"`
-	VCPU                 types.Int32           `tfsdk:"vcpu"`
-	Memory               types.Int64           `tfsdk:"memory"`
-	Import               *ImportModel          `tfsdk:"import"`
-	SnapshotScheduleUUID types.String          `tfsdk:"snapshot_schedule_uuid"`
-	Clone                *CloneModel           `tfsdk:"clone"`
-	AffinityStrategy     AffinityStrategyModel `tfsdk:"affinity_strategy"`
-	Id                   types.String          `tfsdk:"id"`
+	Tags                 types.List             `tfsdk:"tags"`
+	Name                 types.String           `tfsdk:"name"`
+	Description          types.String           `tfsdk:"description"`
+	VCPU                 types.Int32            `tfsdk:"vcpu"`
+	Memory               types.Int64            `tfsdk:"memory"`
+	Import               *ImportModel           `tfsdk:"import"`
+	SnapshotScheduleUUID types.String           `tfsdk:"snapshot_schedule_uuid"`
+	Clone                *CloneModel            `tfsdk:"clone"`
+	AffinityStrategy     *AffinityStrategyModel `tfsdk:"affinity_strategy"`
+	Id                   types.String           `tfsdk:"id"`
 }
 
 type ImportModel struct {
@@ -173,29 +173,35 @@ The provider will currently try to shutdown VM only before VM delete.`,
 					},
 				},
 			},
-			"affinity_strategy": schema.ObjectAttribute{
-				MarkdownDescription: "VM node affinity.",
-				Optional:            true,
-				AttributeTypes: map[string]attr.Type{
-					"strict_affinity":     types.BoolType,
-					"preferred_node_uuid": types.StringType,
-					"backup_node_uuid":    types.StringType,
-				},
+			"affinity_strategy": schema.SingleNestedAttribute{
+				Optional: true,
 				Computed: true,
-				Default: objectdefault.StaticValue(
-					types.ObjectValueMust(
-						map[string]attr.Type{
-							"strict_affinity":     types.BoolType,
-							"preferred_node_uuid": types.StringType,
-							"backup_node_uuid":    types.StringType,
+				Attributes: map[string]schema.Attribute{
+					"strict_affinity": schema.BoolAttribute{
+						Optional: true,
+						Computed: true,
+						//Default:  booldefault.StaticBool(false),
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
 						},
-						map[string]attr.Value{
-							"strict_affinity":     types.BoolValue(false),
-							"preferred_node_uuid": types.StringValue(""),
-							"backup_node_uuid":    types.StringValue(""),
+					},
+					"preferred_node_uuid": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						// Default:  stringdefault.StaticString(""),
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
 						},
-					),
-				),
+					},
+					"backup_node_uuid": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						// Default:  stringdefault.StaticString(""),
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+				},
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -357,13 +363,30 @@ func (r *HypercoreVMResource) Create(ctx context.Context, req resource.CreateReq
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	// tflog.Info(ctx, fmt.Sprintf("TTRT a ----------------------- : %v", data.AffinityStrategy))
+	if data.AffinityStrategy == nil {
+		data.AffinityStrategy = &AffinityStrategyModel{
+			StrictAffinity:    types.BoolValue(false),
+			PreferredNodeUUID: types.StringValue(""),
+			BackupNodeUUID:    types.StringValue(""),
+		}
+	}
+	if data.AffinityStrategy.StrictAffinity.IsUnknown() {
+		data.AffinityStrategy.StrictAffinity = types.BoolValue(false)
+	}
+	if data.AffinityStrategy.PreferredNodeUUID.IsUnknown() {
+		data.AffinityStrategy.PreferredNodeUUID = types.StringValue("")
+	}
+	if data.AffinityStrategy.BackupNodeUUID.IsUnknown() {
+		data.AffinityStrategy.BackupNodeUUID = types.StringValue("")
+	}
+	// tflog.Info(ctx, fmt.Sprintf("TTRT b ----------------------- : %v", data.AffinityStrategy))
 
 	if r.client == nil {
 		resp.Diagnostics.AddError(
 			"Unconfigured HTTP Client",
 			"Expected configured HTTP client. Please report this issue to the provider developers.",
 		)
-
 		return
 	}
 
@@ -457,6 +480,7 @@ func (r *HypercoreVMResource) Read(ctx context.Context, req resource.ReadRequest
 	data.SnapshotScheduleUUID = types.StringValue(utils.AnyToString(hc3_vm["snapshotScheduleUUID"]))
 
 	affinityStrategy := utils.AnyToMap(hc3_vm["affinityStrategy"])
+	data.AffinityStrategy = &AffinityStrategyModel{}
 	data.AffinityStrategy.StrictAffinity = types.BoolValue(utils.AnyToBool(affinityStrategy["strictAffinity"]))
 	data.AffinityStrategy.PreferredNodeUUID = types.StringValue(utils.AnyToString(affinityStrategy["preferredNodeUUID"]))
 	data.AffinityStrategy.BackupNodeUUID = types.StringValue(utils.AnyToString(affinityStrategy["backupNodeUUID"]))
@@ -477,7 +501,6 @@ func (r *HypercoreVMResource) Update(ctx context.Context, req resource.UpdateReq
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
