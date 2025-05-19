@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -150,16 +151,26 @@ The provider will currently try to shutdown VM only before VM delete.`,
 					},
 				},
 			},
-			"clone": schema.ObjectAttribute{
+			"clone": schema.SingleNestedAttribute{
 				MarkdownDescription: "" +
 					"Clone options if the VM is being created as a clone. The `source_vm_uuid` is the UUID of the VM used for cloning, <br>" +
 					"`user_data` and `meta_data` are used for the cloud init data.",
 				Optional: true,
-				AttributeTypes: map[string]attr.Type{
-					"source_vm_uuid":       types.StringType,
-					"user_data":            types.StringType,
-					"meta_data":            types.StringType,
-					"preserve_mac_address": types.BoolType,
+				Attributes: map[string]schema.Attribute{
+					"source_vm_uuid": schema.StringAttribute{
+						Required: true,
+					},
+					"user_data": schema.StringAttribute{
+						Optional: true,
+					},
+					"meta_data": schema.StringAttribute{
+						Optional: true,
+					},
+					"preserve_mac_address": schema.BoolAttribute{
+						Optional: true,
+						Computed: true,
+						Default:  booldefault.StaticBool(false),
+					},
 				},
 			},
 			"affinity_strategy": schema.ObjectAttribute{

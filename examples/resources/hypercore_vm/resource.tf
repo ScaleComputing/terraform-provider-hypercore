@@ -36,6 +36,7 @@ resource "hypercore_vm" "myvm" {
       ssh_authorized_keys = "",
       ssh_import_id       = "",
     })
+    preserve_mac_address = true # User wants to preserve mac address from the source machine (Default is false)
   }
 }
 
