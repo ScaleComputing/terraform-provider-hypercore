@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -62,9 +63,10 @@ type ImportModel struct {
 }
 
 type CloneModel struct {
-	SourceVMUUID types.String `tfsdk:"source_vm_uuid"`
-	UserData     types.String `tfsdk:"user_data"`
-	MetaData     types.String `tfsdk:"meta_data"`
+	SourceVMUUID       types.String `tfsdk:"source_vm_uuid"`
+	UserData           types.String `tfsdk:"user_data"`
+	MetaData           types.String `tfsdk:"meta_data"`
+	PreserveMacAddress types.Bool   `tfsdk:"preserve_mac_address"`
 }
 
 type AffinityStrategyModel struct {
@@ -149,15 +151,26 @@ The provider will currently try to shutdown VM only before VM delete.`,
 					},
 				},
 			},
-			"clone": schema.ObjectAttribute{
+			"clone": schema.SingleNestedAttribute{
 				MarkdownDescription: "" +
 					"Clone options if the VM is being created as a clone. The `source_vm_uuid` is the UUID of the VM used for cloning, <br>" +
 					"`user_data` and `meta_data` are used for the cloud init data.",
 				Optional: true,
-				AttributeTypes: map[string]attr.Type{
-					"source_vm_uuid": types.StringType,
-					"user_data":      types.StringType,
-					"meta_data":      types.StringType,
+				Attributes: map[string]schema.Attribute{
+					"source_vm_uuid": schema.StringAttribute{
+						Required: true,
+					},
+					"user_data": schema.StringAttribute{
+						Optional: true,
+					},
+					"meta_data": schema.StringAttribute{
+						Optional: true,
+					},
+					"preserve_mac_address": schema.BoolAttribute{
+						Optional: true,
+						Computed: true,
+						Default:  booldefault.StaticBool(false),
+					},
 				},
 			},
 			"affinity_strategy": schema.ObjectAttribute{
@@ -219,16 +232,19 @@ func (r *HypercoreVMResource) Configure(ctx context.Context, req resource.Config
 func getVMStruct(data *HypercoreVMResourceModel, vmDescription *string, vmTags *[]string) *utils.VM {
 	// Gets VM structure from Utils.VM, sends parameters based on which VM create logic is being called
 	sourceVMUUID, userData, metaData := "", "", ""
+	preserveMacAddress := false
 	if data.Clone != nil {
 		sourceVMUUID = data.Clone.SourceVMUUID.ValueString()
 		userData = data.Clone.UserData.ValueString()
 		metaData = data.Clone.MetaData.ValueString()
+		preserveMacAddress = data.Clone.PreserveMacAddress.ValueBool()
 	}
 	vmStruct := utils.GetVMStruct(
 		data.Name.ValueString(),
 		sourceVMUUID,
 		userData,
 		metaData,
+		preserveMacAddress,
 		vmDescription,
 		vmTags,
 		data.VCPU.ValueInt32Pointer(),

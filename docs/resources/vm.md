@@ -67,6 +67,7 @@ resource "hypercore_vm" "myvm" {
       ssh_authorized_keys = "",
       ssh_import_id       = "",
     })
+    preserve_mac_address = true # User wants to preserve mac address from the source machine (Default is false)
   }
 }
 
@@ -102,7 +103,7 @@ output "vm_uuid" {
 ### Optional
 
 - `affinity_strategy` (Object) VM node affinity. (see [below for nested schema](#nestedatt--affinity_strategy))
-- `clone` (Object) Clone options if the VM is being created as a clone. The `source_vm_uuid` is the UUID of the VM used for cloning, <br>`user_data` and `meta_data` are used for the cloud init data. (see [below for nested schema](#nestedatt--clone))
+- `clone` (Attributes) Clone options if the VM is being created as a clone. The `source_vm_uuid` is the UUID of the VM used for cloning, <br>`user_data` and `meta_data` are used for the cloud init data. (see [below for nested schema](#nestedatt--clone))
 - `description` (String) Description of this VM
 - `import` (Attributes) Options for importing a VM through a SMB server or some other HTTP location. <br>Use server, username, password for SMB or http_uri for some other HTTP location. Parameters path and file_name are always **required** (see [below for nested schema](#nestedatt--import))
 - `memory` (Number) Memory (RAM) size in `MiB`: If the cloned VM was already created <br>and it's memory was modified, the cloned VM will be rebooted (either gracefully or forcefully)
@@ -127,10 +128,14 @@ Optional:
 <a id="nestedatt--clone"></a>
 ### Nested Schema for `clone`
 
+Required:
+
+- `source_vm_uuid` (String)
+
 Optional:
 
 - `meta_data` (String)
-- `source_vm_uuid` (String)
+- `preserve_mac_address` (Boolean)
 - `user_data` (String)
 
 
