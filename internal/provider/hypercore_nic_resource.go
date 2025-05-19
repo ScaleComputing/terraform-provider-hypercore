@@ -33,11 +33,11 @@ type HypercoreNicResource struct {
 
 // HypercoreNicResourceModel describes the resource data model.
 type HypercoreNicResourceModel struct {
-	Id     types.String `tfsdk:"id"`
-	VmUUID types.String `tfsdk:"vm_uuid"`
-	Vlan   types.Int64  `tfsdk:"vlan"`
-	Type   types.String `tfsdk:"type"`
-	// MacAddress types.String `tfsdk:"type"`
+	Id         types.String `tfsdk:"id"`
+	VmUUID     types.String `tfsdk:"vm_uuid"`
+	Vlan       types.Int64  `tfsdk:"vlan"`
+	Type       types.String `tfsdk:"type"`
+	MacAddress types.String `tfsdk:"mac_address"`
 }
 
 func (r *HypercoreNicResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -69,6 +69,15 @@ func (r *HypercoreNicResource) Schema(ctx context.Context, req resource.SchemaRe
 			"type": schema.StringAttribute{
 				MarkdownDescription: "NIC type. Can be: `VIRTIO`, `INTEL_E1000`, `RTL8139`",
 				Required:            true,
+			},
+			"mac_address": schema.StringAttribute{
+				MarkdownDescription: "NIC MAC address.",
+				Optional:            true,
+				Computed:            true,
+				// Default:             stringDefault.StaticString Int64(4),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
@@ -119,14 +128,15 @@ func (r *HypercoreNicResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("TTRT Create: vm_uuid=%s, type=%s, vlan=%d", data.VmUUID.ValueString(), data.Type.ValueString(), data.Vlan.ValueInt64()))
+	tflog.Info(ctx, fmt.Sprintf("TTRT Create: vm_uuid=%s, type=%s, vlan=%d mac=%v", data.VmUUID.ValueString(), data.Type.ValueString(), data.Vlan.ValueInt64(), data.MacAddress.ValueString()))
 
-	nicUUID, nic := utils.CreateNic(*r.client, data.VmUUID.ValueString(), data.Type.ValueString(), data.Vlan.ValueInt64(), ctx)
+	nicUUID, nic := utils.CreateNic(*r.client, data.VmUUID.ValueString(), data.Type.ValueString(), data.Vlan.ValueInt64(), data.MacAddress.ValueString(), ctx)
 	tflog.Info(ctx, fmt.Sprintf("TTRT Created: vm_uuid=%s, nic_uuid=%s, nic=%v", data.VmUUID.ValueString(), nicUUID, nic))
 
 	// TODO: Check if HC3 matches TF
 	// save into the Terraform state.
 	data.Id = types.StringValue(nicUUID)
+	data.MacAddress = types.StringValue(utils.AnyToString(nic["macAddress"]))
 	// TODO MAC, IP address etc
 
 	// Write logs using the tflog package
@@ -169,6 +179,7 @@ func (r *HypercoreNicResource) Read(ctx context.Context, req resource.ReadReques
 	data.VmUUID = types.StringValue(utils.AnyToString(nic["virDomainUUID"]))
 	data.Type = types.StringValue(utils.AnyToString(nic["type"]))
 	data.Vlan = types.Int64Value(utils.AnyToInteger64(nic["vlan"]))
+	data.MacAddress = types.StringValue(utils.AnyToString(nic["macAddress"]))
 	// TODO MAC, IP address etc
 
 	// Save updated data into Terraform state
@@ -200,6 +211,7 @@ func (r *HypercoreNicResource) Update(ctx context.Context, req resource.UpdateRe
 		"virDomainUUID": vmUUID,
 		"type":          data.Type.ValueString(),
 		"vlan":          data.Vlan.ValueInt64(),
+		"macAddress":    data.MacAddress.ValueString(),
 	}
 	diag := utils.UpdateNic(restClient, nicUUID, updatePayload, ctx)
 	if diag != nil {
@@ -261,7 +273,7 @@ func (r *HypercoreNicResource) ImportState(ctx context.Context, req resource.Imp
 	tflog.Info(ctx, "TTRT HypercoreNicResource IMPORT_STATE")
 	idParts := strings.Split(req.ID, ":")
 	if len(idParts) != 3 {
-		msg := fmt.Sprintf("NIC import composite ID format is 'vm_uuid:nic_type:nic_slot'. ID='%s' is invalid.", req.ID)
+		msg := fmt.Sprintf("NIC import composite ID format is 'vm_uuid:nic_type:nic_vlan'. ID='%s' is invalid.", req.ID)
 		resp.Diagnostics.AddError("NIC import requires a composite ID", msg)
 		return
 	}
@@ -276,15 +288,17 @@ func (r *HypercoreNicResource) ImportState(ctx context.Context, req resource.Imp
 	tflog.Info(ctx, fmt.Sprintf("TTRT hc3Nics=%v\n", hc3Nics))
 
 	var nicUUID string
+	var macAddress string
 	for _, nic := range hc3Nics {
 		if utils.AnyToInteger64(nic["vlan"]) == vlan &&
 			utils.AnyToString(nic["type"]) == nicType {
 			nicUUID = utils.AnyToString(nic["uuid"])
+			macAddress = utils.AnyToString(nic["macAddress"])
 			break
 		}
 	}
 	if nicUUID == "" {
-		msg := fmt.Sprintf("NIC import, NIC not found -  'vm_uuid:nic_type:nic_slot'='%s'.", req.ID)
+		msg := fmt.Sprintf("NIC import, NIC not found -  'vm_uuid:nic_type:nic_vlan'='%s'.", req.ID)
 		resp.Diagnostics.AddError("NIC import error, NIC not found", msg)
 		return
 	}
@@ -293,4 +307,5 @@ func (r *HypercoreNicResource) ImportState(ctx context.Context, req resource.Imp
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("vm_uuid"), vmUUID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"), nicType)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("vlan"), vlan)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("mac_address"), macAddress)...)
 }
