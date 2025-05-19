@@ -20,14 +20,22 @@ Add needed variables/secrets to github project:
   HC_HOST=https://10.5.11.205
   HC_USERNAME=admin
   HC_PASSWORD=todo
+  SMB_SERVER=10.5.11.36
+  SMB_USERNAME=";administrator"
+  SMB_PASSWORD="todo"
+  SMB_PATH=/cidata
+  SMB_FILENAME=bla.xml
   ```
 
 Prior to running acceptance tests we need to setup:
   1. Virtual machine
-    a. name integration-test-vm
-    a. has one disk, type VIRTIO, size 1.2 GB
-    b. has one nic, type INTEL_E1000, vlan 10, MAC 7C:4C:58:12:34:56
-    c. boot order is configured as [disk, nic]
+    - name integration-test-vm
+    - has two disks
+      - type VIRTIO (1.2GB, 2.4GB)
+    - has two nics
+      - first of type INTEL_E1000, vlan 10, MAC 7C:4C:58:12:34:56
+      - second of type VIRTIO, vlan ALL
+    - boot order is configured as [disk, nic]
   2. Virtual disk (as standalone not attached to the testing VM)
   3. Add names and UUIDs to the env.txt file in /tests/acceptance/setup directory
     - There are multiple env-*.txt files, for different test HyperCore clusters.

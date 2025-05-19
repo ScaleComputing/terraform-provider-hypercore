@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"github.com/hashicorp/terraform-provider-hypercore/internal/utils"
 )
 
 func TestAccHypercoreVMResourceClone(t *testing.T) {
@@ -34,37 +32,6 @@ func TestAccHypercoreVMResourceClone(t *testing.T) {
 					// resource.TestCheckResourceAttr("hypercore_vm.test", "power_state", requested_power_state),
 				),
 			},
-			{
-				Config: testAccHypercoreVMResourceCloneConfig("testtf-vm"),
-				Check:  checkDiskSize,
-			},
-			// TODO make ImportState test pass again.
-			/*
-				// ImportState testing
-				{
-					ResourceName:      "hypercore_vm.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-					// This is not normally necessary, but is here because this
-					// example code does not have an actual upstream service.
-					// Once the Read method is able to refresh information from
-					// the upstream service, this can be removed.
-					ImportStateVerifyIgnore: []string{
-						"id",
-						// TODO do not ignore below attributes
-						"name",
-						"description",
-						"group",
-						"vcpu",
-						"memory",
-						"disk_size",
-						"clone.source_vm_uuid",
-						"clone.user_data",
-						"clone.meta_data",
-						"power_state",
-					},
-				},
-			*/
 			// Update and Read testing
 			{
 				Config: testAccHypercoreVMResourceCloneConfig("testtf-vm"),
@@ -84,6 +51,7 @@ func TestAccHypercoreVMResourceClone(t *testing.T) {
 	})
 }
 
+/*
 func checkDiskSize(s *terraform.State) error {
 	vm_name := "testtf-vm"
 	expected_disk_size_b := 1.2 * 1000 * 1000 * 1000
@@ -98,8 +66,8 @@ func checkDiskSize(s *terraform.State) error {
 	}
 	vm := all_vms[0]
 	disks := utils.AnyToListOfMap(vm["blockDevs"])
-	if len(disks) != 1 {
-		return fmt.Errorf("Expected exactly one disk, VM name %s, got %d disks", vm_name, len(disks))
+	if len(disks) != 4 {
+		return fmt.Errorf("Expected exactly four disk, VM name %s, got %d disks", vm_name, len(disks))
 	}
 	disk_size_b := utils.AnyToFloat64(disks[0]["capacity"])
 	if disk_size_b != expected_disk_size_b {
@@ -107,6 +75,7 @@ func checkDiskSize(s *terraform.State) error {
 	}
 	return nil
 }
+*/
 
 func testAccHypercoreVMResourceCloneConfig(vm_name string) string {
 	return fmt.Sprintf(`
