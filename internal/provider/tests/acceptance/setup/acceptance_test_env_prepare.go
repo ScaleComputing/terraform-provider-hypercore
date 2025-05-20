@@ -200,9 +200,11 @@ func CleanupIso(host string, client *http.Client, env EnvConfig) {
 	// Find the integration test iso
 	for _, iso := range isoList {
 		name, ok := iso["name"].(string)
+		uuid, _ := iso["uuid"].(string)
 		if ok && name == env.ISOName {
 			// Clean up ISO
-			fmt.Println("ISO name:", name)
+			url = fmt.Sprintf("%s%s%s", host, IsoEndpoint, uuid)
+			SendHTTPRequest(client, "DELETE", url, nil)
 		}
 	}
 }
