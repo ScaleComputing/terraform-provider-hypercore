@@ -23,12 +23,14 @@ type EnvConfig struct {
 	SourceVmName      string
 	SourceDiskUUID    string
 	SourceNicUUID     string
+	ISOName           string
 }
 
 const (
 	VirDomainEndpoint       = "/rest/v1/VirDomain/"
 	VirtualDiskEndpoint     = "/rest/v1/VirtualDisk/"
 	VirDomainActionEndpoint = "/rest/v1/VirDomain/action"
+	IsoEndpoint             = "/rest/v1/ISO"
 )
 
 func LoadEnv() EnvConfig {
@@ -38,6 +40,7 @@ func LoadEnv() EnvConfig {
 		SourceVmName:      os.Getenv("SOURCE_VM_NAME"),
 		SourceDiskUUID:    os.Getenv("SOURCE_DISK_UUID"),
 		SourceNicUUID:     os.Getenv("SOURCE_NIC_UUID"),
+		ISOName:           os.Getenv("ISO_NAME"),
 	}
 }
 
@@ -183,6 +186,28 @@ func PrepareEnv(host string, client *http.Client, env EnvConfig) {
 	}
 }
 
+func CleanupIso(host string, client *http.Client, env EnvConfig) {
+	// Get all ISOs
+	url := fmt.Sprintf("%s%s", host, IsoEndpoint)
+	_, body := SendHTTPRequest(client, "GET", url, nil)
+
+	// Unmarshal JSON response
+	var isoList []map[string]interface{}
+	if err := json.Unmarshal(body, &isoList); err != nil {
+		log.Fatalf("Failed to parse JSON: %v", err)
+	}
+
+	// Find the integration test iso
+	for _, iso := range isoList {
+		name, ok := iso["name"].(string)
+		uuid, _ := iso["uuid"].(string)
+		if ok && name == env.ISOName {
+			// Clean up ISO
+			url = fmt.Sprintf("%s%s%s", host, IsoEndpoint, uuid)
+			SendHTTPRequest(client, "DELETE", url, nil)
+		}
+	}
+}
 func CleanUpPowerState(host string, client *http.Client, env EnvConfig) {
 	data := []byte(fmt.Sprintf(`[{"virDomainUUID": "%s", "actionType": "STOP", "cause": "INTERNAL"}]`, env.SourceVmUUID))
 	url := fmt.Sprintf("%s%s", host, VirDomainActionEndpoint)
@@ -203,6 +228,7 @@ func CleanUpBootOrder(host string, client *http.Client, env EnvConfig) {
 	SendHTTPRequest(client, "POST", url, data)
 }
 func CleanupEnv(host string, client *http.Client, env EnvConfig) {
+	CleanupIso(host, client, env)
 	CleanUpPowerState(host, client, env)
 	CleanUpBootOrder(host, client, env)
 }
