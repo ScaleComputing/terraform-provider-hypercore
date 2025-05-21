@@ -28,15 +28,15 @@ Add needed variables/secrets to github project:
   ```
 
 Prior to running acceptance tests we need to setup:
-  1. Virtual machine
-    - name integration-test-vm
-    - has two disks
-      - type VIRTIO (1.2GB, 2.4GB)
-    - has two nics
-      - first of type INTEL_E1000, vlan 10, MAC 7C:4C:58:12:34:56
-      - second of type VIRTIO, vlan ALL
-    - boot order is configured as [disk, nic]
-  2. Virtual disk (as standalone not attached to the testing VM)
-  3. Add names and UUIDs to the env.txt file in /tests/acceptance/setup directory
-    - There are multiple env-*.txt files, for different test HyperCore clusters.
-  4. Virtual machine needs to be powered off
+  - Virtual machine  
+    - name integration-test-vm  
+    - has two disks  
+      - type VIRTIO (1.2GB, 2.4GB)  
+    - has two nics  
+      - first of type INTEL_E1000, vlan 10, MAC 7C:4C:58:12:34:56  
+      - second of type VIRTIO, vlan ALL  
+    - boot order is configured as [disk, nic]  
+  - Virtual disk (as standalone not attached to the testing VM)  
+  - Add names and UUIDs to the env.txt file in /tests/acceptance/setup directory  
+    - There are multiple env-*.txt files, for different test HyperCore clusters.  
+  - Virtual machine needs to be powered off
