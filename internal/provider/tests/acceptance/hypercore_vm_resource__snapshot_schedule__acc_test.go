@@ -99,6 +99,7 @@ resource "hypercore_vm" "test" {
   memory = 4096
   description = "testtf-vm-description"
   // snapshot_schedule_uuid = ""
+  affinity_strategy = {}
 }
 `, vm_name)
 }

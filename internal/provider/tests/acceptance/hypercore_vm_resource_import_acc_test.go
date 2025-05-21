@@ -48,6 +48,7 @@ resource "hypercore_vm" "test" {
     path      = %[5]q
     file_name = %[6]q
   }
+  affinity_strategy = {}
 }
 `, vm_name, smb_server, smb_username, smb_password, smb_path, smb_filename, requested_power_state)
 }

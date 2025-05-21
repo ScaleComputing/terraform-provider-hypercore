@@ -9,8 +9,9 @@ resource "hypercore_vm" "empty-vm" {
   name        = "empty-vm"
   description = "some description"
 
-  vcpu   = 4
-  memory = 4096 # MiB
+  vcpu              = 4
+  memory            = 4096 # MiB
+  affinity_strategy = {}
 }
 
 data "hypercore_vms" "clone_source_vm" {
@@ -24,6 +25,7 @@ resource "hypercore_vm" "myvm" {
 
   vcpu                   = 4
   memory                 = 4096 # MiB
+  affinity_strategy      = {}
   snapshot_schedule_uuid = data.hypercore_vms.clone_source_vm.vms.0.snapshot_schedule_uuid
 
   clone = {
@@ -45,8 +47,9 @@ resource "hypercore_vm" "import-from-smb" {
   name        = "imported-vm"
   description = "some description"
 
-  vcpu   = 4
-  memory = 4096 # MiB
+  vcpu              = 4
+  memory            = 4096 # MiB
+  affinity_strategy = {}
 
   import = {
     server    = "10.5.11.39"
