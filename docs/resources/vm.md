@@ -40,8 +40,9 @@ resource "hypercore_vm" "empty-vm" {
   name        = "empty-vm"
   description = "some description"
 
-  vcpu   = 4
-  memory = 4096 # MiB
+  vcpu              = 4
+  memory            = 4096 # MiB
+  affinity_strategy = {}
 }
 
 data "hypercore_vms" "clone_source_vm" {
@@ -55,6 +56,7 @@ resource "hypercore_vm" "myvm" {
 
   vcpu                   = 4
   memory                 = 4096 # MiB
+  affinity_strategy      = {}
   snapshot_schedule_uuid = data.hypercore_vms.clone_source_vm.vms.0.snapshot_schedule_uuid
 
   clone = {
@@ -76,8 +78,9 @@ resource "hypercore_vm" "import-from-smb" {
   name        = "imported-vm"
   description = "some description"
 
-  vcpu   = 4
-  memory = 4096 # MiB
+  vcpu              = 4
+  memory            = 4096 # MiB
+  affinity_strategy = {}
 
   import = {
     server    = "10.5.11.39"
@@ -102,7 +105,7 @@ output "vm_uuid" {
 
 ### Optional
 
-- `affinity_strategy` (Object) VM node affinity. (see [below for nested schema](#nestedatt--affinity_strategy))
+- `affinity_strategy` (Attributes) (see [below for nested schema](#nestedatt--affinity_strategy))
 - `clone` (Attributes) Clone options if the VM is being created as a clone. The `source_vm_uuid` is the UUID of the VM used for cloning, <br>`user_data` and `meta_data` are used for the cloud init data. (see [below for nested schema](#nestedatt--clone))
 - `description` (String) Description of this VM
 - `import` (Attributes) Options for importing a VM through a SMB server or some other HTTP location. <br>Use server, username, password for SMB or http_uri for some other HTTP location. Parameters path and file_name are always **required** (see [below for nested schema](#nestedatt--import))

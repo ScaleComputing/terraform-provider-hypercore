@@ -10,30 +10,36 @@ terraform {
 }
 
 locals {
-  vm_name = "testtf-justin-nic-mac"
+  src_vm_name = "testtf-src-empty"
+  vm_name = "testtf-justin-affinity"
 }
 
 provider "hypercore" {}
 
-data "hypercore_vms" "myvm" {
+data "hypercore_vms" "srcvm" {
+  name = local.src_vm_name
+}
+
+resource "hypercore_vm" "myvm" {
   name = local.vm_name
+  clone = {
+    source_vm_uuid = data.hypercore_vms.srcvm.vms.0.uuid
+    user_data = ""
+    meta_data = ""
+  }
+  # TODO - are computed, on HC3 side
+  memory = 1024
+  tags = [""]
+  vcpu = 1
+  description = ""
+  affinity_strategy = {
+    # strict_affinity = true
+    # preferred_node_uuid = "d676b39c-595f-4c3b-a8df-a18f308243c0"
+  }
 }
 
-resource "hypercore_nic" "nic_newly_created" {
-  vm_uuid        = data.hypercore_vms.myvm.vms.0.uuid
-  type           = "INTEL_E1000"
-  vlan           = 11
-}
-
-resource "hypercore_nic" "nic_imported" {
-  vm_uuid = data.hypercore_vms.myvm.vms.0.uuid
-  type    = "VIRTIO"
-  vlan    = 0
-
-  depends_on = [hypercore_nic.nic_newly_created]
-}
-
-import {
-  to = hypercore_nic.nic_imported
-  id = format("%s:%s:%d", data.hypercore_vms.myvm.vms.0.uuid, "VIRTIO", 0)
+resource "hypercore_vm_power_state" "myvm" {
+  vm_uuid = hypercore_vm.myvm.id
+  # state   = "SHUTOFF" # available states are: SHUTOFF, RUNNING, PAUSED
+  state   = "RUNNING" # available states are: SHUTOFF, RUNNING, PAUSED
 }

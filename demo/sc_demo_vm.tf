@@ -4,7 +4,7 @@
 # After we have virtual disk, we use it to create new VM from it
 # First create VM without any disk.
 resource "hypercore_vm" "demo_vm" {
-  group       = "testtf"
+  tags       = ["testtf"]
   name        = local.vm_name
   description = "Demo Ana's cloned VM"
   vcpu        = 4

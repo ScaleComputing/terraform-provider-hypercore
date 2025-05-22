@@ -96,6 +96,7 @@ resource "hypercore_vm" "test" {
 	meta_data = ""
 	preserve_mac_address = false
   }
+  affinity_strategy = {}
 }
 `, vm_name, source_vm_uuid, requested_power_state)
 }
