@@ -640,7 +640,7 @@ func ShutdownVM(ctx context.Context, vmUUID string, restClient *utils.RestClient
 			return err
 		}
 	}
-	var maxWaitTime int = 300
+	var maxWaitTime = 300
 	envMaxWaitTime := os.Getenv("HC_VM_SHUTDOWN_TIMEOUT")
 	if envMaxWaitTime != "" {
 		val, err := strconv.Atoi(envMaxWaitTime)

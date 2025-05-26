@@ -60,7 +60,7 @@ func (tt *TaskTag) WaitTask(restClient RestClient, ctx context.Context) {
 					panic(fmt.Sprintf("Error executing task: %s, %s", state, taskStatus))
 				}
 
-				if !(state == "RUNNING" || state == "QUEUED") { // TaskTag has finished
+				if state != "RUNNING" && state != "QUEUED" { // TaskTag has finished
 					return
 				}
 			}
