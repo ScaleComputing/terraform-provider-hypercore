@@ -80,7 +80,12 @@ func SendHTTPRequest(client *http.Client, method string, url string, data []byte
 	if err != nil {
 		log.Fatalf("Sending request failed with %v", err)
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			err = fmt.Errorf("there was an issue closing response body with: %w", cerr)
+		}
+	}()
 
 	// Read and print the response
 	body, err := io.ReadAll(resp.Body)

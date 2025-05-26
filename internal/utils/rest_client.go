@@ -201,7 +201,11 @@ func (rc *RestClient) Login() {
 	if err != nil {
 		panic(fmt.Errorf("couldn't authenticate: %s", err.Error()))
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			panic(fmt.Errorf("couldn't close response body: %s", cerr.Error()))
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		respBytes, _ := io.ReadAll(resp.Body)
@@ -237,9 +241,13 @@ func (rc *RestClient) ListRecords(endpoint string, query map[string]any, timeout
 	if err != nil {
 		panic(fmt.Errorf("error making a request: %s", err.Error()))
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			panic(fmt.Errorf("couldn't close response body: %s", cerr.Error()))
+		}
+	}()
 
-	if !(resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent) {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		panic(fmt.Errorf("unexpected response: %d - %v", resp.StatusCode, rc.ToString(resp)))
 	}
 
@@ -289,7 +297,12 @@ func (rc *RestClient) CreateRecord(endpoint string, payload map[string]any, time
 	if err != nil {
 		return nil, resp.StatusCode, err
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			panic(fmt.Errorf("couldn't close response body: %s", cerr.Error()))
+		}
+	}()
 
 	respJson := rc.ToJson(resp)
 	if resp.StatusCode == 400 {
@@ -336,7 +349,12 @@ func (rc *RestClient) CreateRecordWithList(endpoint string, payload []map[string
 	if err != nil {
 		return nil, resp.StatusCode, err
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			panic(fmt.Errorf("couldn't close response body: %s", cerr.Error()))
+		}
+	}()
 
 	respJson := rc.ToJson(resp)
 	if resp.StatusCode == 400 {
@@ -374,7 +392,12 @@ func (rc *RestClient) UpdateRecord(endpoint string, payload map[string]any, time
 	if err != nil {
 		panic(fmt.Errorf("error making a request: %s", err.Error()))
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			panic(fmt.Errorf("couldn't close response body: %s", cerr.Error()))
+		}
+	}()
 
 	respJson := rc.ToJson(resp)
 	if resp.StatusCode == 400 {
@@ -412,7 +435,12 @@ func (rc *RestClient) PutRecord(endpoint string, payload map[string]any, timeout
 	if err != nil {
 		panic(fmt.Errorf("error making a request: %s", err.Error()))
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			panic(fmt.Errorf("couldn't close response body: %s", cerr.Error()))
+		}
+	}()
 
 	respJson := rc.ToJson(resp)
 	if resp.StatusCode == 400 {
@@ -451,7 +479,12 @@ func (rc *RestClient) PutBinaryRecord(endpoint string, binaryData []byte, conten
 	if err != nil {
 		panic(fmt.Errorf("error making a request: %s", err.Error()))
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			panic(fmt.Errorf("couldn't close response body: %s", cerr.Error()))
+		}
+	}()
 
 	respJson := rc.ToJson(resp)
 	if resp.StatusCode == 400 {
@@ -490,7 +523,12 @@ func (rc *RestClient) PutBinaryRecordWithoutTaskTag(endpoint string, binaryData 
 	if err != nil {
 		panic(fmt.Errorf("error making a request: %s", err.Error()))
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			panic(fmt.Errorf("couldn't close response body: %s", cerr.Error()))
+		}
+	}()
 
 	if resp.StatusCode != 200 {
 		panic(fmt.Errorf("error making a request: got response status code %v", resp.StatusCode))
@@ -518,7 +556,12 @@ func (rc *RestClient) DeleteRecord(endpoint string, timeout float64, ctx context
 	if err != nil {
 		panic(fmt.Errorf("error making a request: %s", err.Error()))
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			panic(fmt.Errorf("couldn't close response body: %s", cerr.Error()))
+		}
+	}()
 
 	respJson := rc.ToJson(resp)
 

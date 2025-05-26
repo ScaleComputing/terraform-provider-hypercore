@@ -238,7 +238,11 @@ func ReadLocalFileBinary(filePath string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error opening file '%s': %s", filePath, err)
 	}
-	defer file.Close()
+	defer func() {
+		if cerr := file.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("error closing file '%s': %w", filePath, cerr)
+		}
+	}()
 
 	reader := bufio.NewReader(file)
 	buffer := make([]byte, 4096) // 4KiB buffer
@@ -262,7 +266,11 @@ func FetchFileBinaryFromURL(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			err = fmt.Errorf("there was an issue closing response body with: %w", cerr)
+		}
+	}()
 
 	var binaryData []byte
 	buffer := make([]byte, 4096) // 4 KiB buffer
@@ -334,7 +342,7 @@ func ValidateHTTP(httpUri string, path string) diag.Diagnostic {
 
 func RecoverDiagnostics(ctx context.Context, diags *diag.Diagnostics) {
 	if r := recover(); r != nil {
-		err := fmt.Errorf("Terraform provider got an unexpected error during execution: %v", r)
+		err := fmt.Errorf("terraform provider got an unexpected error during execution: %v", r)
 		*diags = append(*diags, diag.NewErrorDiagnostic("Unexpected error", err.Error()))
 	}
 }

@@ -626,7 +626,7 @@ func GetOneVM(uuid string, restClient RestClient) map[string]any {
 	}
 	if len(records) > 1 {
 		// uuid == ""
-		panic(fmt.Errorf("Multiple VMs found: uuid=%v", uuid))
+		panic(fmt.Errorf("multiple VMs found: uuid=%v", uuid))
 	}
 
 	return records[0]
