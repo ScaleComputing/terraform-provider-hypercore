@@ -11,7 +11,7 @@ linters:
     - copyloopvar
     - forcetypeassert
     - godot
-    - gofmt
+    - goimports
     - gosimple
     - ineffassign
     - makezero
