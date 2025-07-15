@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-provider-hypercore/internal/utils"
 )
@@ -43,17 +44,17 @@ type hypercoreVMsDataSourceModel struct {
 
 // hypercoreVMModel maps VM schema data.
 type hypercoreVMModel struct {
-	UUID                 types.String         `tfsdk:"uuid"`
-	Name                 types.String         `tfsdk:"name"`
-	Description          types.String         `tfsdk:"description"`
-	PowerState           types.String         `tfsdk:"power_state"`
-	VCPU                 types.Int32          `tfsdk:"vcpu"`
-	Memory               types.Int64          `tfsdk:"memory"`
-	SnapshotScheduleUUID types.String         `tfsdk:"snapshot_schedule_uuid"`
-	Tags                 []types.String       `tfsdk:"tags"`
-	Disks                []HypercoreDiskModel `tfsdk:"disks"`
-	// TODO nics
-	AffinityStrategy AffinityStrategyModel `tfsdk:"affinity_strategy"`
+	UUID                 types.String          `tfsdk:"uuid"`
+	Name                 types.String          `tfsdk:"name"`
+	Description          types.String          `tfsdk:"description"`
+	PowerState           types.String          `tfsdk:"power_state"`
+	VCPU                 types.Int32           `tfsdk:"vcpu"`
+	Memory               types.Int64           `tfsdk:"memory"`
+	SnapshotScheduleUUID types.String          `tfsdk:"snapshot_schedule_uuid"`
+	Tags                 []types.String        `tfsdk:"tags"`
+	Disks                []HypercoreDiskModel  `tfsdk:"disks"`
+	Nics                 []HypercoreNicModel   `tfsdk:"nics"`
+	AffinityStrategy     AffinityStrategyModel `tfsdk:"affinity_strategy"`
 }
 
 type HypercoreDiskModel struct {
@@ -61,6 +62,14 @@ type HypercoreDiskModel struct {
 	Type types.String  `tfsdk:"type"`
 	Slot types.Int64   `tfsdk:"slot"`
 	Size types.Float64 `tfsdk:"size"`
+}
+
+type HypercoreNicModel struct {
+	UUID         types.String   `tfsdk:"uuid"`
+	Vlan         types.Int64    `tfsdk:"vlan"`
+	Type         types.String   `tfsdk:"type"`
+	MacAddress   types.String   `tfsdk:"mac_address"`
+	Ipv4Adresses []types.String `tfsdk:"ipv4_addresses"`
 }
 
 // Metadata returns the data source type name.
@@ -136,6 +145,35 @@ func (d *hypercoreVMsDataSource) Schema(_ context.Context, _ datasource.SchemaRe
 									},
 									"size": schema.Float64Attribute{
 										MarkdownDescription: "size",
+										Computed:            true,
+									},
+								},
+							},
+						},
+						"nics": schema.ListNestedAttribute{
+							MarkdownDescription: "List of NICs",
+							Computed:            true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"uuid": schema.StringAttribute{
+										MarkdownDescription: "UUID",
+										Computed:            true,
+									},
+									"type": schema.StringAttribute{
+										MarkdownDescription: "type",
+										Computed:            true,
+									},
+									"vlan": schema.Int64Attribute{
+										MarkdownDescription: "vlan",
+										Computed:            true,
+									},
+									"mac_address": schema.StringAttribute{
+										MarkdownDescription: "MAC address",
+										Computed:            true,
+									},
+									"ipv4_addresses": schema.ListAttribute{
+										ElementType:         types.StringType,
+										MarkdownDescription: "IPv4 addresses",
 										Computed:            true,
 									},
 								},
@@ -227,13 +265,41 @@ func (d *hypercoreVMsDataSource) Read(ctx context.Context, req datasource.ReadRe
 			size_GB := types.Float64Value(size_B / 1000 / 1000 / 1000)
 			disk := HypercoreDiskModel{
 				UUID: types.StringValue(uuid),
-				Type: types.StringValue(disk_type), // TODO convert "VIRTIO_DISK" to "virtio_disk" - or not?
+				Type: types.StringValue(disk_type),
 				Slot: types.Int64Value(slot),
 				Size: size_GB,
 			}
 			disks = append(disks, disk)
 		}
-
+		// nics
+		nicDevs, ok := vm["netDevs"].([]interface{})
+		if !ok {
+			panic(fmt.Sprintf("Unexpected netDevs field: %v", vm["netDevs"]))
+		}
+		nics := make([]HypercoreNicModel, 0)
+		for _, nicDev1 := range nicDevs {
+			nicDev2, ok := nicDev1.(map[string]any)
+			if !ok {
+				panic(fmt.Sprintf("Unexpected nicDevs field: %v", vm["nicDevs"]))
+			}
+			uuid := utils.AnyToString(nicDev2["uuid"])
+			nic_type := utils.AnyToString(nicDev2["type"])
+			vlan := utils.AnyToInteger64(nicDev2["vlan"])
+			mac := utils.AnyToString(nicDev2["macAddress"])
+			ipv4_addresses := utils.AnyToListOfStrings(nicDev2["ipv4Addresses"])
+			ipv4_addresses_string_value := make([]basetypes.StringValue, 0)
+			for _, addr := range ipv4_addresses {
+				ipv4_addresses_string_value = append(ipv4_addresses_string_value, types.StringValue(addr))
+			}
+			nic := HypercoreNicModel{
+				UUID:         types.StringValue(uuid),
+				Type:         types.StringValue(nic_type),
+				Vlan:         types.Int64Value(vlan),
+				MacAddress:   types.StringValue(mac),
+				Ipv4Adresses: ipv4_addresses_string_value,
+			}
+			nics = append(nics, nic)
+		}
 		hc3affinityStrategy := utils.AnyToMap(vm["affinityStrategy"])
 		var affinityStrategy AffinityStrategyModel
 		affinityStrategy.StrictAffinity = types.BoolValue(utils.AnyToBool(hc3affinityStrategy["strictAffinity"]))
@@ -254,6 +320,7 @@ func (d *hypercoreVMsDataSource) Read(ctx context.Context, req datasource.ReadRe
 			Tags:                 tags_String,
 			AffinityStrategy:     affinityStrategy,
 			Disks:                disks,
+			Nics:                 nics,
 		}
 		state.Vms = append(state.Vms, hypercoreVMState)
 	}
