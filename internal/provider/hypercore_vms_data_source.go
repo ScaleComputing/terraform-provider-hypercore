@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-provider-hypercore/internal/utils"
 )
@@ -64,10 +65,11 @@ type HypercoreDiskModel struct {
 }
 
 type HypercoreNicModel struct {
-	UUID       types.String `tfsdk:"uuid"`
-	Vlan       types.Int64  `tfsdk:"vlan"`
-	Type       types.String `tfsdk:"type"`
-	MacAddress types.String `tfsdk:"mac_address"`
+	UUID         types.String   `tfsdk:"uuid"`
+	Vlan         types.Int64    `tfsdk:"vlan"`
+	Type         types.String   `tfsdk:"type"`
+	MacAddress   types.String   `tfsdk:"mac_address"`
+	Ipv4Adresses []types.String `tfsdk:"ipv4_addresses"`
 }
 
 // Metadata returns the data source type name.
@@ -167,6 +169,11 @@ func (d *hypercoreVMsDataSource) Schema(_ context.Context, _ datasource.SchemaRe
 									},
 									"mac_address": schema.StringAttribute{
 										MarkdownDescription: "MAC address",
+										Computed:            true,
+									},
+									"ipv4_addresses": schema.ListAttribute{
+										ElementType:         types.StringType,
+										MarkdownDescription: "IPv4 addresses",
 										Computed:            true,
 									},
 								},
@@ -279,11 +286,17 @@ func (d *hypercoreVMsDataSource) Read(ctx context.Context, req datasource.ReadRe
 			nic_type := utils.AnyToString(nicDev2["type"])
 			vlan := utils.AnyToInteger64(nicDev2["vlan"])
 			mac := utils.AnyToString(nicDev2["macAddress"])
+			ipv4_addresses := utils.AnyToListOfStrings(nicDev2["ipv4Addresses"])
+			ipv4_addresses_string_value := make([]basetypes.StringValue, 0)
+			for _, addr := range ipv4_addresses {
+				ipv4_addresses_string_value = append(ipv4_addresses_string_value, types.StringValue(addr))
+			}
 			nic := HypercoreNicModel{
-				UUID:       types.StringValue(uuid),
-				Type:       types.StringValue(nic_type),
-				Vlan:       types.Int64Value(vlan),
-				MacAddress: types.StringValue(mac),
+				UUID:         types.StringValue(uuid),
+				Type:         types.StringValue(nic_type),
+				Vlan:         types.Int64Value(vlan),
+				MacAddress:   types.StringValue(mac),
+				Ipv4Adresses: ipv4_addresses_string_value,
 			}
 			nics = append(nics, nic)
 		}

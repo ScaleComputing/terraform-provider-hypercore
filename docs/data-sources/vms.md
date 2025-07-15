@@ -82,6 +82,7 @@ Read-Only:
 
 Read-Only:
 
+- `ipv4_addresses` (List of String) IPv4 addresses
 - `mac_address` (String) MAC address
 - `type` (String) type
 - `uuid` (String) UUID
