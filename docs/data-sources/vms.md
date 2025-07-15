@@ -51,6 +51,7 @@ Read-Only:
 - `description` (String)
 - `disks` (Attributes List) List of disks (see [below for nested schema](#nestedatt--vms--disks))
 - `name` (String)
+- `nics` (Attributes List) List of NICs (see [below for nested schema](#nestedatt--vms--nics))
 - `power_state` (String)
 - `snapshot_schedule_uuid` (String) UUID of the applied snapshot schedule for creating automated snapshots
 - `uuid` (String)
@@ -74,3 +75,14 @@ Read-Only:
 - `slot` (Number) slot
 - `type` (String) type
 - `uuid` (String) UUID
+
+
+<a id="nestedatt--vms--nics"></a>
+### Nested Schema for `vms.nics`
+
+Read-Only:
+
+- `mac_address` (String) MAC address
+- `type` (String) type
+- `uuid` (String) UUID
+- `vlan` (Number) vlan

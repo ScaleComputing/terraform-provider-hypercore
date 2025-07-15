@@ -51,6 +51,20 @@ func TestAccHypercoreVMsDatasource_stopped(t *testing.T) {
 					resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.disks.1.type", "VIRTIO_DISK"),
 					resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.disks.1.slot", "1"),
 					// resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.disks.1.size", "2.4"),
+
+					// VM on XLAB NUC
+					// resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.nics.#", "1"),
+					// resource.TestCheckResourceAttrSet("data.hypercore_vms.test", "vms.0.nics.0.uuid"),
+					// resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.nics.0.type", "INTEL_E1000"),
+					// resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.nics.0.vlan", "10"),
+					// resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.nics.0.mac_address", "7C:4C:58:12:34:56"),
+
+					// VM on CI VSNS https://10.5.11.205/
+					resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.nics.#", "1"),
+					resource.TestCheckResourceAttrSet("data.hypercore_vms.test", "vms.0.nics.0.uuid"),
+					resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.nics.0.type", "VIRTIO"),
+					resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.nics.0.vlan", "0"),
+					resource.TestCheckResourceAttrSet("data.hypercore_vms.test", "vms.0.nics.0.mac_address"),
 				),
 			},
 		},
