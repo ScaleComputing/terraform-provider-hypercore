@@ -168,6 +168,7 @@ nano env.sh
 source env.sh
 
 # init all the providers in main.tf
+# Parallelism is currently not supported, run terraform commands with parallelism=1 set (check DEVELOPMENT.md for more information)
 terraform init
 
 # (optional) check how the resources will be generated

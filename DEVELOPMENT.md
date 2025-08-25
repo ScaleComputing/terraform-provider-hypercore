@@ -17,6 +17,9 @@ Setup N self-hosted runners
 Add needed variables/secrets to github project:
 - variable CI_CONFIG_HC_IP205, content
   ```
+  TF_LOG=info
+  TF_CLI_ARGS_apply="-parallelism=1" # Platform constraints (does not support parallelism)
+  HC_TIMEOUT=600.0
   HC_HOST=https://10.5.11.205
   HC_USERNAME=admin
   HC_PASSWORD=todo
