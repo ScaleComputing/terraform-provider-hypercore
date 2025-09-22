@@ -108,7 +108,7 @@ func AttachVirtualDisk(
 	payload map[string]any,
 	sourceVirtualDiskUUID string,
 	ctx context.Context,
-) (string, map[string]any) {
+) (string, map[string]any, error) {
 	taskTag, _, _ := restClient.CreateRecord(
 		fmt.Sprintf("/rest/v1/VirtualDisk/%s/attach", sourceVirtualDiskUUID),
 		payload,
@@ -116,7 +116,10 @@ func AttachVirtualDisk(
 	)
 
 	taskTag.WaitTask(restClient, ctx)
+	if taskTag == nil {
+		return "", nil, fmt.Errorf("there was a problem attaching the virtual disk to the VM, check input parameters")
+	}
 	diskUUID := taskTag.CreatedUUID
 	disk := GetDiskByUUID(restClient, diskUUID)
-	return diskUUID, *disk
+	return diskUUID, *disk, nil
 }

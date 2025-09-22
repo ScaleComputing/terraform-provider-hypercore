@@ -151,6 +151,7 @@ func (r *HypercoreDiskResource) Create(ctx context.Context, req resource.CreateR
 
 	var diskUUID string
 	var disk map[string]any
+	var err error
 	isAttachingISO := data.IsoUUID.ValueString() != ""
 
 	diagDiskType := utils.ValidateDiskType(data.Type.ValueString(), data.IsoUUID.ValueString())
@@ -202,12 +203,16 @@ func (r *HypercoreDiskResource) Create(ctx context.Context, req resource.CreateR
 			},
 		}
 
-		diskUUID, disk = utils.AttachVirtualDisk(
+		diskUUID, disk, err = utils.AttachVirtualDisk(
 			*r.client,
 			attachPayload,
 			sourceVirtualDiskID,
 			ctx,
 		)
+		if err != nil {
+			resp.Diagnostics.AddError(err.Error(), fmt.Sprintf("Error: %s", err.Error()))
+			return
+		}
 		tflog.Debug(ctx, fmt.Sprintf(
 			"TTRT Attach: Attached with original size - vm_uuid=%s, disk_uuid=%s, original_size=%v (GB), source_virtual_disk_uuid=%s",
 			data.VmUUID.ValueString(), diskUUID, float64(originalVDSizeBytes/1000/1000/1000), sourceVirtualDiskID),
