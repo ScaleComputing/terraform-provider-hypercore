@@ -207,6 +207,7 @@ func (r *HypercoreDiskResource) Create(ctx context.Context, req resource.CreateR
 			*r.client,
 			attachPayload,
 			sourceVirtualDiskID,
+			data.VmUUID.ValueString(),
 			ctx,
 		)
 		if err != nil {
