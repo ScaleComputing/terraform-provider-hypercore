@@ -96,7 +96,10 @@ func UploadVirtualDisk(
 			fmt.Sprintf("Please retry apply after Terraform finishes it's current operation or consider using the `-parallelism=1` terraform option. HC3 response message: %v", err.Error()),
 		)
 	}
-
+	if taskTag == nil {
+		return "", nil, diag.NewErrorDiagnostic("Failed to upload virtual disk "+name+" from source "+sourceURL,
+			"There was a problem uploading virtual disk "+name+" from source "+sourceURL+", check input parameters")
+	}
 	taskTag.WaitTask(restClient, ctx)
 	vdUUID := taskTag.CreatedUUID
 	vd := GetVirtualDiskByUUID(restClient, vdUUID)
@@ -107,16 +110,19 @@ func AttachVirtualDisk(
 	restClient RestClient,
 	payload map[string]any,
 	sourceVirtualDiskUUID string,
+	sourceVMUUID string,
 	ctx context.Context,
-) (string, map[string]any) {
+) (string, map[string]any, error) {
 	taskTag, _, _ := restClient.CreateRecord(
 		fmt.Sprintf("/rest/v1/VirtualDisk/%s/attach", sourceVirtualDiskUUID),
 		payload,
 		-1,
 	)
-
+	if taskTag == nil {
+		return "", nil, fmt.Errorf("there was a problem attaching the virtual disk %s to the VM %s, check input parameters", sourceVirtualDiskUUID, sourceVMUUID)
+	}
 	taskTag.WaitTask(restClient, ctx)
 	diskUUID := taskTag.CreatedUUID
 	disk := GetDiskByUUID(restClient, diskUUID)
-	return diskUUID, *disk
+	return diskUUID, *disk, nil
 }

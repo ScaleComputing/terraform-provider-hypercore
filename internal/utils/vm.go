@@ -245,7 +245,6 @@ func (vc *VM) SendImportRequest(restClient RestClient, source map[string]any) *T
 		payload,
 		-1,
 	)
-	//panic(fmt.Sprintf("neki neki: %d, %v", statusCode, err))
 	return taskTag
 }
 func (vc *VM) Import(restClient RestClient, source map[string]any, ctx context.Context) map[string]any {
