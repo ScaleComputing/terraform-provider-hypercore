@@ -1,9 +1,9 @@
 HC_VM_SHUTDOWN_TIMEOUT=30
 
-SOURCE_VM_UUID="c6ce1356-7487-4fd3-97f4-bff1c3b3d86a"
+SOURCE_VM_UUID="0ad1bb9b-470c-466f-ae88-797630118415"
 # testtf-ci-virtual-disk.img - https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/cloud/generic_alpine-3.21.2-x86_64-bios-tiny-r0.qcow2
-EXISTING_VDISK_UUID="ac8c5105-6c42-474b-a445-61fc32e177e9"
+EXISTING_VDISK_UUID="3ee7b833-4c7e-4410-82ab-43ddd8b101d6"
 SOURCE_VM_NAME="integration-test-vm"
-SOURCE_NIC_UUID="e51c9076-b1ec-438a-8485-d653b627cdcb"
-SOURCE_DISK_UUID="3c4db35c-c38c-4cdb-999a-46632058d29a"
+SOURCE_NIC_UUID="36c8e4a8-9434-4549-bf24-d825cbbe7a06"
+SOURCE_DISK_UUID="3a065638-c01b-43f4-b414-15d5ebf34b1e"
 

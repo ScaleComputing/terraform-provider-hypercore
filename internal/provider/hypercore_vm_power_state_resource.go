@@ -32,10 +32,11 @@ type HypercoreVMPowerStateResource struct {
 
 // HypercoreVMPowerStateResourceModel describes the resource data model.
 type HypercoreVMPowerStateResourceModel struct {
-	Id          types.String `tfsdk:"id"`
-	VmUUID      types.String `tfsdk:"vm_uuid"`
-	State       types.String `tfsdk:"state"`
-	ForceSutoff types.Bool   `tfsdk:"force_shutoff"`
+	Id                     types.String `tfsdk:"id"`
+	VmUUID                 types.String `tfsdk:"vm_uuid"`
+	State                  types.String `tfsdk:"state"`
+	ForceSutoff            types.Bool   `tfsdk:"force_shutoff"`
+	WaitForGuestNetTimeout types.Int32  `tfsdk:"wait_for_guest_net_timeout"`
 }
 
 func (r *HypercoreVMPowerStateResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -66,6 +67,12 @@ func (r *HypercoreVMPowerStateResource) Schema(ctx context.Context, req resource
 				MarkdownDescription: "" +
 					"Set to `true` if you want to put the VM into the `SHUTOFF` state by force. " +
 					"This option will only be taken into account when `state` is set to `SHUTOFF`. Default is `false`.",
+				Optional: true,
+			},
+			"wait_for_guest_net_timeout": schema.Int32Attribute{
+				MarkdownDescription: "" +
+					"Set to non-zero value to wait on guest OS to report guest IP address to hypervisor.<br>" +
+					"The guest OS needs to have guest tools installed (qemu-guest-agent).",
 				Optional: true,
 			},
 		},
@@ -155,6 +162,14 @@ func (r *HypercoreVMPowerStateResource) Create(ctx context.Context, req resource
 			),
 		)
 		return
+	}
+
+	waitForGuestNetTimeout := data.WaitForGuestNetTimeout.ValueInt32()
+	waitForGuestNetFlag := waitForGuestNetTimeout > 0 && hc3PowerState == "RUNNING"
+	if waitForGuestNetFlag {
+		vm := &utils.VM{UUID: data.VmUUID.ValueString()}
+		wait_ok := vm.WaitGuestNetwork(waitForGuestNetTimeout, *r.client, ctx)
+		tflog.Debug(ctx, fmt.Sprintf("Waiting on guest OS IP address - wait_ok=%v", wait_ok))
 	}
 
 	// save into the Terraform state.
@@ -273,6 +288,14 @@ func (r *HypercoreVMPowerStateResource) Update(ctx context.Context, req resource
 			),
 		)
 		return
+	}
+
+	waitForGuestNetTimeout := data.WaitForGuestNetTimeout.ValueInt32()
+	waitForGuestNetFlag := waitForGuestNetTimeout > 0 && hc3PowerState == "RUNNING"
+	if waitForGuestNetFlag {
+		vm := &utils.VM{UUID: vmUUID}
+		wait_ok := vm.WaitGuestNetwork(waitForGuestNetTimeout, *r.client, ctx)
+		tflog.Debug(ctx, fmt.Sprintf("Waiting on guest OS IP address - wait_ok=%v", wait_ok))
 	}
 
 	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreVMPowerStateResource: vm_uuid=%s, state=%s, action_performed=%s", vmUUID, hc3PowerState, actionType))

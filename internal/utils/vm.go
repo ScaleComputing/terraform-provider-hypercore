@@ -456,6 +456,56 @@ func (vc *VM) WaitShutdown(vmUUID string, shutdownTimeout int, restClient RestCl
 	return false
 }
 
+func (vc *VM) GetAllIpv4Addresses(restClient RestClient, ctx context.Context) []string {
+	vmUUID := (*vc).UUID
+	vmData := restClient.GetRecord(
+		fmt.Sprintf("/rest/v1/VirDomain/%s", vmUUID),
+		map[string]any{},
+		true,
+		-1,
+	)
+
+	allIpv4Addresses := []string{}
+	if netDevs, ok := (*vmData)["netDevs"].([]any); ok {
+		for _, netDev := range netDevs {
+			// tflog.Debug(ctx, fmt.Sprintf("TTRT netDev=%v allIpv4Addresses=%v", netDev, allIpv4Addresses))
+			// Safely assert that each item is a map
+			if device, ok := netDev.(map[string]any); ok {
+				// tflog.Debug(ctx, fmt.Sprintf("TTRT device=%v allIpv4Addresses=%v", device, allIpv4Addresses))
+				if ipv4Addresses_any, ok := device["ipv4Addresses"].([]any); ok {
+					for _, ipv4Address_any := range ipv4Addresses_any {
+						if ipv4Address, ok := ipv4Address_any.(string); ok {
+							allIpv4Addresses = append(allIpv4Addresses, ipv4Address)
+						}
+					}
+				}
+			}
+		}
+	}
+	// tflog.Debug(ctx, fmt.Sprintf("TTRT VM=%v allIpv4Addresses=%v", vmUUID, allIpv4Addresses))
+	return allIpv4Addresses
+}
+
+/*
+Wait until guest gets (at least one) IP address.
+Return true if at least one IPv4 address is found.
+*/
+func (vc *VM) WaitGuestNetwork(waitTimeout int32, restClient RestClient, ctx context.Context) bool {
+	startTime := time.Now().Unix()
+	for {
+		allIpv4Addresses := (*vc).GetAllIpv4Addresses(restClient, ctx)
+		if len(allIpv4Addresses) > 0 {
+			return true
+		}
+
+		duration := time.Now().Unix() - startTime
+		if duration >= int64(waitTimeout) {
+			return false
+		}
+		time.Sleep(10 * time.Second)
+	}
+}
+
 func (vc *VM) ShutdownForced(vmUUID string, restClient RestClient, ctx context.Context) bool {
 	vmFreshData := restClient.GetRecord(
 		fmt.Sprintf("/rest/v1/VirDomain/%s", vmUUID),

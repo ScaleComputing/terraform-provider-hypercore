@@ -1,0 +1,10 @@
+#cloud-config
+
+# https://wiki.almalinux.org/cloud/Generic-cloud-on-local.html#create-a-snapshot-from-the-image
+
+ssh_pwauth: true # sshd service will be configured to accept password authentication method
+password: testp # Set a password for almalinux
+chpasswd:
+  expire: false # Don't ask for password reset after the first log-in
+ssh_authorized_keys: # Add your ssh public key for publickey authentication
+  - ssh-ed25519 ...
