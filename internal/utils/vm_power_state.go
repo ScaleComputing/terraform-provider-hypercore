@@ -6,8 +6,10 @@ package utils
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var ALLOWED_POWER_STATES = map[string]bool{
@@ -59,7 +61,30 @@ func ModifyVMPowerState(
 
 	taskTag.WaitTask(restClient, ctx)
 
+	// corner case. If actionType=SHUTDOWN, the taskTag is empty, and we need to manuall wait on state transition to happen.
+	// Say at most 300 seconds.
+	if actionType == "SHUTDOWN" {
+		waitVMPowerState(300, "SHUTOFF", vmUUID, restClient, ctx)
+	}
+
 	return nil
+}
+
+func waitVMPowerState(waitTimeout int32, desiredPowerState string, vmUUID string, restClient RestClient, ctx context.Context) bool {
+	startTime := time.Now().Unix()
+	for {
+		vmPowerState, _ := GetVMPowerState(vmUUID, restClient)
+		if vmPowerState == desiredPowerState {
+			return true
+		}
+		tflog.Info(ctx, fmt.Sprintf("TTRT waitVMPowerState %v != %v", vmPowerState, desiredPowerState))
+
+		duration := time.Now().Unix() - startTime
+		if duration >= int64(waitTimeout) {
+			return false
+		}
+		time.Sleep(10 * time.Second)
+	}
 }
 
 func GetVMPowerState(vmUUID string, restClient RestClient) (string, diag.Diagnostic) {

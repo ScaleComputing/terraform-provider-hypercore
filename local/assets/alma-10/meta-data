@@ -1,0 +1,6 @@
+#cloud-config
+instance-id: 
+local-hostname: my-hostname
+network-interfaces: |
+  auto eth0
+  iface eth0 inet dhcp

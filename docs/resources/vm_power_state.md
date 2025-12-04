@@ -60,6 +60,7 @@ import {
 ### Optional
 
 - `force_shutoff` (Boolean) Set to `true` if you want to put the VM into the `SHUTOFF` state by force. This option will only be taken into account when `state` is set to `SHUTOFF`. Default is `false`.
+- `wait_for_guest_net_timeout` (Number) Set to non-zero value to wait on guest OS to report guest IP address to hypervisor.<br>The guest OS needs to have guest tools installed (qemu-guest-agent).
 
 ### Read-Only
 
