@@ -39,11 +39,11 @@ type hypercoreVMsDataSource struct {
 // coffeesDataSourceModel maps the data source schema data.
 type hypercoreVMsDataSourceModel struct {
 	FilterName types.String       `tfsdk:"name"`
-	Vms        []hypercoreVMModel `tfsdk:"vms"`
+	Vms        []HypercoreVMModel `tfsdk:"vms"`
 }
 
-// hypercoreVMModel maps VM schema data.
-type hypercoreVMModel struct {
+// HypercoreVMModel maps VM schema data.
+type HypercoreVMModel struct {
 	UUID                 types.String          `tfsdk:"uuid"`
 	Name                 types.String          `tfsdk:"name"`
 	Description          types.String          `tfsdk:"description"`
@@ -240,89 +240,8 @@ func (d *hypercoreVMsDataSource) Read(ctx context.Context, req datasource.ReadRe
 	var state hypercoreVMsDataSourceModel
 	state.FilterName = types.StringValue(filter_name)
 	for _, vm := range hc3_vms {
-		// tags
-		tags_all_str := utils.AnyToString(vm["tags"])
-		tags_string := strings.Split(tags_all_str, ",")
-		tags_String := make([]types.String, 0)
-		for _, tag := range tags_string {
-			tags_String = append(tags_String, types.StringValue(tag))
-		}
-		// disks
-		blockDevs, ok := vm["blockDevs"].([]interface{})
-		if !ok {
-			panic(fmt.Sprintf("Unexpected blockDevs field: %v", vm["blockDevs"]))
-		}
-		disks := make([]HypercoreDiskModel, 0)
-		for _, blockDev1 := range blockDevs {
-			blockDev2, ok := blockDev1.(map[string]any)
-			if !ok {
-				panic(fmt.Sprintf("Unexpected blockDevs field: %v", vm["blockDevs"]))
-			}
-			uuid := utils.AnyToString(blockDev2["uuid"])
-			disk_type := utils.AnyToString(blockDev2["type"])
-			slot := utils.AnyToInteger64(blockDev2["slot"])
-			size_B := float64(utils.AnyToInteger64(blockDev2["capacity"]))
-			size_GB := types.Float64Value(size_B / 1000 / 1000 / 1000)
-			disk := HypercoreDiskModel{
-				UUID: types.StringValue(uuid),
-				Type: types.StringValue(disk_type),
-				Slot: types.Int64Value(slot),
-				Size: size_GB,
-			}
-			disks = append(disks, disk)
-		}
-		// nics
-		nicDevs, ok := vm["netDevs"].([]interface{})
-		if !ok {
-			panic(fmt.Sprintf("Unexpected netDevs field: %v", vm["netDevs"]))
-		}
-		nics := make([]HypercoreNicModel, 0)
-		for _, nicDev1 := range nicDevs {
-			nicDev2, ok := nicDev1.(map[string]any)
-			if !ok {
-				panic(fmt.Sprintf("Unexpected nicDevs field: %v", vm["nicDevs"]))
-			}
-			uuid := utils.AnyToString(nicDev2["uuid"])
-			nic_type := utils.AnyToString(nicDev2["type"])
-			vlan := utils.AnyToInteger64(nicDev2["vlan"])
-			mac := utils.AnyToString(nicDev2["macAddress"])
-			ipv4_addresses := utils.AnyToListOfStrings(nicDev2["ipv4Addresses"])
-			ipv4_addresses_string_value := make([]basetypes.StringValue, 0)
-			for _, addr := range ipv4_addresses {
-				ipv4_addresses_string_value = append(ipv4_addresses_string_value, types.StringValue(addr))
-			}
-			nic := HypercoreNicModel{
-				UUID:         types.StringValue(uuid),
-				Type:         types.StringValue(nic_type),
-				Vlan:         types.Int64Value(vlan),
-				MacAddress:   types.StringValue(mac),
-				Ipv4Adresses: ipv4_addresses_string_value,
-			}
-			nics = append(nics, nic)
-		}
-		hc3affinityStrategy := utils.AnyToMap(vm["affinityStrategy"])
-		var affinityStrategy AffinityStrategyModel
-		affinityStrategy.StrictAffinity = types.BoolValue(utils.AnyToBool(hc3affinityStrategy["strictAffinity"]))
-		affinityStrategy.PreferredNodeUUID = types.StringValue(utils.AnyToString(hc3affinityStrategy["preferredNodeUUID"]))
-		affinityStrategy.BackupNodeUUID = types.StringValue(utils.AnyToString(hc3affinityStrategy["backupNodeUUID"]))
-
-		// VM
-		memory_B := utils.AnyToInteger64(vm["mem"])
-		memory_MiB := memory_B / 1024 / 1024
-		hypercoreVMState := hypercoreVMModel{
-			UUID:                 types.StringValue(utils.AnyToString(vm["uuid"])),
-			Name:                 types.StringValue(utils.AnyToString(vm["name"])),
-			VCPU:                 types.Int32Value(int32(utils.AnyToInteger64(vm["numVCPU"]))),
-			Memory:               types.Int64Value(memory_MiB),
-			SnapshotScheduleUUID: types.StringValue(utils.AnyToString(vm["snapshotScheduleUUID"])),
-			Description:          types.StringValue(utils.AnyToString(vm["description"])),
-			PowerState:           types.StringValue(utils.AnyToString(vm["state"])), // TODO convert (stopped vs SHUTOFF)
-			Tags:                 tags_String,
-			AffinityStrategy:     affinityStrategy,
-			Disks:                disks,
-			Nics:                 nics,
-		}
-		state.Vms = append(state.Vms, hypercoreVMState)
+		hypercoreVMModel := BuildHypercoreVMModelFromAPIData(vm, d.client, ctx)
+		state.Vms = append(state.Vms, hypercoreVMModel)
 	}
 	tflog.Debug(ctx, fmt.Sprintf("TTRT: filter_name=%s name=%s\n", filter_name, state.Vms[0].Name.String()))
 
@@ -332,4 +251,91 @@ func (d *hypercoreVMsDataSource) Read(ctx context.Context, req datasource.ReadRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
+}
+
+func BuildHypercoreVMModelFromAPIData(vm map[string]any, restClient *utils.RestClient, ctx context.Context) HypercoreVMModel {
+	// tags
+	tags_all_str := utils.AnyToString(vm["tags"])
+	tags_string := strings.Split(tags_all_str, ",")
+	tags_String := make([]types.String, 0)
+	for _, tag := range tags_string {
+		tags_String = append(tags_String, types.StringValue(tag))
+	}
+	// disks
+	blockDevs, ok := vm["blockDevs"].([]interface{})
+	if !ok {
+		panic(fmt.Sprintf("Unexpected blockDevs field: %v", vm["blockDevs"]))
+	}
+	disks := make([]HypercoreDiskModel, 0)
+	for _, blockDev1 := range blockDevs {
+		blockDev2, ok := blockDev1.(map[string]any)
+		if !ok {
+			panic(fmt.Sprintf("Unexpected blockDevs field: %v", vm["blockDevs"]))
+		}
+		uuid := utils.AnyToString(blockDev2["uuid"])
+		disk_type := utils.AnyToString(blockDev2["type"])
+		slot := utils.AnyToInteger64(blockDev2["slot"])
+		size_B := float64(utils.AnyToInteger64(blockDev2["capacity"]))
+		size_GB := types.Float64Value(size_B / 1000 / 1000 / 1000)
+		disk := HypercoreDiskModel{
+			UUID: types.StringValue(uuid),
+			Type: types.StringValue(disk_type),
+			Slot: types.Int64Value(slot),
+			Size: size_GB,
+		}
+		disks = append(disks, disk)
+	}
+	// nics
+	nicDevs, ok := vm["netDevs"].([]interface{})
+	if !ok {
+		panic(fmt.Sprintf("Unexpected netDevs field: %v", vm["netDevs"]))
+	}
+	nics := make([]HypercoreNicModel, 0)
+	for _, nicDev1 := range nicDevs {
+		nicDev2, ok := nicDev1.(map[string]any)
+		if !ok {
+			panic(fmt.Sprintf("Unexpected nicDevs field: %v", vm["nicDevs"]))
+		}
+		uuid := utils.AnyToString(nicDev2["uuid"])
+		nic_type := utils.AnyToString(nicDev2["type"])
+		vlan := utils.AnyToInteger64(nicDev2["vlan"])
+		mac := utils.AnyToString(nicDev2["macAddress"])
+		ipv4_addresses := utils.AnyToListOfStrings(nicDev2["ipv4Addresses"])
+		ipv4_addresses_string_value := make([]basetypes.StringValue, 0)
+		for _, addr := range ipv4_addresses {
+			ipv4_addresses_string_value = append(ipv4_addresses_string_value, types.StringValue(addr))
+		}
+		nic := HypercoreNicModel{
+			UUID:         types.StringValue(uuid),
+			Type:         types.StringValue(nic_type),
+			Vlan:         types.Int64Value(vlan),
+			MacAddress:   types.StringValue(mac),
+			Ipv4Adresses: ipv4_addresses_string_value,
+		}
+		nics = append(nics, nic)
+	}
+	hc3affinityStrategy := utils.AnyToMap(vm["affinityStrategy"])
+	var affinityStrategy AffinityStrategyModel
+	affinityStrategy.StrictAffinity = types.BoolValue(utils.AnyToBool(hc3affinityStrategy["strictAffinity"]))
+	affinityStrategy.PreferredNodeUUID = types.StringValue(utils.AnyToString(hc3affinityStrategy["preferredNodeUUID"]))
+	affinityStrategy.BackupNodeUUID = types.StringValue(utils.AnyToString(hc3affinityStrategy["backupNodeUUID"]))
+
+	// VM
+	memory_B := utils.AnyToInteger64(vm["mem"])
+	memory_MiB := memory_B / 1024 / 1024
+	hypercoreVMState := HypercoreVMModel{
+		UUID:                 types.StringValue(utils.AnyToString(vm["uuid"])),
+		Name:                 types.StringValue(utils.AnyToString(vm["name"])),
+		VCPU:                 types.Int32Value(int32(utils.AnyToInteger64(vm["numVCPU"]))),
+		Memory:               types.Int64Value(memory_MiB),
+		SnapshotScheduleUUID: types.StringValue(utils.AnyToString(vm["snapshotScheduleUUID"])),
+		Description:          types.StringValue(utils.AnyToString(vm["description"])),
+		PowerState:           types.StringValue(utils.AnyToString(vm["state"])), // TODO convert (stopped vs SHUTOFF)
+		Tags:                 tags_String,
+		AffinityStrategy:     affinityStrategy,
+		Disks:                disks,
+		Nics:                 nics,
+	}
+
+	return hypercoreVMState
 }
