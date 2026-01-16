@@ -51,5 +51,9 @@ resource "hypercore_vm_power_state" "myvm" {
   vm_uuid = hypercore_vm.myvm.id
   # state   = "SHUTOFF" # available states are: SHUTOFF, RUNNING, PAUSED
   state   = "RUNNING" # available states are: SHUTOFF, RUNNING, PAUSED
-  wait_for_guest_net_timeout = 120
+  wait_for_guest_net_timeout = 180
+}
+
+output ips {
+  value = hypercore_vm_power_state.myvm.vm.nics[0].ipv4_addresses
 }
