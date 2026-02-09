@@ -65,3 +65,56 @@ import {
 ### Read-Only
 
 - `id` (String) Power state identifier
+- `vm` (Attributes) VM details. (see [below for nested schema](#nestedatt--vm))
+
+<a id="nestedatt--vm"></a>
+### Nested Schema for `vm`
+
+Optional:
+
+- `memory` (Number) Memory (RAM) size in MiB
+- `tags` (List of String)
+- `vcpu` (Number) Number of CPUs
+
+Read-Only:
+
+- `affinity_strategy` (Object) VM node affinity. (see [below for nested schema](#nestedatt--vm--affinity_strategy))
+- `description` (String)
+- `disks` (Attributes List) List of disks (see [below for nested schema](#nestedatt--vm--disks))
+- `name` (String)
+- `nics` (Attributes List) List of NICs (see [below for nested schema](#nestedatt--vm--nics))
+- `power_state` (String)
+- `snapshot_schedule_uuid` (String) UUID of the applied snapshot schedule for creating automated snapshots
+- `uuid` (String)
+
+<a id="nestedatt--vm--affinity_strategy"></a>
+### Nested Schema for `vm.affinity_strategy`
+
+Read-Only:
+
+- `backup_node_uuid` (String)
+- `preferred_node_uuid` (String)
+- `strict_affinity` (Boolean)
+
+
+<a id="nestedatt--vm--disks"></a>
+### Nested Schema for `vm.disks`
+
+Read-Only:
+
+- `size` (Number) size
+- `slot` (Number) slot
+- `type` (String) type
+- `uuid` (String) UUID
+
+
+<a id="nestedatt--vm--nics"></a>
+### Nested Schema for `vm.nics`
+
+Read-Only:
+
+- `ipv4_addresses` (List of String) IPv4 addresses
+- `mac_address` (String) MAC address
+- `type` (String) type
+- `uuid` (String) UUID
+- `vlan` (Number) vlan

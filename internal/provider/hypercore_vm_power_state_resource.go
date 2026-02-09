@@ -490,7 +490,7 @@ func (r *HypercoreVMPowerStateResource) ImportState(ctx context.Context, req res
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), state)...)
 }
 
-// ConvertVMModelToObject converts a HypercoreVMModel to types.Object
+// ConvertVMModelToObject converts a HypercoreVMModel to types.Object.
 func ConvertVMModelToObject(ctx context.Context, vmModel HypercoreVMModel) (types.Object, diag.Diagnostic) {
 	// Convert disks
 	diskObjects := make([]attr.Value, len(vmModel.Disks))
@@ -611,7 +611,7 @@ func ConvertVMModelToObject(ctx context.Context, vmModel HypercoreVMModel) (type
 	return vmObject, nil
 }
 
-// getVMAttributeTypes returns the attribute types for the VM object
+// getVMAttributeTypes returns the attribute types for the VM object.
 func getVMAttributeTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"uuid":                   types.StringType,
