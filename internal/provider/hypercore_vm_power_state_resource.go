@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -37,6 +39,7 @@ type HypercoreVMPowerStateResourceModel struct {
 	State                  types.String `tfsdk:"state"`
 	ForceSutoff            types.Bool   `tfsdk:"force_shutoff"`
 	WaitForGuestNetTimeout types.Int32  `tfsdk:"wait_for_guest_net_timeout"`
+	Vm 					   types.Object `tfsdk:"vm"`
 }
 
 func (r *HypercoreVMPowerStateResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -75,6 +78,106 @@ func (r *HypercoreVMPowerStateResource) Schema(ctx context.Context, req resource
 					"The guest OS needs to have guest tools installed (qemu-guest-agent).",
 				Optional: true,
 			},
+
+				"vm": schema.SingleNestedAttribute{
+					MarkdownDescription: "VM details.",
+					Computed:            true,
+					Attributes: map[string]schema.Attribute{
+						"uuid": schema.StringAttribute{
+							Computed: true,
+						},
+						"name": schema.StringAttribute{
+							Computed: true,
+						},
+						"vcpu": schema.Int32Attribute{
+							MarkdownDescription: "Number of CPUs",
+							Optional:            true,
+						},
+						"memory": schema.Int64Attribute{
+							MarkdownDescription: "Memory (RAM) size in MiB",
+							Optional:            true,
+						},
+						"snapshot_schedule_uuid": schema.StringAttribute{
+							MarkdownDescription: "UUID of the applied snapshot schedule for creating automated snapshots",
+							Computed:            true,
+						},
+						"description": schema.StringAttribute{
+							Computed: true,
+						},
+						"power_state": schema.StringAttribute{
+							Computed: true,
+						},
+						"tags": schema.ListAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
+						},
+						"affinity_strategy": schema.ObjectAttribute{
+							MarkdownDescription: "VM node affinity.",
+							Computed:            true,
+							AttributeTypes: map[string]attr.Type{
+								"strict_affinity":     types.BoolType,
+								"preferred_node_uuid": types.StringType,
+								"backup_node_uuid":    types.StringType,
+							},
+						},
+
+						"disks": schema.ListNestedAttribute{
+							MarkdownDescription: "List of disks",
+							Computed:            true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"uuid": schema.StringAttribute{
+										MarkdownDescription: "UUID",
+										Computed:            true,
+									},
+									"type": schema.StringAttribute{
+										MarkdownDescription: "type",
+										Computed:            true,
+									},
+									"slot": schema.Int64Attribute{
+										MarkdownDescription: "slot",
+										Computed:            true,
+									},
+									"size": schema.Float64Attribute{
+										MarkdownDescription: "size",
+										Computed:            true,
+									},
+								},
+							},
+						},
+						"nics": schema.ListNestedAttribute{
+							MarkdownDescription: "List of NICs",
+							Computed:            true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"uuid": schema.StringAttribute{
+										MarkdownDescription: "UUID",
+										Computed:            true,
+									},
+									"type": schema.StringAttribute{
+										MarkdownDescription: "type",
+										Computed:            true,
+									},
+									"vlan": schema.Int64Attribute{
+										MarkdownDescription: "vlan",
+										Computed:            true,
+									},
+									"mac_address": schema.StringAttribute{
+										MarkdownDescription: "MAC address",
+										Computed:            true,
+									},
+									"ipv4_addresses": schema.ListAttribute{
+										ElementType:         types.StringType,
+										MarkdownDescription: "IPv4 addresses",
+										Computed:            true,
+									},
+								},
+							},
+						},
+					},
+				},
+
+
 		},
 	}
 }
@@ -175,6 +278,21 @@ func (r *HypercoreVMPowerStateResource) Create(ctx context.Context, req resource
 	// save into the Terraform state.
 	data.Id = types.StringValue(data.VmUUID.ValueString())
 
+	pHc3VM, err := utils.GetOneVMWithError(data.VmUUID.ValueString(), *r.client)
+	if err != nil {
+		resp.Diagnostics.AddError("VM not found", fmt.Sprintf("VM not found - vmUUID=%s", data.VmUUID.ValueString()))
+		return
+	}
+	hc3VM := *pHc3VM
+	vmModel := BuildHypercoreVMModelFromAPIData(hc3VM, r.client, ctx)
+	vmObject, diag := ConvertVMModelToObject(ctx, vmModel)
+	if diag != nil {
+		// resp.Diagnostics.Append(diag...)
+		resp.Diagnostics.AddError(diag.Summary(), diag.Detail())
+		return
+	}
+	data.Vm = vmObject
+
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log
 	tflog.Trace(ctx, "Changed the power state")
@@ -213,6 +331,14 @@ func (r *HypercoreVMPowerStateResource) Read(ctx context.Context, req resource.R
 	data.Id = types.StringValue(vmUUID)
 	data.VmUUID = types.StringValue(utils.AnyToString(hc3VM["uuid"]))
 	data.State = types.StringValue(utils.AnyToString(hc3VM["desiredDisposition"]))
+	//
+	vmModel := BuildHypercoreVMModelFromAPIData(hc3VM, &restClient, ctx)
+	vmObject, diag := ConvertVMModelToObject(ctx, vmModel)
+	if diag != nil {
+		resp.Diagnostics.AddError(diag.Summary(), diag.Detail())
+		return
+	}
+	data.Vm = vmObject
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -362,4 +488,167 @@ func (r *HypercoreVMPowerStateResource) ImportState(ctx context.Context, req res
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), vmUUID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("vm_uuid"), vmUUID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), state)...)
+}
+
+// ConvertVMModelToObject converts a HypercoreVMModel to types.Object.
+func ConvertVMModelToObject(ctx context.Context, vmModel HypercoreVMModel) (types.Object, diag.Diagnostic) {
+	// Convert disks
+	diskObjects := make([]attr.Value, len(vmModel.Disks))
+	for i, disk := range vmModel.Disks {
+		diskAttrs := map[string]attr.Value{
+			"uuid": disk.UUID,
+			"type": disk.Type,
+			"slot": disk.Slot,
+			"size": disk.Size,
+		}
+		diskObj, diags := types.ObjectValue(map[string]attr.Type{
+			"uuid": types.StringType,
+			"type": types.StringType,
+			"slot": types.Int64Type,
+			"size": types.Float64Type,
+		}, diskAttrs)
+		if diags.HasError() {
+			return types.ObjectNull(getVMAttributeTypes()), diag.NewErrorDiagnostic("Error creating disk object", fmt.Sprintf("Failed to create disk object: %v", diags.Errors()))
+		}
+		diskObjects[i] = diskObj
+	}
+	disksList, diags := types.ListValue(types.ObjectType{AttrTypes: map[string]attr.Type{
+		"uuid": types.StringType,
+		"type": types.StringType,
+		"slot": types.Int64Type,
+		"size": types.Float64Type,
+	}}, diskObjects)
+	if diags.HasError() {
+		return types.ObjectNull(getVMAttributeTypes()), diag.NewErrorDiagnostic("Error creating disks list", fmt.Sprintf("Failed to create disks list: %v", diags.Errors()))
+	}
+
+	// Convert nics
+	nicObjects := make([]attr.Value, len(vmModel.Nics))
+	for i, nic := range vmModel.Nics {
+		ipv4List := make([]attr.Value, len(nic.Ipv4Adresses))
+		for j, ip := range nic.Ipv4Adresses {
+			ipv4List[j] = ip
+		}
+		ipv4ListValue, diags := types.ListValue(types.StringType, ipv4List)
+		if diags.HasError() {
+			return types.ObjectNull(getVMAttributeTypes()), diag.NewErrorDiagnostic("Error creating IPv4 list", fmt.Sprintf("Failed to create IPv4 list: %v", diags.Errors()))
+		}
+
+		nicAttrs := map[string]attr.Value{
+			"uuid":         nic.UUID,
+			"type":         nic.Type,
+			"vlan":         nic.Vlan,
+			"mac_address":  nic.MacAddress,
+			"ipv4_addresses": ipv4ListValue,
+		}
+		nicObj, diags := types.ObjectValue(map[string]attr.Type{
+			"uuid":         types.StringType,
+			"type":         types.StringType,
+			"vlan":         types.Int64Type,
+			"mac_address":  types.StringType,
+			"ipv4_addresses": types.ListType{ElemType: types.StringType},
+		}, nicAttrs)
+		if diags.HasError() {
+			return types.ObjectNull(getVMAttributeTypes()), diag.NewErrorDiagnostic("Error creating NIC object", fmt.Sprintf("Failed to create NIC object: %v", diags.Errors()))
+		}
+		nicObjects[i] = nicObj
+	}
+	nicsList, diags := types.ListValue(types.ObjectType{AttrTypes: map[string]attr.Type{
+		"uuid":         types.StringType,
+		"type":         types.StringType,
+		"vlan":         types.Int64Type,
+		"mac_address":  types.StringType,
+		"ipv4_addresses": types.ListType{ElemType: types.StringType},
+	}}, nicObjects)
+	if diags.HasError() {
+		return types.ObjectNull(getVMAttributeTypes()), diag.NewErrorDiagnostic("Error creating NICs list", fmt.Sprintf("Failed to create NICs list: %v", diags.Errors()))
+	}
+
+	// Convert affinity strategy
+	affinityAttrs := map[string]attr.Value{
+		"strict_affinity":     vmModel.AffinityStrategy.StrictAffinity,
+		"preferred_node_uuid": vmModel.AffinityStrategy.PreferredNodeUUID,
+		"backup_node_uuid":    vmModel.AffinityStrategy.BackupNodeUUID,
+	}
+	affinityObj, diags := types.ObjectValue(map[string]attr.Type{
+		"strict_affinity":     types.BoolType,
+		"preferred_node_uuid": types.StringType,
+		"backup_node_uuid":    types.StringType,
+	}, affinityAttrs)
+	if diags.HasError() {
+		return types.ObjectNull(getVMAttributeTypes()), diag.NewErrorDiagnostic("Error creating affinity object", fmt.Sprintf("Failed to create affinity object: %v", diags.Errors()))
+	}
+
+	// Convert tags
+	tagValues := make([]attr.Value, len(vmModel.Tags))
+	for i, tag := range vmModel.Tags {
+		tagValues[i] = tag
+	}
+	tagsList, diags := types.ListValue(types.StringType, tagValues)
+	if diags.HasError() {
+		return types.ObjectNull(getVMAttributeTypes()), diag.NewErrorDiagnostic("Error creating tags list", fmt.Sprintf("Failed to create tags list: %v", diags.Errors()))
+	}
+
+	// Create the VM object
+	vmAttrs := map[string]attr.Value{
+		"uuid":                   vmModel.UUID,
+		"name":                   vmModel.Name,
+		"vcpu":                   vmModel.VCPU,
+		"memory":                 vmModel.Memory,
+		"snapshot_schedule_uuid": vmModel.SnapshotScheduleUUID,
+		"description":            vmModel.Description,
+		"power_state":            vmModel.PowerState,
+		"tags":                   tagsList,
+		"affinity_strategy":      affinityObj,
+		"disks":                  disksList,
+		"nics":                   nicsList,
+	}
+
+	vmObject, diags := types.ObjectValue(getVMAttributeTypes(), vmAttrs)
+	if diags.HasError() {
+		return types.ObjectNull(getVMAttributeTypes()), diag.NewErrorDiagnostic("Error creating VM object", fmt.Sprintf("Failed to create VM object: %v", diags.Errors()))
+	}
+	return vmObject, nil
+}
+
+// getVMAttributeTypes returns the attribute types for the VM object.
+func getVMAttributeTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"uuid":                   types.StringType,
+		"name":                   types.StringType,
+		"vcpu":                   types.Int32Type,
+		"memory":                 types.Int64Type,
+		"snapshot_schedule_uuid": types.StringType,
+		"description":            types.StringType,
+		"power_state":            types.StringType,
+		"tags":                   types.ListType{ElemType: types.StringType},
+		"affinity_strategy": types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"strict_affinity":     types.BoolType,
+				"preferred_node_uuid": types.StringType,
+				"backup_node_uuid":    types.StringType,
+			},
+		},
+		"disks": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"uuid": types.StringType,
+					"type": types.StringType,
+					"slot": types.Int64Type,
+					"size": types.Float64Type,
+				},
+			},
+		},
+		"nics": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"uuid":         types.StringType,
+					"type":         types.StringType,
+					"vlan":         types.Int64Type,
+					"mac_address":  types.StringType,
+					"ipv4_addresses": types.ListType{ElemType: types.StringType},
+				},
+			},
+		},
+	}
 }
