@@ -246,7 +246,6 @@ func (r *HypercoreVMReplicationResource) Update(ctx context.Context, req resourc
 
 	restClient := *r.client
 	replicationUUID := data.Id.ValueString()
-	vmUUID := data.VmUUID.ValueString()
 	connectionUUID := data.ConnectionUUID.ValueString()
 	label := data.Label.ValueString()
 
