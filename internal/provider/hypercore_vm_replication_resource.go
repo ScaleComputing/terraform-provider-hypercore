@@ -263,7 +263,7 @@ func (r *HypercoreVMReplicationResource) Update(ctx context.Context, req resourc
 		)
 	}
 
-	diag := utils.UpdateVMReplication(restClient, replicationUUID, vmUUID, connectionUUID, label, enable, ctx)
+	diag := utils.UpdateVMReplication(restClient, replicationUUID, connectionUUID, label, enable, ctx)
 	if diag != nil {
 		resp.Diagnostics.AddWarning(diag.Summary(), diag.Detail())
 	}

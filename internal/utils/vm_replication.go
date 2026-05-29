@@ -68,17 +68,15 @@ func CreateVMReplication(
 func UpdateVMReplication(
 	restClient RestClient,
 	replicationUUID string,
-	sourceVmUUID string,
 	connectionUUID string,
 	label string,
 	enable bool,
 	ctx context.Context,
 ) diag.Diagnostic {
 	payload := map[string]any{
-		"sourceDomainUUID": sourceVmUUID,
-		"connectionUUID":   connectionUUID,
-		"label":            label,
-		"enable":           enable,
+		"connectionUUID": connectionUUID,
+		"label":          label,
+		"enable":         enable,
 	}
 
 	taskTag, err := restClient.UpdateRecord(
