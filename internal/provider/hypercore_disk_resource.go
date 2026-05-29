@@ -360,7 +360,6 @@ func (r *HypercoreDiskResource) Update(ctx context.Context, req resource.UpdateR
 	isDetachingISO := oldHc3Disk["path"] != "" && data.IsoUUID.ValueString() == "" && data.Type.ValueString() == "IDE_CDROM"
 
 	updatePayload := map[string]any{
-		"virDomainUUID":         vmUUID,
 		"type":                  data.Type.ValueString(),
 		"capacity":              data.Size.ValueFloat64() * 1000 * 1000 * 1000, // GB to B
 		"tieringPriorityFactor": utils.FROM_HUMAN_PRIORITY_FACTOR[data.FlashPriority.ValueInt64()],
