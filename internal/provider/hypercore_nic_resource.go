@@ -208,10 +208,9 @@ func (r *HypercoreNicResource) Update(ctx context.Context, req resource.UpdateRe
 	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreNicResource Update vm_uuid=%s nic_uuid=%s STATE     vlan=%d type=%s", vmUUID, nicUUID, data_state.Vlan.ValueInt64(), data_state.Type.String()))
 
 	updatePayload := map[string]any{
-		"virDomainUUID": vmUUID,
-		"type":          data.Type.ValueString(),
-		"vlan":          data.Vlan.ValueInt64(),
-		"macAddress":    data.MacAddress.ValueString(),
+		"type":       data.Type.ValueString(),
+		"vlan":       data.Vlan.ValueInt64(),
+		"macAddress": data.MacAddress.ValueString(),
 	}
 	diag := utils.UpdateNic(restClient, nicUUID, updatePayload, ctx)
 	if diag != nil {
