@@ -260,6 +260,7 @@ func (r *HypercoreVMReplicationResource) Update(ctx context.Context, req resourc
 			"Missing connection_uuid",
 			"Parameter 'connection_uuid' is required for updating a VM replication",
 		)
+		return
 	}
 
 	// Get replication before update
