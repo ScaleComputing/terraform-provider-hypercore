@@ -207,6 +207,24 @@ func (r *HypercoreNicResource) Update(ctx context.Context, req resource.UpdateRe
 	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreNicResource Update vm_uuid=%s nic_uuid=%s REQUESTED vlan=%d type=%s", vmUUID, nicUUID, data.Vlan.ValueInt64(), data.Type.String()))
 	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreNicResource Update vm_uuid=%s nic_uuid=%s STATE     vlan=%d type=%s", vmUUID, nicUUID, data_state.Vlan.ValueInt64(), data_state.Type.String()))
 
+	// Get NIC before update
+	pNic := utils.GetNic(restClient, nicUUID)
+	if pNic == nil {
+		msg := fmt.Sprintf("NIC not found - nicUUID=%s, vmUUID=%s.", nicUUID, vmUUID)
+		resp.Diagnostics.AddError("NIC not found", msg)
+		return
+	}
+	oldHc3Nic := *pNic
+
+	// Validate that source VM UUID hasn't changed (task 103 - NIC source UUID cannot be changed after creation)
+	oldVMUUID := utils.AnyToString(oldHc3Nic["virDomainUUID"])
+	newVMUUID := data.VmUUID.ValueString()
+	diagNICSourceVMUUID := utils.ValidateNICSourceVMUUIDUnchanged(nicUUID, oldVMUUID, newVMUUID)
+	if diagNICSourceVMUUID != nil {
+		resp.Diagnostics.AddError(diagNICSourceVMUUID.Summary(), diagNICSourceVMUUID.Detail())
+		return
+	}
+
 	updatePayload := map[string]any{
 		"type":       data.Type.ValueString(),
 		"vlan":       data.Vlan.ValueInt64(),

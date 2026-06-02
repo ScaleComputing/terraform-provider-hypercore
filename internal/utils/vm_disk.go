@@ -397,3 +397,17 @@ func ValidateDiskSize(diskUUID string, oldSize float64, newSize float64) diag.Di
 	}
 	return nil
 }
+
+// Checks that source VM UUUID wasn't altered during update
+func ValidateDiskSourceVMUUIDUnchanged(diskUUID string, oldVMUUID string, newVMUUID string) diag.Diagnostic {
+	if oldVMUUID != newVMUUID {
+		return diag.NewErrorDiagnostic(
+			"Invalid disk source virtual machine UUID",
+			fmt.Sprintf(
+				" virtual machine and disk relationship is established at creation and cannot be changed, source UUID: %s, new VM UUID: %s, disk UUID: %s",
+				oldVMUUID, newVMUUID, diskUUID,
+			),
+		)
+	}
+	return nil
+}

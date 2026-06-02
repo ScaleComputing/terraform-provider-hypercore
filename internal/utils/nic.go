@@ -78,6 +78,21 @@ func UpdateNic(
 	return nil
 }
 
+// Checks that source VM UUID wasn't altered during update
+func ValidateNICSourceVMUUIDUnchanged(nicUUID string, oldVMUUID string, newVMUUID string) diag.Diagnostic {
+	if oldVMUUID != newVMUUID {
+		return diag.NewErrorDiagnostic(
+			"Invalid NIC source virtual machine UUID",
+			fmt.Sprintf(
+				" virtual machine and NIC relationship is established at creation and cannot be changed, source UUID: %s, new VM UUID: %s, NIC UUID: %s",
+				oldVMUUID, newVMUUID, nicUUID,
+			),
+		)
+	}
+	return nil
+}
+
+
 /*
 func (vd *VMDisk) CreateOrUpdate(
 	vc *VMClone,

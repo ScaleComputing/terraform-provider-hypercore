@@ -330,6 +330,15 @@ func (r *HypercoreDiskResource) Update(ctx context.Context, req resource.UpdateR
 	}
 	oldHc3Disk := *pDisk
 
+	// Validate that source VM UUID hasn't changed (task 103 - disk source UUID cannot be changed after creation)
+	oldVMUUID := utils.AnyToString(oldHc3Disk["virDomainUUID"])
+	newVMUUID := data.VmUUID.ValueString()
+	diagDiskSourceVMUUID := utils.ValidateDiskSourceVMUUIDUnchanged(diskUUID, oldVMUUID, newVMUUID)
+	if diagDiskSourceVMUUID != nil {
+		resp.Diagnostics.AddError(diagDiskSourceVMUUID.Summary(), diagDiskSourceVMUUID.Detail())
+		return
+	}
+
 	// Validate the size
 	oldDiskSize := utils.AnyToFloat64(oldHc3Disk["capacity"]) / 1000 / 1000 / 1000 // B to GB
 	wantedDiskSize := data.Size.ValueFloat64()

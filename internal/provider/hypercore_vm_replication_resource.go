@@ -262,6 +262,25 @@ func (r *HypercoreVMReplicationResource) Update(ctx context.Context, req resourc
 		)
 	}
 
+	// Get replication before update
+	pReplication := utils.GetVMReplicationByUUID(restClient, replicationUUID)
+	if pReplication == nil {
+		msg := fmt.Sprintf("VM replication not found - replicationUUID=%s.", replicationUUID)
+		resp.Diagnostics.AddError("VM replication not found", msg)
+		return
+	}
+	oldHc3Replication := *pReplication
+
+	// Validate that source VM UUID hasn't changed (task 103 - replication source UUID cannot be changed after creation)
+	oldVMUUID := utils.AnyToString(oldHc3Replication["sourceDomainUUID"])
+	newVMUUID := data.VmUUID.ValueString()
+	diagReplicationSourceVMUUID := utils.ValidateReplicationSourceVMUUIDUnchanged(replicationUUID, oldVMUUID, newVMUUID)
+	if diagReplicationSourceVMUUID != nil {
+		resp.Diagnostics.AddError(diagReplicationSourceVMUUID.Summary(), diagReplicationSourceVMUUID.Detail())
+		return
+	}
+
+
 	diag := utils.UpdateVMReplication(restClient, replicationUUID, connectionUUID, label, enable, ctx)
 	if diag != nil {
 		resp.Diagnostics.AddWarning(diag.Summary(), diag.Detail())

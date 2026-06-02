@@ -98,3 +98,17 @@ func UpdateVMReplication(
 
 	return nil
 }
+
+// Checks that source VM UUID wasn't altered during update
+func ValidateReplicationSourceVMUUIDUnchanged(replicationUUID string, oldVMUUID string, newVMUUID string) diag.Diagnostic {
+	if oldVMUUID != newVMUUID {
+		return diag.NewErrorDiagnostic(
+			"Invalid replication source virtual machine UUID",
+			fmt.Sprintf(
+				" virtual machine and replication relationship is established at creation and cannot be changed, source UUID: %s, new VM UUID: %s, replication UUID: %s",
+				oldVMUUID, newVMUUID, replicationUUID,
+			),
+		)
+	}
+	return nil
+}
