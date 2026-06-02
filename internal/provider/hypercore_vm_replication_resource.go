@@ -288,13 +288,13 @@ func (r *HypercoreVMReplicationResource) Update(ctx context.Context, req resourc
 
 	// TODO: Check if HC3 matches TF
 	// Do not trust UpdateVMReplication made what we asked for. Read new power state from HC3.
-	pHc3Replication := utils.GetVMReplicationByUUID(restClient, replicationUUID)
-	if pHc3Replication == nil {
+	pReplication = utils.GetVMReplicationByUUID(restClient, replicationUUID)
+	if pReplication == nil {
 		msg := fmt.Sprintf("VM replication not found - replicationUUID=%s.", replicationUUID)
 		resp.Diagnostics.AddError("VM replication not found", msg)
 		return
 	}
-	newHc3Replication := *pHc3Replication
+	newHc3Replication := *pReplication
 
 	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreVMReplicationResource: replication_uuid=%s, replication=%v", replicationUUID, newHc3Replication))
 

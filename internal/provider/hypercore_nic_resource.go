@@ -237,15 +237,16 @@ func (r *HypercoreNicResource) Update(ctx context.Context, req resource.UpdateRe
 
 	// TODO: Check if HC3 matches TF
 	// Do not trust UpdateNic made what we asked for. Read new NIC state from HC3.
-	pNic := utils.GetNic(restClient, nicUUID)
+	pNic = utils.GetNic(restClient, nicUUID)
 	if pNic == nil {
 		msg := fmt.Sprintf("NIC not found - nicUUID=%s, vmUUID=%s.", nicUUID, vmUUID)
 		resp.Diagnostics.AddError("NIC not found", msg)
 		return
 	}
-	nic := *pNic
+	newHc3Nic := *pNic
+
 	//
-	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreNicResource: vm_uuid=%s, nic_uuid=%s, nic=%v", vmUUID, nicUUID, nic))
+	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreNicResource: vm_uuid=%s, nic_uuid=%s, nic=%v", vmUUID, nicUUID, newHc3Nic))
 
 	// TODO MAC, IP address etc
 
