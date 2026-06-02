@@ -78,7 +78,7 @@ func UpdateNic(
 	return nil
 }
 
-// Checks that source VM UUID wasn't altered during update
+// Checks that source VM UUID wasn't altered during update.
 func ValidateNICSourceVMUUIDUnchanged(nicUUID string, oldVMUUID string, newVMUUID string) diag.Diagnostic {
 	if oldVMUUID != newVMUUID {
 		return diag.NewErrorDiagnostic(

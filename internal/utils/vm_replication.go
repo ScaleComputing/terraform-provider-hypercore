@@ -99,7 +99,7 @@ func UpdateVMReplication(
 	return nil
 }
 
-// Checks that source VM UUID wasn't altered during update
+// Checks that source VM UUID wasn't altered during update.
 func ValidateReplicationSourceVMUUIDUnchanged(replicationUUID string, oldVMUUID string, newVMUUID string) diag.Diagnostic {
 	if oldVMUUID != newVMUUID {
 		return diag.NewErrorDiagnostic(

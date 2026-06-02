@@ -398,7 +398,7 @@ func ValidateDiskSize(diskUUID string, oldSize float64, newSize float64) diag.Di
 	return nil
 }
 
-// Checks that source VM UUUID wasn't altered during update
+// Checks that source VM UUUID wasn't altered during update.
 func ValidateDiskSourceVMUUIDUnchanged(diskUUID string, oldVMUUID string, newVMUUID string) diag.Diagnostic {
 	if oldVMUUID != newVMUUID {
 		return diag.NewErrorDiagnostic(
