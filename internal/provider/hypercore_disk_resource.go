@@ -330,6 +330,15 @@ func (r *HypercoreDiskResource) Update(ctx context.Context, req resource.UpdateR
 	}
 	oldHc3Disk := *pDisk
 
+	// Validate that source VM UUID hasn't changed (task 103 - disk source UUID cannot be changed after creation)
+	oldVMUUID := utils.AnyToString(oldHc3Disk["virDomainUUID"])
+	newVMUUID := data.VmUUID.ValueString()
+	diagDiskSourceVMUUID := utils.ValidateDiskSourceVMUUIDUnchanged(diskUUID, oldVMUUID, newVMUUID)
+	if diagDiskSourceVMUUID != nil {
+		resp.Diagnostics.AddError(diagDiskSourceVMUUID.Summary(), diagDiskSourceVMUUID.Detail())
+		return
+	}
+
 	// Validate the size
 	oldDiskSize := utils.AnyToFloat64(oldHc3Disk["capacity"]) / 1000 / 1000 / 1000 // B to GB
 	wantedDiskSize := data.Size.ValueFloat64()
@@ -360,7 +369,6 @@ func (r *HypercoreDiskResource) Update(ctx context.Context, req resource.UpdateR
 	isDetachingISO := oldHc3Disk["path"] != "" && data.IsoUUID.ValueString() == "" && data.Type.ValueString() == "IDE_CDROM"
 
 	updatePayload := map[string]any{
-		"virDomainUUID":         vmUUID,
 		"type":                  data.Type.ValueString(),
 		"capacity":              data.Size.ValueFloat64() * 1000 * 1000 * 1000, // GB to B
 		"tieringPriorityFactor": utils.FROM_HUMAN_PRIORITY_FACTOR[data.FlashPriority.ValueInt64()],

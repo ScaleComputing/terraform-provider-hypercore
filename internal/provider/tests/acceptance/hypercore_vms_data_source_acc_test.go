@@ -44,7 +44,7 @@ func TestAccHypercoreVMsDatasource_stopped(t *testing.T) {
 					resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.memory", "4096"),
 					// resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.vcpu", "1"),
 					resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.power_state", "SHUTOFF"),
-					resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.disks.#", "2"),
+					resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.disks.#", "4"),
 					resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.disks.0.type", "VIRTIO_DISK"),
 					resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.disks.0.slot", "0"),
 					resource.TestCheckResourceAttr("data.hypercore_vms.test", "vms.0.disks.0.size", "1.2"),

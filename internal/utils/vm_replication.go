@@ -68,17 +68,15 @@ func CreateVMReplication(
 func UpdateVMReplication(
 	restClient RestClient,
 	replicationUUID string,
-	sourceVmUUID string,
 	connectionUUID string,
 	label string,
 	enable bool,
 	ctx context.Context,
 ) diag.Diagnostic {
 	payload := map[string]any{
-		"sourceDomainUUID": sourceVmUUID,
-		"connectionUUID":   connectionUUID,
-		"label":            label,
-		"enable":           enable,
+		"connectionUUID": connectionUUID,
+		"label":          label,
+		"enable":         enable,
 	}
 
 	taskTag, err := restClient.UpdateRecord(
@@ -98,5 +96,19 @@ func UpdateVMReplication(
 	taskTag.WaitTask(restClient, ctx)
 	tflog.Debug(ctx, fmt.Sprintf("TTRT Task Tag: %v\n", taskTag))
 
+	return nil
+}
+
+// Checks that source VM UUID wasn't altered during update.
+func ValidateReplicationSourceVMUUIDUnchanged(replicationUUID string, oldVMUUID string, newVMUUID string) diag.Diagnostic {
+	if oldVMUUID != newVMUUID {
+		return diag.NewErrorDiagnostic(
+			"Invalid replication source virtual machine UUID",
+			fmt.Sprintf(
+				" virtual machine and replication relationship is established at creation and cannot be changed, source UUID: %s, new VM UUID: %s, replication UUID: %s",
+				oldVMUUID, newVMUUID, replicationUUID,
+			),
+		)
+	}
 	return nil
 }

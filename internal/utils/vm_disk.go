@@ -114,92 +114,6 @@ func UpdateVMDisk(
 	return vmDisk, nil
 }
 
-func (vd *VMDisk) CreateOrUpdate(
-	vc *VM,
-	restClient RestClient,
-	ctx context.Context,
-) (bool, bool, string, error) {
-	changed := false
-	vm := GetVMByName(vc.VMName, restClient, true)
-	vmUUID := AnyToString((*vm)["uuid"])
-	vmDisks := AnyToListOfMap((*vm)["blockDevs"])
-
-	if vd.Size != nil {
-		existingDisk := vd.Get(vmDisks, ctx) // from HC3
-		desiredDisk := vd.BuildDiskPayload(vmUUID)
-
-		tflog.Debug(ctx, fmt.Sprintf("Desired disk: %v\n", desiredDisk))
-		tflog.Debug(ctx, fmt.Sprintf("Existing disk: %v\n", existingDisk))
-
-		if existingDisk != nil {
-			existingDiskSize := AnyToFloat64((*existingDisk)["capacity"]) / 1000 / 1000 / 1000
-			existingDiskSlot := AnyToInteger64((*existingDisk)["slot"])
-			existingDiskType := AnyToString((*existingDisk)["type"])
-			desiredDiskSize := AnyToFloat64(desiredDisk["capacity"]) / 1000 / 1000 / 1000
-			if existingDiskSize > desiredDiskSize {
-				return false, false, "", fmt.Errorf(
-					"disk of type '%s' on slot %d can only be expanded. Use a different slot or use a larger size. %v GB > %v GB",
-					existingDiskType, existingDiskSlot, existingDiskSize, desiredDiskSize,
-				)
-			}
-		}
-
-		if existingDisk != nil {
-			if isSuperset(*existingDisk, desiredDisk) {
-				return false, vc.WasRebooted(), "", nil
-			}
-
-			tflog.Debug(ctx, "Updating existing disk\n")
-			vd.UUID = vd.UpdateBlockDevice(vc, vmUUID, restClient, desiredDisk, *existingDisk, ctx)
-			changed = true
-		} else {
-			tflog.Debug(ctx, "Creating new disk\n")
-			vd.UUID = vd.CreateBlockDevice(restClient, desiredDisk, ctx)
-			changed = true
-		}
-	}
-
-	return changed, vc.WasRebooted(), vd.UUID, nil
-}
-
-func (vd *VMDisk) UpdateBlockDevice(
-	vc *VM,
-	vmUUID string,
-	restClient RestClient,
-	desiredDisk map[string]any,
-	existingDisk map[string]any,
-	ctx context.Context,
-) string {
-	// TODO: this will be a new resource in the future, for now we act like the VMs are always shut down
-	// vc.DoShutdownSteps(vmUUID, SHUTDOWN_TIMEOUT_SECONDS, restClient, ctx)
-
-	existingDiskUUID := AnyToString(existingDisk["uuid"])
-	taskTag, _ := restClient.UpdateRecord(
-		fmt.Sprintf("/rest/v1/VirDomainBlockDevice/%s", existingDiskUUID),
-		desiredDisk,
-		-1,
-		ctx,
-	)
-	taskTag.WaitTask(restClient, ctx)
-
-	return existingDiskUUID
-}
-
-func (vd *VMDisk) CreateBlockDevice(
-	restClient RestClient,
-	desiredDisk map[string]any,
-	ctx context.Context,
-) string {
-	taskTag, _, _ := restClient.CreateRecord(
-		"/rest/v1/VirDomainBlockDevice",
-		desiredDisk,
-		-1,
-	)
-	taskTag.WaitTask(restClient, ctx)
-
-	return taskTag.CreatedUUID
-}
-
 // TODO: this function might be useful when dealing with IDE_CDROM type disks: so for the future
 // nolint:unused
 func (vd *VMDisk) EnsureAbsend(
@@ -237,12 +151,10 @@ func (vd *VMDisk) EnsureAbsend(
 	return false, false, map[string]any{}
 }
 
-func (vd *VMDisk) BuildDiskPayload(vmUUID string) map[string]any {
+func (vd *VMDisk) BuildDiskPayload() map[string]any {
 	return map[string]any{
-		"virDomainUUID": vmUUID,
-		"type":          vd.Type,
-		"slot":          vd.Slot,
-		"capacity":      *vd.Size,
+		"type":     vd.Type,
+		"capacity": *vd.Size,
 	}
 }
 
@@ -289,12 +201,10 @@ func GetDiskByUUID(restClient RestClient, diskUUID string) *map[string]any {
 	return disk
 }
 
-func BuildDiskPayload(vmUUID string, diskType string, diskSlot int64, diskSizeGB float64) map[string]any {
+func BuildDiskPayload(diskType string, diskSizeGB float64) map[string]any {
 	return map[string]any{
-		"virDomainUUID": vmUUID,
-		"type":          diskType,
-		"slot":          diskSlot,
-		"capacity":      diskSizeGB * 1000 * 1000 * 1000, // GB to B
+		"type":     diskType,
+		"capacity": diskSizeGB * 1000 * 1000 * 1000, // GB to B
 	}
 }
 
@@ -390,6 +300,20 @@ func ValidateDiskSize(diskUUID string, oldSize float64, newSize float64) diag.Di
 			fmt.Sprintf(
 				" can only be expanded. Use a larger size. %v GB > %v GB: diskUUID=%s",
 				newSize, oldSize, diskUUID,
+			),
+		)
+	}
+	return nil
+}
+
+// Checks that source VM UUID wasn't altered during update.
+func ValidateDiskSourceVMUUIDUnchanged(diskUUID string, oldVMUUID string, newVMUUID string) diag.Diagnostic {
+	if oldVMUUID != newVMUUID {
+		return diag.NewErrorDiagnostic(
+			"Invalid disk source virtual machine UUID",
+			fmt.Sprintf(
+				" virtual machine and disk relationship is established at creation and cannot be changed, source UUID: %s, new VM UUID: %s, disk UUID: %s",
+				oldVMUUID, newVMUUID, diskUUID,
 			),
 		)
 	}

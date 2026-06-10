@@ -246,7 +246,6 @@ func (r *HypercoreVMReplicationResource) Update(ctx context.Context, req resourc
 
 	restClient := *r.client
 	replicationUUID := data.Id.ValueString()
-	vmUUID := data.VmUUID.ValueString()
 	connectionUUID := data.ConnectionUUID.ValueString()
 	label := data.Label.ValueString()
 
@@ -261,22 +260,42 @@ func (r *HypercoreVMReplicationResource) Update(ctx context.Context, req resourc
 			"Missing connection_uuid",
 			"Parameter 'connection_uuid' is required for updating a VM replication",
 		)
+		return
 	}
 
-	diag := utils.UpdateVMReplication(restClient, replicationUUID, vmUUID, connectionUUID, label, enable, ctx)
+	// Get replication before update
+	pReplication := utils.GetVMReplicationByUUID(restClient, replicationUUID)
+	if pReplication == nil {
+		msg := fmt.Sprintf("VM replication not found - replicationUUID=%s.", replicationUUID)
+		resp.Diagnostics.AddError("VM replication not found", msg)
+		return
+	}
+	oldHc3Replication := *pReplication
+
+	// Validate that source VM UUID hasn't changed (task 103 - replication source UUID cannot be changed after creation)
+	oldVMUUID := utils.AnyToString(oldHc3Replication["sourceDomainUUID"])
+	newVMUUID := data.VmUUID.ValueString()
+	diagReplicationSourceVMUUID := utils.ValidateReplicationSourceVMUUIDUnchanged(replicationUUID, oldVMUUID, newVMUUID)
+	if diagReplicationSourceVMUUID != nil {
+		resp.Diagnostics.AddError(diagReplicationSourceVMUUID.Summary(), diagReplicationSourceVMUUID.Detail())
+		return
+	}
+
+
+	diag := utils.UpdateVMReplication(restClient, replicationUUID, connectionUUID, label, enable, ctx)
 	if diag != nil {
 		resp.Diagnostics.AddWarning(diag.Summary(), diag.Detail())
 	}
 
 	// TODO: Check if HC3 matches TF
 	// Do not trust UpdateVMReplication made what we asked for. Read new power state from HC3.
-	pHc3Replication := utils.GetVMReplicationByUUID(restClient, replicationUUID)
-	if pHc3Replication == nil {
+	pReplication = utils.GetVMReplicationByUUID(restClient, replicationUUID)
+	if pReplication == nil {
 		msg := fmt.Sprintf("VM replication not found - replicationUUID=%s.", replicationUUID)
 		resp.Diagnostics.AddError("VM replication not found", msg)
 		return
 	}
-	newHc3Replication := *pHc3Replication
+	newHc3Replication := *pReplication
 
 	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreVMReplicationResource: replication_uuid=%s, replication=%v", replicationUUID, newHc3Replication))
 
