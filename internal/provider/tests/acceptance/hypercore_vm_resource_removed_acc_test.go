@@ -60,3 +60,58 @@ resource "hypercore_vm" "test" {
 }
 `, vmName)
 }
+
+// A disk deleted outside Terraform must also be dropped from state (issue #112 follow-up).
+func TestAccHypercoreDiskResource_RemovedOutsideTerraform(t *testing.T) {
+	vmName := "testtf-vm-disk-removed-outside"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccHypercoreDiskResourceRemovedConfig(vmName),
+				Check:  resource.TestCheckResourceAttr("hypercore_disk.test", "type", "VIRTIO_DISK"),
+			},
+			{
+				PreConfig:          func() { deleteDiskOfVM(t, vmName) },
+				Config:             testAccHypercoreDiskResourceRemovedConfig(vmName),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func deleteDiskOfVM(t *testing.T, vmName string) {
+	restClient := SetupRestClient()
+	vms := utils.GetVM(map[string]any{"name": vmName}, *restClient)
+	if len(vms) != 1 {
+		t.Fatalf("expected exactly one VM named %s, got %d", vmName, len(vms))
+	}
+	disks := utils.AnyToListOfMap(vms[0]["blockDevs"])
+	if len(disks) != 1 {
+		t.Fatalf("expected exactly one disk on VM %s, got %d", vmName, len(disks))
+	}
+	ctx := context.Background()
+	taskTag := restClient.DeleteRecord(fmt.Sprintf("/rest/v1/VirDomainBlockDevice/%s", utils.AnyToString(disks[0]["uuid"])), -1, ctx)
+	taskTag.WaitTask(*restClient, ctx)
+}
+
+func testAccHypercoreDiskResourceRemovedConfig(vmName string) string {
+	return fmt.Sprintf(`
+resource "hypercore_vm" "test" {
+  name              = %[1]q
+  description       = "testtf acceptance test VM, safe to delete"
+  tags              = ["testtf"] # with no tags, refresh reads back [""] and the plan never settles
+  vcpu              = 1
+  memory            = 512
+  affinity_strategy = {}
+}
+
+resource "hypercore_disk" "test" {
+  vm_uuid = hypercore_vm.test.id
+  type    = "VIRTIO_DISK"
+  size    = 1
+}
+`, vmName)
+}
