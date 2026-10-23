@@ -661,6 +661,16 @@ func (vc *VM) GetChangedParams(ctx context.Context, vmFromClient map[string]any)
 	return false, changedParams
 }
 
+// VMExists reports whether exactly one VM has this UUID. HyperCore answers a missing UUID
+// with HTTP 200 and an empty list (not 404); other failures still panic in ListRecords,
+// so a network error is never mistaken for "deleted" (which would plan a duplicate VM).
+func VMExists(uuid string, restClient RestClient) bool {
+	if uuid == "" {
+		return false
+	}
+	return len(restClient.ListRecords("/rest/v1/VirDomain/"+uuid, map[string]any{}, -1.0, false)) == 1
+}
+
 func GetOneVM(uuid string, restClient RestClient) map[string]any {
 	url := "/rest/v1/VirDomain/" + uuid
 	records := restClient.ListRecords(
