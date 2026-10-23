@@ -25,7 +25,9 @@ var NEEDED_ACTION_FOR_POWER_STATE = map[string]string{
 }
 
 func GetNeededActionForState(desiredState string, forceShutoff bool) string {
-	if forceShutoff {
+	// force_shutoff changes HOW a VM is turned off (STOP instead of an ACPI SHUTDOWN).
+	// It must not change the action for any other target state, or RUNNING would send STOP.
+	if forceShutoff && desiredState == "SHUTOFF" {
 		return "STOP"
 	}
 
