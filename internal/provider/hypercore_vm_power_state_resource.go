@@ -426,6 +426,22 @@ func (r *HypercoreVMPowerStateResource) Update(ctx context.Context, req resource
 
 	tflog.Info(ctx, fmt.Sprintf("TTRT HypercoreVMPowerStateResource: vm_uuid=%s, state=%s, action_performed=%s", vmUUID, hc3PowerState, actionType))
 
+	// Refresh the computed vm attribute, as Create does. Without it vm is unknown after apply,
+	// which Terraform rejects ("provider still indicated an unknown value") and which leaves
+	// callers reading the pre-change power_state.
+	pHc3VM, err := utils.GetOneVMWithError(vmUUID, restClient)
+	if err != nil {
+		resp.Diagnostics.AddError("VM not found", fmt.Sprintf("VM not found - vmUUID=%s", vmUUID))
+		return
+	}
+	vmModel := BuildHypercoreVMModelFromAPIData(*pHc3VM, &restClient, ctx)
+	vmObject, diagVM := ConvertVMModelToObject(ctx, vmModel)
+	if diagVM != nil {
+		resp.Diagnostics.AddError(diagVM.Summary(), diagVM.Detail())
+		return
+	}
+	data.Vm = vmObject
+
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
