@@ -70,6 +70,9 @@ jobs:
     timeout-minutes: 15
     env:
       CI_CONFIG_HC_IP205_dos: ${{ vars.CI_CONFIG_HC_IP205 }}
+      # SMB_PASSWORD lives in a secret, not the CI_CONFIG_HC_IP205 variable --
+      # GH variables are plaintext-visible to anyone with repo read access.
+      SMB_PASSWORD: ${{ secrets.CI_CONFIG_HC_IP205_SMB_PASSWORD }}
     strategy:
       fail-fast: false
       matrix:
