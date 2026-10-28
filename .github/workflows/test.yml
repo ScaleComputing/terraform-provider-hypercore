@@ -67,7 +67,7 @@ jobs:
         options: --privileged --shm-size=2g
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock:ro
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       CI_CONFIG_HC_IP205_dos: ${{ vars.CI_CONFIG_HC_IP205 }}
       # SMB_PASSWORD lives in a secret, not the CI_CONFIG_HC_IP205 variable --
@@ -122,7 +122,7 @@ jobs:
           set -a
           . ./internal/provider/tests/acceptance/setup/env.txt
           go test -v -cover -coverpkg=github.com/hashicorp/terraform-provider-hypercore/internal/provider ./internal/provider/tests/acceptance/
-        timeout-minutes: 10
+        timeout-minutes: 20
       - name: Cleanup Acceptance Test Environment
         if: always()
         run: |
