@@ -27,10 +27,17 @@ type EnvConfig struct {
 }
 
 const (
-	VirDomainEndpoint       = "/rest/v1/VirDomain/"
-	VirtualDiskEndpoint     = "/rest/v1/VirtualDisk/"
-	VirDomainActionEndpoint = "/rest/v1/VirDomain/action"
-	IsoEndpoint             = "/rest/v1/ISO"
+	VirDomainEndpoint         = "/rest/v1/VirDomain/"
+	VirtualDiskEndpoint       = "/rest/v1/VirtualDisk/"
+	VirDomainActionEndpoint   = "/rest/v1/VirDomain/action"
+	IsoEndpoint               = "/rest/v1/ISO"
+	VirDomainSnapshotEndpoint = "/rest/v1/VirDomainSnapshot"
+	// v1's VirtualDisk attach has a known off-by-one bug: it 400s with
+	// "Block Device does not exist in Snapshot undefined" whenever the
+	// cluster has exactly 1 VM snapshot (0 or >=2 both work). Keeping a
+	// floor of 2 permanent guard snapshots means normal test-driven
+	// snapshot churn can never land the count on exactly 1.
+	SnapshotFloor = 2
 )
 
 func LoadEnv() EnvConfig {
@@ -188,6 +195,34 @@ func PrepareEnv(host string, client *http.Client, env EnvConfig) {
 		log.Fatal("Acceptance test Boot order is incorrect on the test VM, should be disk followed by network interface")
 	} else {
 		fmt.Println("Acceptance test Boot order is in correct order")
+	}
+	EnsureSnapshotFloor(host, client, env)
+}
+
+// EnsureSnapshotFloor tops the cluster's VM-snapshot count up to SnapshotFloor
+// if it's currently below that. Idempotent: a cluster already at or above the
+// floor (including from a prior run's guard snapshots) is left untouched.
+func EnsureSnapshotFloor(host string, client *http.Client, env EnvConfig) {
+	url := fmt.Sprintf("%s%s", host, VirDomainSnapshotEndpoint)
+	_, body := SendHTTPRequest(client, "GET", url, nil)
+
+	var snapshots []map[string]interface{}
+	if err := json.Unmarshal(body, &snapshots); err != nil {
+		log.Fatal(err)
+	}
+
+	for i := len(snapshots); i < SnapshotFloor; i++ {
+		label := fmt.Sprintf("ci-vsd-attach-guard-%d", i+1)
+		fmt.Printf("Snapshot count %d is below the floor of %d -- creating guard snapshot %q\n", len(snapshots), SnapshotFloor, label)
+		data, err := json.Marshal(map[string]string{
+			"domainUUID": env.SourceVmUUID,
+			"label":      label,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		SendHTTPRequest(client, "POST", url, data)
+		time.Sleep(5 * time.Second)
 	}
 }
 
