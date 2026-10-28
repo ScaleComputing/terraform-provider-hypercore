@@ -318,6 +318,11 @@ func (r *HypercoreVMPowerStateResource) Read(ctx context.Context, req resource.R
 	vmUUID := data.VmUUID.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreVMPowerStateResource Read oldState vmUUID=%s\n", vmUUID))
 
+	if !utils.VMExists(vmUUID, restClient) {
+		// The VM is gone, so its power state is too.
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	pHc3VM, err := utils.GetOneVMWithError(vmUUID, restClient)
 	if err != nil {
 		resp.Diagnostics.AddError("VM not found", fmt.Sprintf("VM not found - vmUUID=%s", vmUUID))

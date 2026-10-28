@@ -436,6 +436,12 @@ func (r *HypercoreVMResource) Read(ctx context.Context, req resource.ReadRequest
 	restClient := *r.client
 	vm_uuid := data.Id.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreVMResource Read oldState vm_uuid=%s\n", vm_uuid))
+	if !utils.VMExists(vm_uuid, restClient) {
+		// The VM is gone (deleted outside Terraform): drop it from state so the plan
+		// recreates it, instead of failing every plan with "VM not found".
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	hc3_vm := utils.GetOneVM(vm_uuid, restClient)
 	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreVMResource Read vmhc3_vm=%s\n", hc3_vm))
 	hc3_vm_name := utils.AnyToString(hc3_vm["name"])
@@ -599,6 +605,10 @@ func (r *HypercoreVMResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	restClient := *r.client
 	vm_uuid := data.Id.ValueString()
+	if !utils.VMExists(vm_uuid, restClient) {
+		// Already gone (deleted outside Terraform): nothing to delete.
+		return
+	}
 	err := ShutdownVM(ctx, vm_uuid, &restClient)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to shutdown VM, got error: %s", err))

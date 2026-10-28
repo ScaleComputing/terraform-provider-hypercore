@@ -267,10 +267,15 @@ func (r *HypercoreDiskResource) Read(ctx context.Context, req resource.ReadReque
 	diskUUID := data.Id.ValueString()
 	tflog.Debug(ctx, fmt.Sprintf("TTRT HypercoreDiskResource Read oldState vmUUID=%s\n", vmUUID))
 
+	if diskUUID == "" {
+		// No ID yet: an empty UUID would list every block device in the cluster.
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	pDisk := utils.GetDiskByUUID(restClient, diskUUID)
 	if pDisk == nil {
-		msg := fmt.Sprintf("Disk not found - diskUUID=%s, vmUUID=%s.\n", diskUUID, vmUUID)
-		resp.Diagnostics.AddError("Disk not found\n", msg)
+		// Gone (deleted outside Terraform): drop from state so the plan recreates it.
+		resp.State.RemoveResource(ctx)
 		return
 	}
 	disk := *pDisk
