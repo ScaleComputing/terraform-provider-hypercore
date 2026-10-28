@@ -20,3 +20,9 @@ SOURCE_VM_NAME="integration-test-vm"
 SOURCE_NIC_UUID="0aa6dbde-e92a-4aa8-9f3a-d6261c3e53d0"
 SOURCE_DISK_UUID="ac8c3973-dbe6-4cec-9ddc-bb8fcf3bd649"
 ISO_NAME="testtf-iso.iso"
+
+# SMB_* below only need to be present (testAccPreCheck) except for
+# TestAccHypercoreVMResourceImport, which genuinely imports from this share.
+# 10.6.42.5 (azuresync/remotedc.local) is existing shared Indy-lab infra
+# hcds already uses for HC export/import on this network -- not something
+# we built. Export landed in exports/ci-terraform-fixture/ on 2026-10-28.
