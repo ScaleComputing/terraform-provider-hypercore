@@ -5,6 +5,8 @@ HC_VM_SHUTDOWN_TIMEOUT=30
 # test node on vfz31a (Indy lab) -- see ddemlow/hypercore-ci-fleet for the fleet this
 # node belongs to. env-205.txt (the original PUB5 config) is untouched; env.txt is a
 # symlink and should be repointed back to it once PUB5 returns.
+# (CI_CONFIG_HC_IP205's SMB_* fields restored 2026-10-28 -- required by
+# testAccPreCheck's presence check, unused by any of the 10 acceptance tests.)
 SOURCE_VM_UUID="06624cff-6193-4c9f-9dd2-8e0cb24e27fb"
 EXISTING_VDISK_UUID="3384d910-936a-4054-af1f-4b7ac80d7185"
 SOURCE_VM_NAME="integration-test-vm"
