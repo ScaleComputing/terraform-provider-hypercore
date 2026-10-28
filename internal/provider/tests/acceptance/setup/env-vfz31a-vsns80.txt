@@ -1,0 +1,30 @@
+HC_VM_SHUTDOWN_TIMEOUT=30
+
+# Temporary failover (2026-10-28): PUB5/XLab CI hardware (10.5.11.x) and its self-hosted
+# runner are unreachable. These UUIDs point at a fixture VM on vsns80, a nested vSNS
+# test node on vfz31a (Indy lab) -- see ddemlow/hypercore-ci-fleet for the fleet this
+# node belongs to. env-205.txt (the original PUB5 config) is untouched; env.txt is a
+# symlink and should be repointed back to it once PUB5 returns.
+# (CI_CONFIG_HC_IP205's SMB_* fields restored 2026-10-28 -- required by
+# testAccPreCheck's presence check, unused by any of the 10 acceptance tests.)
+#
+# Fixture resized 2026-10-28 to match TestAccHypercoreVMsDatasource_stopped's
+# hardcoded expectations: memory=4096MiB, 4x VIRTIO_DISK (slot 0 = 1.2GB).
+# TestAccHypercoreVMResourceImport still fails here -- it does a real SMB
+# import from 10.5.11.39 (XLab), which vfz31a's network cannot reach. Known
+# gap, not a fixture problem; the provider should return a clean error
+# instead of a nil-pointer panic on that failure (separate upstream issue).
+SOURCE_VM_UUID="06624cff-6193-4c9f-9dd2-8e0cb24e27fb"
+EXISTING_VDISK_UUID="bf235496-9ee0-4f30-9c2a-435a7fab7485"
+SOURCE_VM_NAME="integration-test-vm"
+SOURCE_NIC_UUID="0aa6dbde-e92a-4aa8-9f3a-d6261c3e53d0"
+SOURCE_DISK_UUID="ac8c3973-dbe6-4cec-9ddc-bb8fcf3bd649"
+ISO_NAME="testtf-iso.iso"
+
+# SMB_* below only need to be present (testAccPreCheck) except for
+# TestAccHypercoreVMResourceImport, which genuinely imports from this share.
+# 10.6.42.5 (azuresync/remotedc.local) is existing shared Indy-lab infra
+# hcds already uses for HC export/import on this network -- not something
+# we built. Export landed in exports/ci-terraform-fixture/ on 2026-10-28.
+# SMB_PASSWORD now comes from the CI_CONFIG_HC_IP205_SMB_PASSWORD secret
+# (set 2026-10-28), not this file or the CI_CONFIG_HC_IP205 variable.
