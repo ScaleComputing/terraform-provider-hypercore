@@ -7,6 +7,13 @@ HC_VM_SHUTDOWN_TIMEOUT=30
 # symlink and should be repointed back to it once PUB5 returns.
 # (CI_CONFIG_HC_IP205's SMB_* fields restored 2026-10-28 -- required by
 # testAccPreCheck's presence check, unused by any of the 10 acceptance tests.)
+#
+# Fixture resized 2026-10-28 to match TestAccHypercoreVMsDatasource_stopped's
+# hardcoded expectations: memory=4096MiB, 4x VIRTIO_DISK (slot 0 = 1.2GB).
+# TestAccHypercoreVMResourceImport still fails here -- it does a real SMB
+# import from 10.5.11.39 (XLab), which vfz31a's network cannot reach. Known
+# gap, not a fixture problem; the provider should return a clean error
+# instead of a nil-pointer panic on that failure (separate upstream issue).
 SOURCE_VM_UUID="06624cff-6193-4c9f-9dd2-8e0cb24e27fb"
 EXISTING_VDISK_UUID="3384d910-936a-4054-af1f-4b7ac80d7185"
 SOURCE_VM_NAME="integration-test-vm"
