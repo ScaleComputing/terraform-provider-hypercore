@@ -26,3 +26,5 @@ ISO_NAME="testtf-iso.iso"
 # 10.6.42.5 (azuresync/remotedc.local) is existing shared Indy-lab infra
 # hcds already uses for HC export/import on this network -- not something
 # we built. Export landed in exports/ci-terraform-fixture/ on 2026-10-28.
+# SMB_PASSWORD now comes from the CI_CONFIG_HC_IP205_SMB_PASSWORD secret
+# (set 2026-10-28), not this file or the CI_CONFIG_HC_IP205 variable.
