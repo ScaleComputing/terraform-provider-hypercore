@@ -15,7 +15,7 @@ HC_VM_SHUTDOWN_TIMEOUT=30
 # gap, not a fixture problem; the provider should return a clean error
 # instead of a nil-pointer panic on that failure (separate upstream issue).
 SOURCE_VM_UUID="06624cff-6193-4c9f-9dd2-8e0cb24e27fb"
-EXISTING_VDISK_UUID="3384d910-936a-4054-af1f-4b7ac80d7185"
+EXISTING_VDISK_UUID="bf235496-9ee0-4f30-9c2a-435a7fab7485"
 SOURCE_VM_NAME="integration-test-vm"
 SOURCE_NIC_UUID="0aa6dbde-e92a-4aa8-9f3a-d6261c3e53d0"
 SOURCE_DISK_UUID="ac8c3973-dbe6-4cec-9ddc-bb8fcf3bd649"
